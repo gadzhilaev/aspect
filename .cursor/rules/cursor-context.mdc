@@ -1,0 +1,15 @@
+---
+description: Полный контекст чатов и доков проекта из cursor-context
+alwaysApply: true
+---
+
+# Context repo
+
+При работе над этим проектом сначала смотри зеркало контекста:
+
+`/Users/gadzhilaev/cursor-context/projects/aspect/INDEX.md`
+
+Там лежат **полные** Cursor agent transcripts (`transcripts/**/*.jsonl`) и docs.
+Если нужно вспомнить прошлые решения / переписку / что уже делали — читай оттуда, не выдумывай.
+
+После существенной сессии контекст синхронизируется автоматически (hook / LaunchAgent) в private GitHub `cursor-context`.
