@@ -65,6 +65,11 @@ flutter:
     - assets/images/welcome_hero.png
     - assets/images/icon_key_insight.svg
     - assets/images/icon_risks_opportunities.svg
+    - assets/images/icon_risk.svg
+    - assets/images/nav/home.svg
+    - assets/images/nav/events.svg
+    - assets/images/nav/company.svg
+    - assets/images/nav/scenarios.svg
     - assets/data/cities_by_country.json
 
   fonts:
