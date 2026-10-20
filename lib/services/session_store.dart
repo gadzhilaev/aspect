@@ -1,6 +1,14 @@
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Extracts given name from Russian FIO: «Фамилия Имя [Отчество]».
+String firstNameFromFullName(String fullName) {
+  final parts = fullName.trim().split(RegExp(r'\s+'));
+  if (parts.isEmpty || parts.first.isEmpty) return 'Пользователь';
+  if (parts.length >= 2) return parts[1];
+  return parts.first;
+}
+
 class SessionStore {
   SessionStore._();
 
@@ -25,18 +33,17 @@ class SessionStore {
 
   static Future<String> userName() async {
     final prefs = await _prefs();
-    final name = prefs?.getString(_userNameKey)?.trim() ?? '';
-    return name.isEmpty ? 'Пользователь' : name;
+    final stored = prefs?.getString(_userNameKey)?.trim() ?? '';
+    return firstNameFromFullName(stored);
   }
 
   static Future<void> saveLogin({required String userName}) async {
     final prefs = await _prefs();
     if (prefs == null) return;
-    final parts = userName.trim().split(RegExp(r'\s+'));
-    final short =
-        parts.isEmpty || parts.first.isEmpty ? 'Пользователь' : parts.first;
+    final trimmed = userName.trim();
+    if (trimmed.isEmpty) return;
     await prefs.setBool(_loggedInKey, true);
-    await prefs.setString(_userNameKey, short);
+    await prefs.setString(_userNameKey, trimmed);
   }
 
   static Future<void> clear() async {
