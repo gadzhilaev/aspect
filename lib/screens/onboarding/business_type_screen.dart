@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/onboarding_data.dart';
+import '../../theme/design_scale.dart';
 import '../../widgets/onboarding_widgets.dart';
 
 class BusinessTypeScreen extends StatefulWidget {
@@ -74,6 +75,7 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final s = context.scale;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -83,7 +85,7 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
           title: 'Чем занимается бизнес?',
           subtitle: 'Выберите основное направление',
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24 * s),
         for (final option in _options) ...[
           SelectableOptionTile(
             title: option.$1,
@@ -91,14 +93,14 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
             selected: _selected == option.$1,
             onTap: () => setState(() => _selected = option.$1),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10 * s),
         ],
       ],
     );
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(30, 16, 30, 16),
+        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
         child: body,
       );
     }

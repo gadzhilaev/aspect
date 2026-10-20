@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/onboarding_data.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../theme/design_scale.dart';
 import '../../widgets/onboarding_widgets.dart';
 
 class CountriesScreen extends StatefulWidget {
@@ -27,8 +28,8 @@ class CountriesScreen extends StatefulWidget {
 
 class _CountriesScreenState extends State<CountriesScreen>
     with AutomaticKeepAliveClientMixin {
-  static const _borderColor = Color(0xFFE3E5E3);
-  static const _addBorder = Color(0xFFD92F37);
+  static const _borderColor = AppColors.border;
+  static const _addBorder = AppColors.brandRed;
 
   static const _allCountries = [
     'Россия',
@@ -98,13 +99,14 @@ class _CountriesScreenState extends State<CountriesScreen>
   }
 
   Widget _countryField(int index) {
+    final s = context.scale;
     return Container(
-      height: 50,
-      margin: EdgeInsets.only(top: index == 0 ? 8 : 12),
-      padding: const EdgeInsets.only(left: 16, right: 4),
+      height: 50 * s,
+      margin: EdgeInsets.only(top: index == 0 ? 8 * s : 12 * s),
+      padding: EdgeInsets.only(left: 16 * s, right: 4 * s),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16 * s),
         border: Border.all(color: _borderColor),
       ),
       child: Row(
@@ -114,18 +116,18 @@ class _CountriesScreenState extends State<CountriesScreen>
               _countries[index],
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.bold(14, color: AppColors.textInput),
+              style: AppTypography.bold(14 * s, color: AppColors.textInput),
             ),
           ),
           IconButton(
             onPressed: () => _removeCountry(index),
-            icon: const Icon(
+            icon: Icon(
               Icons.close,
-              size: 18,
+              size: 18 * s,
               color: AppColors.textSecondary,
             ),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            constraints: BoxConstraints(minWidth: 40 * s, minHeight: 40 * s),
           ),
         ],
       ),
@@ -133,15 +135,16 @@ class _CountriesScreenState extends State<CountriesScreen>
   }
 
   Widget _addCountryDropdown() {
+    final s = context.scale;
     final available = _available;
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: EdgeInsets.only(top: 12 * s),
       child: Container(
-        height: 50,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        height: 50 * s,
+        padding: EdgeInsets.symmetric(horizontal: 16 * s),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16 * s),
           border: Border.all(color: _addBorder),
         ),
         child: available.isEmpty
@@ -149,7 +152,7 @@ class _CountriesScreenState extends State<CountriesScreen>
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Все страны добавлены',
-                  style: AppTypography.regular(15, color: AppColors.textHint),
+                  style: AppTypography.regular(15 * s, color: AppColors.textHint),
                 ),
               )
             : DropdownButtonHideUnderline(
@@ -157,24 +160,22 @@ class _CountriesScreenState extends State<CountriesScreen>
                   isExpanded: true,
                   hint: Text(
                     '+ Добавить страну',
-                    style: AppTypography.regular(15, color: _addBorder),
+                    style: AppTypography.regular(15 * s, color: _addBorder),
                   ),
                   icon: const Icon(
                     Icons.keyboard_arrow_down_rounded,
                     color: _addBorder,
                   ),
-                  style: AppTypography.bold(14, color: AppColors.textInput),
+                  style: AppTypography.bold(14 * s, color: AppColors.textInput),
                   dropdownColor: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(16 * s),
                   items: [
                     for (final country in available)
                       DropdownMenuItem<String>(
                         value: country,
                         child: Text(
                           country,
-                          style: AppTypography.regular(
-                            15,
-                            color: AppColors.textPrimary,
+                          style: AppTypography.regular(15 * s, color: AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -191,6 +192,7 @@ class _CountriesScreenState extends State<CountriesScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final s = context.scale;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -201,10 +203,10 @@ class _CountriesScreenState extends State<CountriesScreen>
           subtitle:
               'Выберите страны, где вы работаете или планируете развиваться. Мы учтём рынки, валюты и события, важные для вашего бизнеса.',
         ),
-        const SizedBox(height: 28),
+        SizedBox(height: 28 * s),
         Text(
           'СТРАНЫ',
-          style: AppTypography.bold(12, color: AppColors.textSecondary),
+          style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _countries.length; i++) _countryField(i),
         _addCountryDropdown(),
@@ -213,7 +215,7 @@ class _CountriesScreenState extends State<CountriesScreen>
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(30, 16, 30, 16),
+        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
         child: body,
       );
     }

@@ -4,6 +4,7 @@ import '../../models/onboarding_data.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../theme/design_scale.dart';
 import '../../widgets/onboarding_widgets.dart';
 import '../main/main_shell.dart';
 
@@ -62,18 +63,14 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
     );
   }
 
-  String get _userName {
-    final parts = widget.data.fullName.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty || parts.first.isEmpty) return 'Пользователь';
-    return parts.first;
-  }
+  String get _userName => firstNameFromFullName(widget.data.fullName);
 
   Future<void> _finish() async {
     if (widget.onNext != null) {
       widget.onNext!();
       return;
     }
-    await SessionStore.saveLogin(userName: _userName);
+    await SessionStore.saveLogin(userName: widget.data.fullName);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
@@ -93,6 +90,7 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final s = context.scale;
     final data = widget.data;
 
     final body = Column(
@@ -103,12 +101,12 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
           showChrome: !widget.embedded,
           title: 'Проверьте профиль',
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24 * s),
         Text(
           'ВАША КОМПАНИЯ',
-          style: AppTypography.bold(12, color: AppColors.textSecondary),
+          style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10 * s),
         GestureDetector(
           onTap: () => _edit(0),
           behavior: HitTestBehavior.opaque,
@@ -119,7 +117,7 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
             industry: data.companyIndustry,
           ),
         ),
-        const SizedBox(height: 28),
+        SizedBox(height: 28 * s),
         _ProfileField(
           label: 'Ваша роль',
           value: _orDash(data.role),
@@ -170,7 +168,7 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(30, 16, 30, 16),
+        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
         child: body,
       );
     }
@@ -190,7 +188,7 @@ class _ProfileField extends StatelessWidget {
     this.onEdit,
   });
 
-  static const _borderColor = Color(0xFFE3E5E3);
+  static const _borderColor = AppColors.border;
 
   final String label;
   final String value;
@@ -198,14 +196,15 @@ class _ProfileField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: 12 * s),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+        padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 18 * s),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16 * s),
           border: Border.all(color: _borderColor),
         ),
         child: Column(
@@ -213,15 +212,15 @@ class _ProfileField extends StatelessWidget {
           children: [
             Text(
               label,
-              style: AppTypography.bold(12, color: AppColors.textSecondary),
+              style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10 * s),
             Text(
               value,
-              style: AppTypography.regular(15, color: AppColors.textPrimary),
+              style: AppTypography.regular(15 * s, color: AppColors.textPrimary),
             ),
             if (onEdit != null) ...[
-              const SizedBox(height: 10),
+              SizedBox(height: 10 * s),
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
@@ -230,8 +229,8 @@ class _ProfileField extends StatelessWidget {
                   child: Text(
                     'Изменить',
                     style: AppTypography.bold(
-                      12,
-                      color: const Color(0xFFD92F37),
+                      12 * s,
+                      color: AppColors.brandRed,
                     ),
                   ),
                 ),

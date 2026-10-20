@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/onboarding_data.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../theme/design_scale.dart';
 import '../../widgets/auth_widgets.dart';
 import '../../widgets/onboarding_widgets.dart';
 
@@ -28,7 +29,7 @@ class ProductsScreen extends StatefulWidget {
 
 class _ProductsScreenState extends State<ProductsScreen>
     with AutomaticKeepAliveClientMixin {
-  static const _borderColor = Color(0xFFE3E5E3);
+  static const _borderColor = AppColors.border;
   static const _markets = [
     'Россия и СНГ',
     'Россия',
@@ -45,7 +46,7 @@ class _ProductsScreenState extends State<ProductsScreen>
   final _addFocus = FocusNode();
   bool _adding = false;
 
-  static const _addBorder = Color(0xFFD92F37);
+  static const _addBorder = AppColors.brandRed;
 
   @override
   bool get wantKeepAlive => true;
@@ -113,13 +114,14 @@ class _ProductsScreenState extends State<ProductsScreen>
   }
 
   Widget _productField(int index) {
+    final s = context.scale;
     return Container(
-      height: 50,
-      margin: EdgeInsets.only(top: index == 0 ? 8 : 12),
-      padding: const EdgeInsets.only(left: 16, right: 4),
+      height: 50 * s,
+      margin: EdgeInsets.only(top: index == 0 ? 8 * s : 12 * s),
+      padding: EdgeInsets.only(left: 16 * s, right: 4 * s),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16 * s),
         border: Border.all(color: _borderColor),
       ),
       child: Row(
@@ -129,18 +131,18 @@ class _ProductsScreenState extends State<ProductsScreen>
               _products[index],
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.bold(14, color: AppColors.textInput),
+              style: AppTypography.bold(14 * s, color: AppColors.textInput),
             ),
           ),
           IconButton(
             onPressed: () => _removeProduct(index),
-            icon: const Icon(
+            icon: Icon(
               Icons.close,
-              size: 18,
+              size: 18 * s,
               color: AppColors.textSecondary,
             ),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            constraints: BoxConstraints(minWidth: 40 * s, minHeight: 40 * s),
           ),
         ],
       ),
@@ -148,15 +150,16 @@ class _ProductsScreenState extends State<ProductsScreen>
   }
 
   Widget _addProductField() {
+    final s = context.scale;
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: EdgeInsets.only(top: 12 * s),
       child: _adding
           ? Container(
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              height: 50 * s,
+              padding: EdgeInsets.symmetric(horizontal: 16 * s),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16 * s),
                 border: Border.all(color: _addBorder),
               ),
               alignment: Alignment.centerLeft,
@@ -167,13 +170,13 @@ class _ProductsScreenState extends State<ProductsScreen>
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _commitAdd(),
                 onEditingComplete: _commitAdd,
-                style: AppTypography.bold(14, color: AppColors.textInput),
+                style: AppTypography.bold(14 * s, color: AppColors.textInput),
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
                   hintText: 'Название продукта',
                   hintStyle: AppTypography.regular(
-                    14,
+                    14 * s,
                     color: AppColors.textHint,
                   ),
                   contentPadding: EdgeInsets.zero,
@@ -184,17 +187,17 @@ class _ProductsScreenState extends State<ProductsScreen>
               onTap: _startAdding,
               behavior: HitTestBehavior.opaque,
               child: Container(
-                height: 50,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                height: 50 * s,
+                padding: EdgeInsets.symmetric(horizontal: 16 * s),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(16 * s),
                   border: Border.all(color: _addBorder),
                 ),
                 alignment: Alignment.centerLeft,
                 child: Text(
                   '+ Добавить продукт',
-                  style: AppTypography.regular(15, color: _addBorder),
+                  style: AppTypography.regular(15 * s, color: _addBorder),
                 ),
               ),
             ),
@@ -204,6 +207,7 @@ class _ProductsScreenState extends State<ProductsScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final s = context.scale;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -214,14 +218,14 @@ class _ProductsScreenState extends State<ProductsScreen>
           subtitle:
               'Добавьте ключевые продукты. Так мы поймём, какие изменения важны.',
         ),
-        const SizedBox(height: 28),
+        SizedBox(height: 28 * s),
         Text(
           'ПРОДУКТЫ',
-          style: AppTypography.bold(12, color: AppColors.textSecondary),
+          style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _products.length; i++) _productField(i),
         _addProductField(),
-        const SizedBox(height: 28),
+        SizedBox(height: 28 * s),
         AuthDropdown(
           label: 'Основной рынок',
           value: _market,
@@ -233,7 +237,7 @@ class _ProductsScreenState extends State<ProductsScreen>
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(30, 16, 30, 16),
+        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
         child: body,
       );
     }

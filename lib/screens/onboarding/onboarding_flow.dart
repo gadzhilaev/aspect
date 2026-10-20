@@ -4,6 +4,7 @@ import '../../models/onboarding_data.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../theme/design_scale.dart';
 import '../../widgets/auth_widgets.dart';
 import '../../widgets/onboarding_widgets.dart';
 import '../main/main_shell.dart';
@@ -97,10 +98,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   }
 
   Future<void> _finish() async {
-    final parts = widget.data.fullName.trim().split(RegExp(r'\s+'));
-    final name =
-        parts.isEmpty || parts.first.isEmpty ? 'Пользователь' : parts.first;
-    await SessionStore.saveLogin(userName: name);
+    final fullName = widget.data.fullName.trim();
+    await SessionStore.saveLogin(userName: fullName);
+    final name = firstNameFromFullName(fullName);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
@@ -112,6 +112,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Scaffold(
       backgroundColor: AppColors.surface,
       resizeToAvoidBottomInset: true,
@@ -119,7 +120,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(30, 8, 30, 0),
+              padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 0),
               child: OnboardingChrome(
                 step: _step,
                 onBack: _back,
@@ -184,7 +185,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(30, 8, 30, 24),
+              padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 24 * s),
               child: Column(
                 children: [
                   AuthPrimaryButton(
@@ -192,13 +193,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                     onPressed: _onContinue,
                   ),
                   if (_footerHint != null) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12 * s),
                     Text(
                       _footerHint!,
                       textAlign: TextAlign.center,
                       style: AppTypography.regular(
-                        13,
-                        color: const Color(0xFF65717A),
+                        13 * s,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],

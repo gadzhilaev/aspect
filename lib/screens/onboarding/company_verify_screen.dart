@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/onboarding_data.dart';
 import '../../widgets/auth_widgets.dart';
+import '../../theme/design_scale.dart';
 import '../../widgets/onboarding_widgets.dart';
 
 class CompanyVerifyScreen extends StatefulWidget {
@@ -86,6 +87,7 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final s = context.scale;
     final data = widget.data;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -96,21 +98,21 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
           title: 'Проверьте данные',
           subtitle: 'Мы нашли открытую карточку компании',
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: 24 * s),
         CompanyCard(
           name: data.companyName,
           inn: data.companyInn,
           city: data.companyCity,
           industry: data.companyIndustry,
         ),
-        const SizedBox(height: 28),
+        SizedBox(height: 28 * s),
         AuthDropdown(
           label: 'Ваша роль',
           value: _role,
           items: _roles,
           onChanged: (value) => setState(() => _role = value),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20 * s),
         AuthDropdown(
           label: 'Размер компании',
           value: _size,
@@ -122,7 +124,7 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(30, 16, 30, 16),
+        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
         child: body,
       );
     }

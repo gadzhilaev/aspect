@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import '../theme/design_scale.dart';
 import 'auth_widgets.dart';
 
 class OnboardingProgress extends StatelessWidget {
@@ -16,18 +17,19 @@ class OnboardingProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(totalSteps, (index) {
         final isActive = index <= currentStep;
         final isCurrent = index == currentStep;
         return Container(
-          margin: EdgeInsets.only(right: index == totalSteps - 1 ? 0 : 4),
-          width: isCurrent ? 28 : 13,
-          height: 8,
+          margin: EdgeInsets.only(right: index == totalSteps - 1 ? 0 : 4 * s),
+          width: (isCurrent ? 28 : 13) * s,
+          height: 8 * s,
           decoration: BoxDecoration(
-            color: isActive ? AppColors.brandRed : const Color(0xFFD9D9D9),
-            borderRadius: BorderRadius.circular(4),
+            color: isActive ? AppColors.brandRed : AppColors.progressTrack,
+            borderRadius: BorderRadius.circular(4 * s),
           ),
         );
       }),
@@ -50,7 +52,7 @@ class OnboardingChrome extends StatelessWidget {
     return Column(
       children: [
         SizedBox(
-          height: 24,
+          height: context.ds(24),
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -79,21 +81,19 @@ class OnboardingTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           title,
-          style: AppTypography.medium(28, color: AppColors.textPrimary),
+          style: AppTypography.medium(28 * s, color: AppColors.textPrimary),
         ),
         if (subtitle != null) ...[
-          const SizedBox(height: 4),
+          SizedBox(height: 4 * s),
           Text(
             subtitle!,
-            style: AppTypography.regular(
-              14,
-              color: const Color(0xFF65717A),
-            ),
+            style: AppTypography.regular(14 * s, color: AppColors.textMuted),
           ),
         ],
       ],
@@ -119,15 +119,16 @@ class OnboardingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (showChrome) ...[
           OnboardingChrome(step: step, onBack: onBack),
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * s),
         ],
         const Center(child: AuthLogo()),
-        const SizedBox(height: 16),
+        SizedBox(height: 16 * s),
         OnboardingTitle(title: title, subtitle: subtitle),
       ],
     );
@@ -160,21 +161,20 @@ class CompanyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16 * s),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 16,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
+            blurRadius: 16 * s,
+            offset: Offset(0, 4 * s),
           ),
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 6,
-            spreadRadius: 0,
-            offset: const Offset(0, 1),
+            blurRadius: 6 * s,
+            offset: Offset(0, 1 * s),
           ),
         ],
       ),
@@ -182,14 +182,14 @@ class CompanyCard extends StatelessWidget {
         color: AppColors.surface,
         elevation: 0,
         shadowColor: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16 * s),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16 * s),
           child: Ink(
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16 * s),
               border: Border.all(
                 color: selected
                     ? AppColors.brandRed
@@ -202,40 +202,40 @@ class CompanyCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
-                    width: 3,
-                    margin: const EdgeInsets.fromLTRB(14, 14, 0, 14),
+                    width: 3 * s,
+                    margin: EdgeInsets.fromLTRB(14 * s, 14 * s, 0, 14 * s),
                     decoration: BoxDecoration(
                       color: AppColors.brandRed,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(2 * s),
                     ),
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 14, 16, 14),
+                      padding: EdgeInsets.fromLTRB(12 * s, 14 * s, 16 * s, 14 * s),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             name,
                             style: AppTypography.bold(
-                              16,
+                              16 * s,
                               color: AppColors.brandRed,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8 * s),
                           Text(
                             'ИНН $inn • $city',
                             style: AppTypography.regular(
-                              13,
-                              color: const Color(0xFF65717A),
+                              13 * s,
+                              color: AppColors.textMuted,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8 * s),
                           Text(
                             industry,
                             style: AppTypography.regular(
-                              13,
-                              color: const Color(0xFF65717A),
+                              13 * s,
+                              color: AppColors.textMuted,
                             ),
                           ),
                         ],
@@ -268,18 +268,19 @@ class SelectableOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Material(
       color: selected
           ? AppColors.brandRed.withValues(alpha: 0.06)
           : AppColors.surface,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(14 * s),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(14 * s),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+          padding: EdgeInsets.fromLTRB(16 * s, 14 * s, 14 * s, 14 * s),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14 * s),
             border: Border.all(
               color: selected
                   ? AppColors.brandRed
@@ -294,18 +295,17 @@ class SelectableOptionTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                      style: AppTypography.bold(
+                        16 * s,
                         color: AppColors.textInput,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2 * s),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF65717A),
+                      style: AppTypography.regular(
+                        13 * s,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -318,7 +318,7 @@ class SelectableOptionTile extends StatelessWidget {
                 color: selected
                     ? AppColors.brandRed
                     : AppColors.textSecondary,
-                size: 22,
+                size: 22 * s,
               ),
             ],
           ),
@@ -340,29 +340,29 @@ class RemovableChipList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Column(
       children: [
         for (var i = 0; i < items.length; i++) ...[
-          if (i > 0) const Divider(height: 1, color: AppColors.divider),
+          if (i > 0) Divider(height: 1 * s, color: AppColors.divider),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: EdgeInsets.symmetric(vertical: 12 * s),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     items[i],
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                    style: AppTypography.bold(
+                      16 * s,
                       color: AppColors.textInput,
                     ),
                   ),
                 ),
                 GestureDetector(
                   onTap: () => onRemove(i),
-                  child: const Icon(
+                  child: Icon(
                     Icons.close,
-                    size: 18,
+                    size: 18 * s,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -387,6 +387,7 @@ class AddLinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Align(
       alignment: Alignment.centerLeft,
       child: TextButton(
@@ -399,10 +400,7 @@ class AddLinkButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppTypography.bold(15 * s, color: AppColors.brandRed),
         ),
       ),
     );
@@ -425,6 +423,7 @@ class OnboardingScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -432,12 +431,12 @@ class OnboardingScaffold extends StatelessWidget {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(30, 8, 30, 16),
+                padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 16 * s),
                 child: body,
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(30, 8, 30, 24),
+              padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 24 * s),
               child: Column(
                 children: [
                   AuthPrimaryButton(
@@ -445,13 +444,13 @@ class OnboardingScaffold extends StatelessWidget {
                     onPressed: onContinue,
                   ),
                   if (footerHint != null) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12 * s),
                     Text(
                       footerHint!,
                       textAlign: TextAlign.center,
                       style: AppTypography.regular(
-                        13,
-                        color: const Color(0xFF65717A),
+                        13 * s,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],

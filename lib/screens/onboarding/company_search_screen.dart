@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/onboarding_data.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../theme/design_scale.dart';
 import '../../widgets/auth_widgets.dart';
 import '../../widgets/onboarding_widgets.dart';
 
@@ -111,6 +112,7 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final s = context.scale;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -121,7 +123,7 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
           subtitle:
               'Найдите компанию по названию или ИНН. Мы подставим открытые данные для проверки.',
         ),
-        const SizedBox(height: 32),
+        SizedBox(height: 32 * s),
         AuthTextField(
           label: 'Название или ИНН',
           controller: _queryController,
@@ -134,18 +136,18 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
           suffix: GestureDetector(
             onTap: () => _runSearch(),
             behavior: HitTestBehavior.opaque,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 2 * s, vertical: 8 * s),
               child: Icon(
                 Icons.search,
                 color: AppColors.textSecondary,
-                size: 20,
+                size: 20 * s,
               ),
             ),
           ),
         ),
         if (_showResult) ...[
-          const SizedBox(height: 20),
+          SizedBox(height: 20 * s),
           CompanyCard(
             name: _mockName,
             inn: _mockInn,
@@ -158,13 +160,13 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
             },
           ),
         ],
-        const SizedBox(height: 16),
+        SizedBox(height: 16 * s),
         Align(
           alignment: Alignment.centerLeft,
           child: Text.rich(
             TextSpan(
               style: AppTypography.medium(
-                12,
+                12 * s,
                 color: AppColors.textSecondary,
               ),
               children: [
@@ -177,7 +179,7 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
                     child: Text(
                       'Добавить вручную',
                       style: AppTypography.medium(
-                        12,
+                        12 * s,
                         color: AppColors.brandRed,
                       ),
                     ),
@@ -192,7 +194,7 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(30, 16, 30, 16),
+        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
         child: body,
       );
     }
