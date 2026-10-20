@@ -1,44 +1,43 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
-import '../../widgets/main_widgets.dart';
+import '../../theme/app_typography.dart';
+import '../../theme/design_scale.dart';
 
 class ScenariosTab extends StatelessWidget {
   const ScenariosTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: EdgeInsets.fromLTRB(
+        AppColors.screenPadding * s,
+        AppColors.screenPadding * s,
+        AppColors.screenPadding * s,
+        24 * s,
+      ),
       children: [
-        const AspectBrandHeader(),
-        const SizedBox(height: 18),
-        const Text(
+        Text(
           'Сценарии',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-            letterSpacing: -0.4,
-            height: 1.15,
-          ),
+          style: AppTypography.bold(28 * s, color: AppColors.textPrimary)
+              .copyWith(letterSpacing: -0.4, height: 1.15),
         ),
-        const SizedBox(height: 8),
-        const Text(
+        SizedBox(height: 8 * s),
+        Text(
           'Диалоги по важным событиям',
-          style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF65717A),
-          ),
+          style: AppTypography.regular(14 * s, color: AppColors.textMuted),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18 * s),
         TextField(
+          style: AppTypography.regular(15 * s, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: 'Поиск по событиям',
-            hintStyle: const TextStyle(color: AppColors.textHint),
-            suffixIcon: const Icon(
+            hintStyle: AppTypography.regular(15 * s, color: AppColors.textHint),
+            suffixIcon: Icon(
               Icons.search,
               color: AppColors.textSecondary,
+              size: 22 * s,
             ),
             enabledBorder: const UnderlineInputBorder(
               borderSide: BorderSide(color: AppColors.divider),
@@ -48,7 +47,7 @@ class ScenariosTab extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12 * s),
         const _ScenarioRow(
           accent: AppColors.brandRed,
           title: 'Китай ограничивает экспорт электроники',
@@ -57,13 +56,13 @@ class ScenariosTab extends StatelessWidget {
           badge: 1,
         ),
         const _ScenarioRow(
-          accent: Color(0xFF7A18DC),
+          accent: AppColors.impactPurple,
           title: 'Курс CNY вырос на 1,8% за неделю',
           subtitle: 'Аспект: оценил влияние на покупки',
           time: 'Вчера',
         ),
         const _ScenarioRow(
-          accent: Color(0xFF0B8A6A),
+          accent: AppColors.impactGreen,
           title: 'Спрос на электронику в Казахстане растет',
           subtitle: 'Аспект: Возможное окно для роста',
           time: 'Пн',
@@ -90,22 +89,23 @@ class _ScenarioRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: EdgeInsets.symmetric(vertical: 14 * s),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  width: 3,
+                  width: 3 * s,
                   decoration: BoxDecoration(
                     color: accent,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(2 * s),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12 * s),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,40 +116,38 @@ class _ScenarioRow extends StatelessWidget {
                           Expanded(
                             child: Text(
                               title,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                              style: AppTypography.bold(
+                                15 * s,
                                 color: AppColors.textInput,
-                                height: 1.25,
-                              ),
+                              ).copyWith(height: 1.25),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8 * s),
                           Text(
                             time,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF65717A),
+                            style: AppTypography.regular(
+                              12 * s,
+                              color: AppColors.textMuted,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4 * s),
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               subtitle,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF65717A),
+                              style: AppTypography.regular(
+                                13 * s,
+                                color: AppColors.textMuted,
                               ),
                             ),
                           ),
                           if (badge != null)
                             Container(
-                              width: 18,
-                              height: 18,
+                              width: 18 * s,
+                              height: 18 * s,
                               alignment: Alignment.center,
                               decoration: const BoxDecoration(
                                 color: AppColors.brandRed,
@@ -157,9 +155,8 @@ class _ScenarioRow extends StatelessWidget {
                               ),
                               child: Text(
                                 '$badge',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                                style: AppTypography.bold(
+                                  11 * s,
                                   color: Colors.white,
                                 ),
                               ),
@@ -173,7 +170,7 @@ class _ScenarioRow extends StatelessWidget {
             ),
           ),
         ),
-        const Divider(height: 1, color: AppColors.divider),
+        Divider(height: 1 * s, color: AppColors.divider),
       ],
     );
   }

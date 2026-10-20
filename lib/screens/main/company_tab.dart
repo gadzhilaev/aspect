@@ -2,34 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../theme/app_colors.dart';
-import '../../widgets/main_widgets.dart';
+import '../../theme/app_typography.dart';
+import '../../theme/design_scale.dart';
 
 class CompanyTab extends StatelessWidget {
   const CompanyTab({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: EdgeInsets.fromLTRB(
+        AppColors.screenPadding * s,
+        AppColors.screenPadding * s,
+        AppColors.screenPadding * s,
+        24 * s,
+      ),
       children: [
-        const AspectBrandHeader(dateText: '12 октября 2026 г'),
-        const SizedBox(height: 18),
-        const Text(
+        Text(
           'Ваша компания',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-            letterSpacing: -0.4,
-            height: 1.15,
-          ),
+          style: AppTypography.bold(28 * s, color: AppColors.textPrimary)
+              .copyWith(letterSpacing: -0.4, height: 1.15),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: 18 * s),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16 * s),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(18 * s),
             border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
           ),
           child: Column(
@@ -38,27 +38,26 @@ class CompanyTab extends StatelessWidget {
                 children: [
                   SvgPicture.asset(
                     'assets/images/welcome_logo.svg',
-                    height: 28,
+                    height: 28 * s,
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
+                  SizedBox(width: 12 * s),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'ООО «СеверПром»',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
+                          style: AppTypography.bold(
+                            17 * s,
                             color: AppColors.textInput,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        SizedBox(height: 2 * s),
                         Text(
                           'Промышленное производство',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF68707C),
+                          style: AppTypography.regular(
+                            13 * s,
+                            color: AppColors.textCaption,
                           ),
                         ),
                       ],
@@ -66,38 +65,34 @@ class CompanyTab extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              const Divider(height: 1, color: AppColors.divider),
-              const SizedBox(height: 12),
-              const Align(
+              SizedBox(height: 14 * s),
+              Divider(height: 1 * s, color: AppColors.divider),
+              SizedBox(height: 12 * s),
+              Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Средняя компания · 500–1 000 сотрудников',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF8A919B),
+                  style: AppTypography.regular(
+                    13 * s,
+                    color: AppColors.textTertiary,
                   ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        const Text(
+        SizedBox(height: 24 * s),
+        Text(
           'Ваш контекст',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textSecondary,
-          ),
+          style: AppTypography.bold(16 * s, color: AppColors.textSecondary),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12 * s),
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
+          mainAxisSpacing: 10 * s,
+          crossAxisSpacing: 10 * s,
           childAspectRatio: 1.15,
           children: const [
             _BrandTile(),
@@ -128,17 +123,18 @@ class _BrandTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF7A18DC),
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.impactPurple,
+        borderRadius: BorderRadius.circular(18 * s),
       ),
       child: Center(
         child: Opacity(
           opacity: 0.35,
           child: SvgPicture.asset(
             'assets/images/welcome_logo.svg',
-            height: 56,
+            height: 56 * s,
             colorFilter: const ColorFilter.mode(
               Colors.white,
               BlendMode.srcIn,
@@ -163,13 +159,15 @@ class _ContextTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     final fg = dark ? Colors.white : AppColors.textInput;
-    final sub = dark ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF65717A);
+    final sub =
+        dark ? Colors.white.withValues(alpha: 0.85) : AppColors.textMuted;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14 * s),
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF7A18DC) : AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        color: dark ? AppColors.impactPurple : AppColors.surface,
+        borderRadius: BorderRadius.circular(18 * s),
         border: dark
             ? null
             : Border.all(color: Colors.black.withValues(alpha: 0.08)),
@@ -181,30 +179,21 @@ class _ContextTile extends StatelessWidget {
             alignment: Alignment.topRight,
             child: Icon(
               Icons.north_east,
-              size: 16,
+              size: 16 * s,
               color: dark ? Colors.white : AppColors.textSecondary,
             ),
           ),
           const Spacer(),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: sub,
-            ),
+            style: AppTypography.medium(13 * s, color: sub),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4 * s),
           Text(
             value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: fg,
-              height: 1.25,
-            ),
+            style: AppTypography.bold(14 * s, color: fg).copyWith(height: 1.25),
           ),
         ],
       ),

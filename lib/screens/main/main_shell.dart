@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../theme/app_colors.dart';
+import '../../widgets/main_widgets.dart';
 import 'company_tab.dart';
 import 'events_tab.dart';
 import 'overview_tab.dart';
@@ -35,6 +37,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     final pages = [
       OverviewTab(userName: widget.userName),
       const EventsTab(),
@@ -45,9 +48,25 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
-        child: IndexedStack(
-          index: _index,
-          children: pages,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppColors.screenPadding * s,
+                8 * s,
+                AppColors.screenPadding * s,
+                0,
+              ),
+              child: AspectBrandHeader(dateText: formatOverviewDate()),
+            ),
+            Expanded(
+              child: IndexedStack(
+                index: _index,
+                children: pages,
+              ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: Container(
@@ -60,29 +79,29 @@ class _MainShellState extends State<MainShell> {
         child: SafeArea(
           top: false,
           child: SizedBox(
-            height: 62,
+            height: 64 * s,
             child: Row(
               children: [
                 _NavItem(
-                  icon: Icons.grid_view_rounded,
+                  asset: 'assets/images/nav/home.svg',
                   label: 'Обзор',
                   selected: _index == 0,
                   onTap: () => setState(() => _index = 0),
                 ),
                 _NavItem(
-                  icon: Icons.bolt_rounded,
+                  asset: 'assets/images/nav/events.svg',
                   label: 'События',
                   selected: _index == 1,
                   onTap: () => setState(() => _index = 1),
                 ),
                 _NavItem(
-                  icon: Icons.apartment_rounded,
+                  asset: 'assets/images/nav/company.svg',
                   label: 'Компания',
                   selected: _index == 2,
                   onTap: () => setState(() => _index = 2),
                 ),
                 _NavItem(
-                  icon: Icons.account_tree_rounded,
+                  asset: 'assets/images/nav/scenarios.svg',
                   label: 'Сценарии',
                   selected: _index == 3,
                   onTap: () => setState(() => _index = 3),
@@ -98,20 +117,21 @@ class _MainShellState extends State<MainShell> {
 
 class _NavItem extends StatelessWidget {
   const _NavItem({
-    required this.icon,
+    required this.asset,
     required this.label,
     required this.selected,
     required this.onTap,
   });
 
-  final IconData icon;
+  final String asset;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.brandRed : const Color(0xFF757575);
+    final s = context.scale;
+    final color = selected ? AppColors.brandRed : AppColors.navInactive;
 
     return Expanded(
       child: InkWell(
@@ -119,12 +139,17 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 4),
+            SvgPicture.asset(
+              asset,
+              width: 18 * s,
+              height: 20 * s,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            ),
+            SizedBox(height: 4 * s),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 11 * s,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: color,
               ),

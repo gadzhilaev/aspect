@@ -1,86 +1,108 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
+import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
 
 class OverviewTab extends StatelessWidget {
-  const OverviewTab({super.key, this.userName = 'Магомед'});
+  const OverviewTab({super.key, this.userName = 'Пользователь'});
 
   final String userName;
 
   @override
   Widget build(BuildContext context) {
+    final s = designScale(context);
+    final chipH = 70 * s;
+    const hPad = AppColors.screenPadding;
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: EdgeInsets.only(
+        top: AppColors.screenPadding,
+        bottom: 24 * s,
+      ),
       children: [
-        const AspectBrandHeader(dateText: '12 октября 2026 г'),
-        const SizedBox(height: 18),
-        Text(
-          'Доброе утро, $userName',
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-            letterSpacing: -0.4,
-            height: 1.15,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: hPad),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Доброе утро, $userName',
+                style: AppTypography.medium(
+                  24.83 * s,
+                  color: AppColors.textInput,
+                ),
+              ),
+              SizedBox(height: 18 * s),
+            ],
           ),
         ),
-        const SizedBox(height: 18),
         SizedBox(
-          height: 88,
+          height: chipH,
           child: ListView(
             scrollDirection: Axis.horizontal,
-            children: const [
-              CurrencyChipCard(
+            padding: const EdgeInsets.only(left: hPad),
+            children: [
+              const CurrencyChipCard(
                 code: 'CNY',
                 country: 'Китай',
                 rate: '12,75 ₽',
               ),
-              SizedBox(width: 10),
-              CurrencyChipCard(
+              SizedBox(width: 9 * s),
+              const CurrencyChipCard(
                 code: '10 AMD',
                 country: 'Армения',
                 rate: '2,36 ₽',
               ),
-              SizedBox(width: 10),
-              CurrencyChipCard(
+              SizedBox(width: 9 * s),
+              const CurrencyChipCard(
                 code: 'KRW',
                 country: 'Южная Корея',
                 rate: '6,36 ₽',
               ),
+              const SizedBox(width: hPad),
             ],
           ),
         ),
-        const SizedBox(height: 18),
-        const EventSignalCard(
-          level: ImpactLevel.high,
-          meta: 'Высокое влияние · 08:24',
-          title: 'Китай ограничивает экспорт электроники',
-          contextText:
-              'Почему вам: Китай указан как страна поставки электронных компонентов',
-          warning: 'Риск роста себестоимости и переноса сроков поставки',
-          actionLabel: 'Открыть влияние',
-        ),
-        const SizedBox(height: 22),
-        const Text(
-          'На контроле',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: hPad),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 20 * s),
+              const EventSignalCard(
+                level: ImpactLevel.high,
+                meta: 'Высокое влияние · 08:24',
+                title: 'Китай ограничивает экспорт электроники',
+                contextLead: 'Почему вам:',
+                contextBody:
+                    'Китай указан как страна поставки электронных компонентов',
+                warning:
+                    'Риск роста себестоимости и переноса сроков поставки',
+                actionLabel: 'Открыть влияние',
+              ),
+              SizedBox(height: 30 * s),
+              Text(
+                'На контроле',
+                style: AppTypography.bold(
+                  17.09 * s,
+                  color: AppColors.textInput,
+                ),
+              ),
+              SizedBox(height: 14 * s),
+              const MonitorTile(
+                dotColor: AppColors.impactPurple,
+                title: 'Курс CNY вырос на 1,8% за неделю',
+                subtitle: 'Валюта используется в расчетах с поставщиками',
+              ),
+              SizedBox(height: 10 * s),
+              const MonitorTile(
+                dotColor: AppColors.impactGreen,
+                title: 'Спрос на электронику в Казахстане растет',
+                subtitle: 'Валюта используется в расчетах с поставщиками',
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 12),
-        const MonitorTile(
-          dotColor: Color(0xFF7A18DC),
-          title: 'Курс CNY вырос на 1,8% за неделю',
-          subtitle: 'Валюта используется в расчетах с поставщиками',
-        ),
-        const SizedBox(height: 10),
-        const MonitorTile(
-          dotColor: Color(0xFF0B8A6A),
-          title: 'Спрос на электронику в Казахстане растет',
-          subtitle: 'Валюта используется в расчетах с поставщиками',
         ),
       ],
     );

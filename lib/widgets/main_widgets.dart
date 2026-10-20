@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
+import '../theme/design_scale.dart';
+
+export '../theme/design_scale.dart';
 
 class AspectBrandHeader extends StatelessWidget {
   const AspectBrandHeader({
@@ -20,33 +24,50 @@ class AspectBrandHeader extends StatelessWidget {
           children: [
             SvgPicture.asset(
               'assets/images/welcome_logo.svg',
-              height: 22,
+              height: ds(context, 24),
             ),
-            const SizedBox(width: 8),
-            const Text(
+            SizedBox(width: ds(context, 8)),
+            Text(
               'АСПЕКТ',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
+              style: AppTypography.medium(
+                ds(context, 18.26),
                 color: AppColors.brandRed,
               ),
             ),
           ],
         ),
         if (dateText != null) ...[
-          const SizedBox(height: 6),
+          SizedBox(height: ds(context, 6)),
           Text(
             dateText!,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF65717A),
+            style: AppTypography.regular(
+              ds(context, 13),
+              color: AppColors.textMuted,
             ),
           ),
         ],
       ],
     );
   }
+}
+
+String formatOverviewDate([DateTime? date]) {
+  const months = [
+    'января',
+    'февраля',
+    'марта',
+    'апреля',
+    'мая',
+    'июня',
+    'июля',
+    'августа',
+    'сентября',
+    'октября',
+    'ноября',
+    'декабря',
+  ];
+  final d = date ?? DateTime.now();
+  return '${d.day} ${months[d.month - 1]} ${d.year} г';
 }
 
 enum ImpactLevel { high, medium, opportunity }
@@ -57,9 +78,9 @@ class ImpactColors {
       case ImpactLevel.high:
         return AppColors.brandRed;
       case ImpactLevel.medium:
-        return const Color(0xFF7A18DC);
+        return AppColors.impactPurple;
       case ImpactLevel.opportunity:
-        return const Color(0xFF0B8A6A);
+        return AppColors.impactGreen;
     }
   }
 }
@@ -70,7 +91,8 @@ class EventSignalCard extends StatelessWidget {
     required this.level,
     required this.meta,
     required this.title,
-    required this.contextText,
+    required this.contextLead,
+    required this.contextBody,
     this.warning,
     required this.actionLabel,
   });
@@ -78,113 +100,162 @@ class EventSignalCard extends StatelessWidget {
   final ImpactLevel level;
   final String meta;
   final String title;
-  final String contextText;
+  final String contextLead;
+  final String contextBody;
   final String? warning;
   final String actionLabel;
 
   @override
   Widget build(BuildContext context) {
     final accent = ImpactColors.accent(level);
+    final s = designScale(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+        borderRadius: BorderRadius.circular(16 * s),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 16 * s,
+            spreadRadius: 0,
+            offset: Offset(0, 4 * s),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 6 * s,
+            spreadRadius: 0,
+            offset: Offset(0, 1 * s),
+          ),
+        ],
       ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 3,
-              margin: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      child: Material(
+        color: AppColors.surface,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(16 * s),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16 * s),
+            border: Border.all(
+              color: const Color(0x3D000000),
+              width: 0.1,
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      meta,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: accent,
-                      ),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 3 * s,
+                  margin: EdgeInsets.fromLTRB(14 * s, 14 * s, 0, 14 * s),
+                  decoration: BoxDecoration(
+                    color: accent,
+                    borderRadius: BorderRadius.circular(2 * s),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      12 * s,
+                      14 * s,
+                      16 * s,
+                      14 * s,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textInput,
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      contextText,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        height: 1.35,
-                        color: Color(0xFF65717A),
-                      ),
-                    ),
-                    if (warning != null) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3F2),
-                          borderRadius: BorderRadius.circular(10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          meta,
+                          style: AppTypography.medium(
+                            11 * s,
+                            color: accent,
+                          ),
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 18,
-                              color: accent,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                warning!,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  height: 1.35,
-                                  color: accent,
-                                  fontWeight: FontWeight.w500,
+                        SizedBox(height: 2 * s),
+                        Text(
+                          title,
+                          style: AppTypography.bold(
+                            14.3 * s,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 10 * s),
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: contextLead,
+                                style: AppTypography.bold(
+                                  11 * s,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
-                            ),
-                          ],
+                              TextSpan(
+                                text: ' $contextBody',
+                                style: AppTypography.medium(
+                                  11 * s,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    Text(
-                      actionLabel,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: accent,
-                        decoration: TextDecoration.underline,
-                        decorationColor: accent,
-                      ),
+                        if (warning != null) ...[
+                          SizedBox(height: 10 * s),
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10 * s,
+                              vertical: 10 * s,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.warningBg,
+                              borderRadius: BorderRadius.circular(10 * s),
+                              border: Border.all(
+                                color: AppColors.warningBorder,
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/images/icon_risk.svg',
+                                  width: 23 * s,
+                                  height: 23 * s,
+                                ),
+                                SizedBox(width: 8 * s),
+                                Expanded(
+                                  child: Text(
+                                    warning!,
+                                    style: AppTypography.medium(
+                                      11 * s,
+                                      color: accent,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        SizedBox(height: 10 * s),
+                        Text(
+                          actionLabel,
+                          style: AppTypography.medium(
+                            13 * s,
+                            color: accent,
+                          ).copyWith(
+                            decoration: TextDecoration.underline,
+                            decorationColor: accent,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -205,43 +276,55 @@ class CurrencyChipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = designScale(context);
     return Container(
-      width: 148,
-      height: 88,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      width: 115 * s,
+      height: 70 * s,
+      padding: EdgeInsets.fromLTRB(10 * s, 10 * s, 8 * s, 10 * s),
       decoration: BoxDecoration(
         color: AppColors.brandRed,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16 * s),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          Text(
-            '$code $country',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              height: 1.15,
-              color: Colors.white,
+          Align(
+            alignment: Alignment.topLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  code,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.medium(14.67 * s, color: Colors.white),
+                ),
+                Text(
+                  country,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.regular(9.03 * s, color: Colors.white),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              rate,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                height: 1.15,
-                color: AppColors.textInput,
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: 8 * s,
+                vertical: 5 * s,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20 * s),
+              ),
+              child: Text(
+                rate,
+                style: AppTypography.medium(
+                  8.78 * s,
+                  color: AppColors.brandRed,
+                ),
               ),
             ),
           ),
@@ -257,60 +340,78 @@ class MonitorTile extends StatelessWidget {
     required this.dotColor,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   final Color dotColor;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 5),
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: dotColor,
-              shape: BoxShape.circle,
-            ),
+    final s = designScale(context);
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(14 * s),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14 * s),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14 * s),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 14 * s,
+              vertical: 12 * s,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textInput,
-                    height: 1.25,
+                Container(
+                  width: 8 * s,
+                  height: 8 * s,
+                  decoration: BoxDecoration(
+                    color: dotColor,
+                    shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF65717A),
-                    height: 1.3,
+                SizedBox(width: 10 * s),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTypography.bold(
+                          12.7 * s,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 6 * s),
+                      Text(
+                        subtitle,
+                        style: AppTypography.medium(
+                          9.77 * s,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                SizedBox(width: 8 * s),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22 * s,
+                  color: AppColors.textMuted,
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
