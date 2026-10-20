@@ -29,11 +29,19 @@ class AspectApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: AppTypography.family,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.brandRed,
+        // Exact brand palette — avoid ColorScheme.fromSeed (it boosts vibrancy).
+        colorScheme: const ColorScheme.light(
           primary: AppColors.brandRed,
+          onPrimary: Colors.white,
+          secondary: AppColors.brandRed,
+          onSecondary: Colors.white,
+          surface: AppColors.surface,
+          onSurface: AppColors.textPrimary,
+          error: AppColors.brandRed,
+          onError: Colors.white,
         ),
-        scaffoldBackgroundColor: AppColors.brandRed,
+        scaffoldBackgroundColor: AppColors.surface,
+        primaryColor: AppColors.brandRed,
       ),
       home: const SplashScreen(),
     );
