@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../services/session_store.dart';
 import '../theme/app_colors.dart';
+import '../theme/design_scale.dart';
 import '../widgets/auth_widgets.dart';
 import 'main/main_shell.dart';
 import 'register_screen.dart';
@@ -49,10 +50,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     final raw = _nameController.text.trim();
-    final parts = raw.split(RegExp(r'\s+'));
-    final name =
-        parts.isEmpty || parts.first.isEmpty ? 'Пользователь' : parts.first;
-    await SessionStore.saveLogin(userName: name);
+    await SessionStore.saveLogin(userName: raw);
+    final name = firstNameFromFullName(raw);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
@@ -64,6 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(30, 8, 30, 24),
+                padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 24 * s),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -79,20 +79,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       alignment: Alignment.centerLeft,
                       child: AuthBackButton(),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12 * s),
                     const Center(child: AuthLogo()),
-                    const SizedBox(height: 28),
-                    const Text(
+                    SizedBox(height: 28 * s),
+                    Text(
                       'Войти',
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 28 * s,
                         height: 1.15,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                         letterSpacing: -0.4,
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    SizedBox(height: 28 * s),
                     AuthTextField(
                       label: 'ФИО',
                       controller: _nameController,
@@ -100,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       textInputAction: TextInputAction.next,
                       keyboardType: TextInputType.name,
                     ),
-                    const SizedBox(height: 22),
+                    SizedBox(height: 22 * s),
                     AuthTextField(
                       label: 'Рабочая почта',
                       controller: _emailController,
@@ -108,14 +108,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       textInputAction: TextInputAction.next,
                       keyboardType: TextInputType.emailAddress,
                     ),
-                    const SizedBox(height: 22),
+                    SizedBox(height: 22 * s),
                     AuthTextField(
                       label: 'Пароль',
                       controller: _passwordController,
                       obscureText: true,
                       textInputAction: TextInputAction.done,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16 * s),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton(
@@ -126,10 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Забыли пароль?',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 14 * s,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -140,14 +140,14 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(30, 8, 30, 24),
+              padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 24 * s),
               child: Column(
                 children: [
                   AuthPrimaryButton(
                     label: 'Войти',
                     onPressed: _login,
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18 * s),
                   AuthFooterLink(
                     prefix: 'Нет аккаунта? ',
                     action: 'Зарегистрируйтесь',

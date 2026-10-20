@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
 import '../theme/app_colors.dart';
+import '../theme/design_scale.dart';
 import '../theme/app_typography.dart';
 import '../widgets/auth_widgets.dart';
 import 'code_confirm_screen.dart';
@@ -88,6 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final keyboardOpen = keyboardInset > 0;
 
@@ -102,14 +104,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             builder: (context, constraints) {
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(30, 20, 30, 24),
+                padding: EdgeInsets.fromLTRB(30 * s, 20 * s, 30 * s, 24 * s),
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.manual,
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight: keyboardOpen
                         ? 0
-                        : (constraints.maxHeight - 44)
+                        : (constraints.maxHeight - 44 * s)
                             .clamp(0.0, double.infinity),
                   ),
                   child: Column(
@@ -125,25 +127,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           alignment: Alignment.centerLeft,
                           child: AuthBackButton(),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20 * s),
                         const Center(child: AuthLogo()),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16 * s),
                         Text(
                           'Создайте аккаунт',
                           style: AppTypography.medium(
-                            28,
+                            28 * s,
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4 * s),
                         Text(
                           'Рабочая почта подойдёт лучше всего',
                           style: AppTypography.regular(
-                            13,
+                            13 * s,
                             color: AppColors.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        SizedBox(height: 32 * s),
                         AuthTextField(
                           label: 'ФИО',
                           controller: _nameController,
@@ -152,7 +154,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           keyboardType: TextInputType.text,
                           textCapitalization: TextCapitalization.words,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20 * s),
                         AuthTextField(
                           label: 'Рабочая почта',
                           controller: _emailController,
@@ -160,7 +162,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           textInputAction: TextInputAction.next,
                           keyboardType: TextInputType.emailAddress,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20 * s),
                         AuthTextField(
                           label: 'Пароль',
                           controller: _passwordController,
@@ -168,7 +170,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: true,
                           textInputAction: TextInputAction.next,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20 * s),
                         AuthTextField(
                           label: 'Повторите пароль',
                           controller: _confirmPasswordController,
@@ -176,13 +178,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: true,
                           textInputAction: TextInputAction.done,
                         ),
-                        const SizedBox(height: 30),
+                        SizedBox(height: 30 * s),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             SizedBox(
-                              width: 20,
-                              height: 20,
+                              width: 20 * s,
+                              height: 20 * s,
                               child: Checkbox(
                                 value: _acceptedTerms,
                                 onChanged: (value) {
@@ -200,12 +202,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 visualDensity: VisualDensity.compact,
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            SizedBox(width: 10 * s),
                             Expanded(
                               child: Text(
                                 'Принимаю условия использования и политику данных',
                                 style: AppTypography.regular(
-                                  11,
+                                  11 * s,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
@@ -214,14 +216,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ],
                     ),
-                    SizedBox(height: keyboardOpen ? 20 : 16),
+                    SizedBox(height: (keyboardOpen ? 20 : 16) * s),
                     Column(
                       children: [
                         AuthPrimaryButton(
                           label: 'Продолжить',
                           onPressed: _canContinue ? _continue : null,
                         ),
-                        const SizedBox(height: 14),
+                        SizedBox(height: 14 * s),
                         AuthFooterLink(
                           prefix: 'Уже есть аккаунт? ',
                           action: 'Войти',

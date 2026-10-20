@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../navigation/app_page_route.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import '../theme/design_scale.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 
@@ -44,11 +45,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(30, 52, 30, 24),
+          padding: EdgeInsets.fromLTRB(30 * s, 52 * s, 30 * s, 24 * s),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -60,14 +62,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       Center(
                         child: SvgPicture.asset(
                           'assets/images/welcome_logo.svg',
-                          height: 32,
+                          height: 32 * s,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10 * s),
                       Text.rich(
                         TextSpan(
                           style: AppTypography.medium(
-                            24.83,
+                            24.83 * s,
                             color: AppColors.textPrimary,
                           ),
                           children: [
@@ -75,27 +77,27 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             TextSpan(
                               text: 'вашего бизнеса',
                               style: AppTypography.medium(
-                                24.83,
+                                24.83 * s,
                                 color: AppColors.brandRed,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4 * s),
                       Text(
                         'События, которые влияют на вашу компанию. '
                         'Последствия и варианты действий - в одном месте.',
                         style: AppTypography.regular(
-                          12.7,
+                          12.7 * s,
                           color: AppColors.textSecondary,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20 * s),
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(24 * s),
                         child: SizedBox(
-                          height: 188,
+                          height: 188 * s,
                           width: double.infinity,
                           child: Image.asset(
                             'assets/images/welcome_hero.png',
@@ -104,11 +106,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      const Row(
+                      SizedBox(height: 14 * s),
+                      Row(
                         children: [
                           Expanded(child: _InsightCard()),
-                          SizedBox(width: 16),
+                          SizedBox(width: 16 * s),
                           Expanded(child: _RisksCard()),
                         ],
                       ),
@@ -116,19 +118,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16 * s),
               SizedBox(
-                height: 52,
+                height: 52 * s,
                 child: FilledButton(
                   onPressed: _openRegister,
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.brandRed,
                     foregroundColor: AppColors.surface,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16 * s),
                     ),
                     textStyle: AppTypography.bold(
-                      16,
+                      16 * s,
                       color: AppColors.surface,
                     ),
                   ),
@@ -138,12 +140,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14 * s),
               Center(
                 child: Text.rich(
                   TextSpan(
                     style: AppTypography.regular(
-                      13,
+                      13 * s,
                       color: AppColors.textSecondary,
                     ),
                     children: [
@@ -156,7 +158,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           child: Text(
                             'Войти',
                             style: AppTypography.regular(
-                              13,
+                              13 * s,
                               color: AppColors.brandRed,
                             ),
                           ),
@@ -180,12 +182,13 @@ class _InsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Container(
-      height: 134,
+      height: 134 * s,
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24 * s),
         border: Border.all(
           color: Colors.black.withValues(alpha: 0.12),
           width: 0.5,
@@ -201,13 +204,13 @@ class _InsightCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
+            top: 16 * s,
+            left: 16 * s,
+            right: 16 * s,
             child: Text(
               'Персональные\nинсайты',
               style: AppTypography.medium(
-                14.85,
+                14.85 * s,
                 color: AppColors.brandRed,
               ),
             ),
@@ -219,8 +222,8 @@ class _InsightCard extends StatelessWidget {
             child: Center(
               child: SvgPicture.asset(
                 'assets/images/icon_key_insight.svg',
-                width: 83,
-                height: 83,
+                width: 83 * s,
+                height: 83 * s,
               ),
             ),
           ),
@@ -235,23 +238,24 @@ class _RisksCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Container(
-      height: 134,
+      height: 134 * s,
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: AppColors.brandRed,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24 * s),
       ),
       child: Stack(
         children: [
           Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
+            top: 16 * s,
+            left: 16 * s,
+            right: 16 * s,
             child: Text(
               'Риски и\nвозможности',
               style: AppTypography.medium(
-                14.85,
+                14.85 * s,
                 color: AppColors.surface,
               ),
             ),
@@ -259,12 +263,12 @@ class _RisksCard extends StatelessWidget {
           Positioned(
             left: 0,
             right: 0,
-            bottom: 18,
+            bottom: 18 * s,
             child: Center(
               child: SvgPicture.asset(
                 'assets/images/icon_risks_opportunities.svg',
-                width: 64,
-                height: 64,
+                width: 64 * s,
+                height: 64 * s,
               ),
             ),
           ),

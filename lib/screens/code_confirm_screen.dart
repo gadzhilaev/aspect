@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
 import '../theme/app_colors.dart';
+import '../theme/design_scale.dart';
 import '../theme/app_typography.dart';
 import '../widgets/auth_widgets.dart';
 import 'onboarding/onboarding_flow.dart';
@@ -217,6 +218,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     final canResend = _secondsLeft <= 0;
 
     return Scaffold(
@@ -224,7 +226,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(30, 20, 30, 24),
+          padding: EdgeInsets.fromLTRB(30 * s, 20 * s, 30 * s, 24 * s),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -238,38 +240,38 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                         alignment: Alignment.centerLeft,
                         child: AuthBackButton(),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20 * s),
                       const Center(child: AuthLogo()),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16 * s),
                       Text(
                         'Подтверждение',
                         style: AppTypography.medium(
-                          28,
+                          28 * s,
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4 * s),
                       Text(
                         'Мы отправили код на почту\n$_maskedEmail',
                         style: AppTypography.regular(
-                          14,
-                          color: const Color(0xFF65717A),
+                          14 * s,
+                          color: AppColors.textMuted,
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      SizedBox(height: 32 * s),
                       Text(
                         'КОД ИЗ ПИСЬМА',
                         style: AppTypography.bold(
-                          11,
+                          11 * s,
                           color: AppColors.brandRed,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8 * s),
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          const gap = 8.0;
+                          final gap = 8.0 * s;
                           final box = math.min(
-                            56.0,
+                            56.0 * s,
                             (constraints.maxWidth - gap * 5) / 6,
                           );
                           return Row(
@@ -295,7 +297,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                 label: 'Подтвердить',
                 onPressed: _isComplete ? _confirm : null,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16 * s),
               GestureDetector(
                 onTap: canResend ? _resend : null,
                 behavior: HitTestBehavior.opaque,
@@ -305,10 +307,10 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                       : 'Отправить код повторно через $_timerLabel',
                   textAlign: TextAlign.center,
                   style: AppTypography.regular(
-                    13,
+                    13 * s,
                     color: canResend
                         ? AppColors.brandRed
-                        : const Color(0xFF65717A),
+                        : AppColors.textMuted,
                   ),
                 ),
               ),
@@ -340,7 +342,7 @@ class _CodeDigitBox extends StatefulWidget {
 }
 
 class _CodeDigitBoxState extends State<_CodeDigitBox> {
-  static const _border = Color(0xFF65717A);
+  static const _border = AppColors.textMuted;
   static const _boxHeight = 56.0;
   static const _fontSize = 24.0;
 
@@ -369,19 +371,22 @@ class _CodeDigitBoxState extends State<_CodeDigitBox> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     final focused = widget.focusNode.hasFocus;
     final digit = widget.digit;
+    final boxH = _boxHeight * s;
+    final fontSize = _fontSize * s;
 
     return SizedBox(
       width: widget.size,
-      height: _boxHeight,
+      height: boxH,
       child: Stack(
         alignment: Alignment.center,
         children: [
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16 * s),
                 border: Border.all(
                   color: focused ? AppColors.brandRed : _border,
                   width: 1,
@@ -398,9 +403,9 @@ class _CodeDigitBoxState extends State<_CodeDigitBox> {
               maxLength: 2,
               showCursor: false,
               enableInteractiveSelection: false,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.transparent,
-                fontSize: _fontSize,
+                fontSize: fontSize,
                 height: 1,
               ),
               cursorWidth: 0,
@@ -424,13 +429,13 @@ class _CodeDigitBoxState extends State<_CodeDigitBox> {
             child: digit.isEmpty
                 ? (focused
                     ? Container(
-                        width: 2,
-                        height: 22,
+                        width: 2 * s,
+                        height: 22 * s,
                         color: AppColors.brandRed,
                       )
                     : const SizedBox.shrink())
                 : SizedBox(
-                    height: _fontSize,
+                    height: fontSize,
                     child: Center(
                       child: Text(
                         digit,
@@ -438,7 +443,7 @@ class _CodeDigitBoxState extends State<_CodeDigitBox> {
                         style: TextStyle(
                           fontFamily: AppTypography.family,
                           fontWeight: FontWeight.w700,
-                          fontSize: _fontSize,
+                          fontSize: fontSize,
                           height: 1,
                           leadingDistribution: TextLeadingDistribution.even,
                           color: AppColors.textPrimary,

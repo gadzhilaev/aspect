@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import '../theme/design_scale.dart';
 
 class AuthBackButton extends StatelessWidget {
   const AuthBackButton({super.key, this.onPressed});
@@ -12,27 +13,28 @@ class AuthBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return GestureDetector(
       onTap: onPressed ?? () => Navigator.of(context).maybePop(),
       behavior: HitTestBehavior.opaque,
       child: Text(
         '‹ Назад',
-        style: AppTypography.regular(15, color: AppColors.textSecondary),
+        style: AppTypography.regular(15 * s, color: AppColors.textSecondary),
       ),
     );
   }
 }
 
 class AuthLogo extends StatelessWidget {
-  const AuthLogo({super.key, this.height = 32});
+  const AuthLogo({super.key, this.height});
 
-  final double height;
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
     return SvgPicture.asset(
       'assets/images/welcome_logo.svg',
-      height: height,
+      height: height ?? context.ds(32),
       fit: BoxFit.contain,
     );
   }
@@ -75,11 +77,6 @@ class AuthTextField extends StatefulWidget {
 }
 
 class _AuthTextFieldState extends State<AuthTextField> {
-  static const _borderColor = Color(0xFFE3E5E3);
-  static const _radius = 16.0;
-  static const _fieldHeight = 50.0;
-  static const _fontSize = 15.0;
-
   FocusNode? _internalFocusNode;
   bool? _obscured;
 
@@ -100,7 +97,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
     if (widget.focusNode != null) {
       widget.focusNode!.addListener(_onFocus);
     } else {
-      _focusNode; // create internal node + listener
+      _focusNode;
     }
   }
 
@@ -132,6 +129,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     final focused = _focusNode.hasFocus;
     final showToggle = _hasVisibilityToggle;
     final trailing = widget.suffix ??
@@ -144,12 +142,12 @@ class _AuthTextFieldState extends State<AuthTextField> {
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
                     color: AppColors.textSecondary,
-                    size: 22,
+                    size: 22 * s,
                   ),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
+                  constraints: BoxConstraints(
+                    minWidth: 40 * s,
+                    minHeight: 40 * s,
                   ),
                 ),
               )
@@ -160,25 +158,25 @@ class _AuthTextFieldState extends State<AuthTextField> {
       children: [
         Text(
           widget.label,
-          style: AppTypography.bold(12, color: AppColors.textSecondary),
+          style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8 * s),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => _focusNode.requestFocus(),
           child: Container(
-            height: _fieldHeight,
+            height: 50 * s,
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(_radius),
+              borderRadius: BorderRadius.circular(16 * s),
               border: Border.all(
-                color: focused ? AppColors.brandRed : _borderColor,
+                color: focused ? AppColors.brandRed : AppColors.border,
                 width: 1,
               ),
             ),
             padding: EdgeInsets.only(
-              left: 16,
-              right: trailing != null ? 12 : 16,
+              left: 16 * s,
+              right: trailing != null ? 12 * s : 16 * s,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -196,7 +194,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
                     onChanged: widget.onChanged,
                     onSubmitted: widget.onSubmitted,
                     cursorColor: AppColors.brandRed,
-                    scrollPadding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
+                    scrollPadding: EdgeInsets.fromLTRB(20 * s, 20 * s, 20 * s, 80 * s),
                     textAlignVertical: TextAlignVertical.center,
                     onEditingComplete: widget.onSubmitted != null
                         ? null
@@ -214,7 +212,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
                     style: TextStyle(
                       fontFamily: AppTypography.family,
                       fontWeight: FontWeight.w400,
-                      fontSize: _fontSize,
+                      fontSize: 15 * s,
                       height: 1,
                       leadingDistribution: TextLeadingDistribution.even,
                       color: AppColors.textPrimary,
@@ -228,7 +226,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
                       hintStyle: TextStyle(
                         fontFamily: AppTypography.family,
                         fontWeight: FontWeight.w400,
-                        fontSize: _fontSize,
+                        fontSize: 15 * s,
                         height: 1,
                         leadingDistribution: TextLeadingDistribution.even,
                         color: AppColors.textHint,
@@ -238,7 +236,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
                   ),
                 ),
                 if (trailing != null) ...[
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8 * s),
                   ExcludeFocus(child: trailing),
                 ],
               ],
@@ -260,9 +258,6 @@ class AuthDropdown extends StatelessWidget {
     this.hint = 'Выберите',
   });
 
-  static const _borderColor = Color(0xFFE3E5E3);
-  static const _radius = 16.0;
-
   final String label;
   final String value;
   final List<String> items;
@@ -271,6 +266,7 @@ class AuthDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     final selected = items.contains(value) ? value : null;
 
     return Column(
@@ -278,16 +274,16 @@ class AuthDropdown extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTypography.bold(12, color: AppColors.textSecondary),
+          style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8 * s),
         Container(
-          height: 50,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          height: 50 * s,
+          padding: EdgeInsets.symmetric(horizontal: 16 * s),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(_radius),
-            border: Border.all(color: _borderColor, width: 1),
+            borderRadius: BorderRadius.circular(16 * s),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
@@ -295,15 +291,16 @@ class AuthDropdown extends StatelessWidget {
               isExpanded: true,
               hint: Text(
                 hint,
-                style: AppTypography.regular(15, color: AppColors.textHint),
+                style: AppTypography.regular(15 * s, color: AppColors.textHint),
               ),
-              icon: const Icon(
+              icon: Icon(
                 Icons.keyboard_arrow_down_rounded,
                 color: AppColors.textSecondary,
+                size: 24 * s,
               ),
-              style: AppTypography.regular(15, color: AppColors.textPrimary),
+              style: AppTypography.regular(15 * s, color: AppColors.textPrimary),
               dropdownColor: AppColors.surface,
-              borderRadius: BorderRadius.circular(_radius),
+              borderRadius: BorderRadius.circular(16 * s),
               items: [
                 for (final item in items)
                   DropdownMenuItem<String>(
@@ -312,7 +309,7 @@ class AuthDropdown extends StatelessWidget {
                       item,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.regular(
-                        15,
+                        15 * s,
                         color: AppColors.textPrimary,
                       ),
                     ),
@@ -341,8 +338,9 @@ class AuthPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return SizedBox(
-      height: 52,
+      height: 52 * s,
       width: double.infinity,
       child: FilledButton(
         onPressed: onPressed,
@@ -351,9 +349,9 @@ class AuthPrimaryButton extends StatelessWidget {
           disabledBackgroundColor: AppColors.brandRed.withValues(alpha: 0.4),
           foregroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16 * s),
           ),
-          textStyle: AppTypography.bold(16, color: AppColors.surface),
+          textStyle: AppTypography.bold(16 * s, color: AppColors.surface),
         ),
         child: Text(label, textAlign: TextAlign.center),
       ),
@@ -375,10 +373,11 @@ class AuthFooterLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.scale;
     return Center(
       child: Text.rich(
         TextSpan(
-          style: AppTypography.regular(13, color: AppColors.textSecondary),
+          style: AppTypography.regular(13 * s, color: AppColors.textSecondary),
           children: [
             TextSpan(text: prefix),
             WidgetSpan(
@@ -388,7 +387,7 @@ class AuthFooterLink extends StatelessWidget {
                 onTap: onTap,
                 child: Text(
                   action,
-                  style: AppTypography.regular(13, color: AppColors.brandRed),
+                  style: AppTypography.regular(13 * s, color: AppColors.brandRed),
                 ),
               ),
             ),
