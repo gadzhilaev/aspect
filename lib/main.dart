@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'screens/splash_screen.dart';
 import 'theme/app_colors.dart';
+import 'theme/app_typography.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +28,7 @@ class AspectApp extends StatelessWidget {
       title: 'Аспект',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        fontFamily: AppTypography.family,
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.brandRed,
           primary: AppColors.brandRed,
