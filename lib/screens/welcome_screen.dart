@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../navigation/app_page_route.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
+import 'login_screen.dart';
+import 'register_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -26,158 +30,162 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: _WelcomeBody(),
-      ),
+  void _openRegister() {
+    Navigator.of(context).push(
+      AppPageRoute<void>(builder: (_) => const RegisterScreen()),
     );
   }
-}
 
-class _WelcomeBody extends StatelessWidget {
-  const _WelcomeBody();
-
-  static const _designWidth = 393.0;
+  void _openLogin() {
+    Navigator.of(context).push(
+      AppPageRoute<void>(builder: (_) => const LoginScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final scale = width / _designWidth;
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(30 * scale, 24 * scale, 30 * scale, 24 * scale),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: SvgPicture.asset(
-              'assets/images/welcome_logo.svg',
-              width: 64 * scale,
-              height: 32 * scale,
-            ),
-          ),
-          SizedBox(height: 28 * scale),
-          Text.rich(
-            TextSpan(
-              style: TextStyle(
-                fontSize: 28 * scale,
-                height: 1.15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.4,
-              ),
-              children: const [
-                TextSpan(text: 'Перемены именно для\n'),
-                TextSpan(
-                  text: 'вашего бизнеса',
-                  style: TextStyle(color: AppColors.brandRed),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 12 * scale),
-          Text(
-            'События, которые влияют на вашу компанию. '
-            'Последствия и варианты действий – в одном месте.',
-            style: TextStyle(
-              fontSize: 14 * scale,
-              height: 1.35,
-              fontWeight: FontWeight.w400,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          SizedBox(height: 28 * scale),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(24 * scale),
-            child: AspectRatio(
-              aspectRatio: 334 / 188,
-              child: Image.asset(
-                'assets/images/welcome_hero.png',
-                fit: BoxFit.cover,
-                alignment: const Alignment(0, -0.18),
-              ),
-            ),
-          ),
-          SizedBox(height: 14 * scale),
-          Row(
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(30, 52, 30, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: _InsightCard(scale: scale)),
-              SizedBox(width: 16 * scale),
-              Expanded(child: _RisksCard(scale: scale)),
-            ],
-          ),
-          SizedBox(height: 36 * scale),
-          SizedBox(
-            height: 56 * scale,
-            child: FilledButton(
-              onPressed: () {},
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.brandRed,
-                foregroundColor: AppColors.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28 * scale),
-                ),
-                textStyle: TextStyle(
-                  fontSize: 16 * scale,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              child: const Text('Создать аккаунт'),
-            ),
-          ),
-          SizedBox(height: 18 * scale),
-          Center(
-            child: Text.rich(
-              TextSpan(
-                style: TextStyle(
-                  fontSize: 14 * scale,
-                  color: AppColors.textSecondary,
-                ),
-                children: [
-                  const TextSpan(text: 'Уже есть аккаунт? '),
-                  WidgetSpan(
-                    alignment: PlaceholderAlignment.baseline,
-                    baseline: TextBaseline.alphabetic,
-                    child: GestureDetector(
-                      onTap: () {},
-                      child: Text(
-                        'Войти',
-                        style: TextStyle(
-                          fontSize: 14 * scale,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.brandRed,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppColors.brandRed,
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: SvgPicture.asset(
+                          'assets/images/welcome_logo.svg',
+                          height: 32,
                         ),
                       ),
+                      const SizedBox(height: 10),
+                      Text.rich(
+                        TextSpan(
+                          style: AppTypography.medium(
+                            24.83,
+                            color: AppColors.textPrimary,
+                          ),
+                          children: [
+                            const TextSpan(text: 'Перемены именно для\n'),
+                            TextSpan(
+                              text: 'вашего бизнеса',
+                              style: AppTypography.medium(
+                                24.83,
+                                color: AppColors.brandRed,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'События, которые влияют на вашу компанию. '
+                        'Последствия и варианты действий - в одном месте.',
+                        style: AppTypography.regular(
+                          12.7,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: SizedBox(
+                          height: 188,
+                          width: double.infinity,
+                          child: Image.asset(
+                            'assets/images/welcome_hero.png',
+                            fit: BoxFit.cover,
+                            alignment: const Alignment(0, -0.18),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Row(
+                        children: [
+                          Expanded(child: _InsightCard()),
+                          SizedBox(width: 16),
+                          Expanded(child: _RisksCard()),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 52,
+                child: FilledButton(
+                  onPressed: _openRegister,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.brandRed,
+                    foregroundColor: AppColors.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: AppTypography.bold(
+                      16,
+                      color: AppColors.surface,
                     ),
                   ),
-                ],
+                  child: const Text(
+                    'Создать аккаунт',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 14),
+              Center(
+                child: Text.rich(
+                  TextSpan(
+                    style: AppTypography.regular(
+                      13,
+                      color: AppColors.textSecondary,
+                    ),
+                    children: [
+                      const TextSpan(text: 'Уже есть аккаунт? '),
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: GestureDetector(
+                          onTap: _openLogin,
+                          child: Text(
+                            'Войти',
+                            style: AppTypography.regular(
+                              13,
+                              color: AppColors.brandRed,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.scale});
-
-  final double scale;
+  const _InsightCard();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 134 * scale,
-      padding: EdgeInsets.fromLTRB(16 * scale, 16 * scale, 16 * scale, 14 * scale),
+      height: 134,
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24 * scale),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: Colors.black.withValues(alpha: 0.12),
           width: 0.5,
@@ -185,41 +193,36 @@ class _InsightCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12 * scale,
-            offset: Offset(-1 * scale, 6 * scale),
+            blurRadius: 12,
+            offset: const Offset(-1, 6),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Text(
-            'Персональные\nинсайты',
-            style: TextStyle(
-              fontSize: 15 * scale,
-              height: 1.2,
-              fontWeight: FontWeight.w700,
-              color: AppColors.brandRed,
+          Positioned(
+            top: 16,
+            left: 16,
+            right: 16,
+            child: Text(
+              'Персональные\nинсайты',
+              style: AppTypography.medium(
+                14.85,
+                color: AppColors.brandRed,
+              ),
             ),
           ),
-          const Spacer(),
-          Row(
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                color: AppColors.brandRed,
-                size: 28 * scale,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/images/icon_key_insight.svg',
+                width: 83,
+                height: 83,
               ),
-              SizedBox(width: 6 * scale),
-              Container(
-                width: 10 * scale,
-                height: 10 * scale,
-                decoration: const BoxDecoration(
-                  color: AppColors.brandRed,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -228,38 +231,41 @@ class _InsightCard extends StatelessWidget {
 }
 
 class _RisksCard extends StatelessWidget {
-  const _RisksCard({required this.scale});
-
-  final double scale;
+  const _RisksCard();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 134 * scale,
-      padding: EdgeInsets.fromLTRB(16 * scale, 16 * scale, 16 * scale, 14 * scale),
+      height: 134,
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: AppColors.brandRed,
-        borderRadius: BorderRadius.circular(24 * scale),
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Text(
-            'Риски и\nвозможности',
-            style: TextStyle(
-              fontSize: 15 * scale,
-              height: 1.2,
-              fontWeight: FontWeight.w700,
-              color: AppColors.surface,
+          Positioned(
+            top: 16,
+            left: 16,
+            right: 16,
+            child: Text(
+              'Риски и\nвозможности',
+              style: AppTypography.medium(
+                14.85,
+                color: AppColors.surface,
+              ),
             ),
           ),
-          const Spacer(),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Icon(
-              Icons.insights_outlined,
-              color: AppColors.surface.withValues(alpha: 0.9),
-              size: 36 * scale,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 18,
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/images/icon_risks_opportunities.svg',
+                width: 64,
+                height: 64,
+              ),
             ),
           ),
         ],
