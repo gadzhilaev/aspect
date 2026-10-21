@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
+import 'news_detail_screen.dart';
 
 class OverviewTab extends StatelessWidget {
   const OverviewTab({super.key, this.userName = 'Пользователь'});
@@ -28,10 +29,7 @@ class OverviewTab extends StatelessWidget {
             children: [
               Text(
                 'Доброе утро, $userName',
-                style: AppTypography.medium(
-                  24.83 * s,
-                  color: AppColors.textInput,
-                ),
+                style: pageTitleStyle(context),
               ),
               SizedBox(height: 18 * s),
             ],
@@ -70,7 +68,7 @@ class OverviewTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 20 * s),
-              const EventSignalCard(
+              EventSignalCard(
                 level: ImpactLevel.high,
                 meta: 'Высокое влияние · 08:24',
                 title: 'Китай ограничивает экспорт электроники',
@@ -80,6 +78,7 @@ class OverviewTab extends StatelessWidget {
                 warning:
                     'Риск роста себестоимости и переноса сроков поставки',
                 actionLabel: 'Открыть влияние',
+                onOpen: () => openNewsDetail(context, chinaExportDetail),
               ),
               SizedBox(height: 30 * s),
               Text(
@@ -95,7 +94,7 @@ class OverviewTab extends StatelessWidget {
                 title: 'Курс CNY вырос на 1,8% за неделю',
                 subtitle: 'Валюта используется в расчетах с поставщиками',
               ),
-              SizedBox(height: 10 * s),
+              SizedBox(height: 9 * s),
               const MonitorTile(
                 dotColor: AppColors.impactGreen,
                 title: 'Спрос на электронику в Казахстане растет',
