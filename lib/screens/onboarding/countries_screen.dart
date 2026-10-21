@@ -79,7 +79,7 @@ class _CountriesScreenState extends State<CountriesScreen>
     widget.bindFooter?.call(
       label: 'Продолжить',
       hint:
-          'Можно добавить детали позже. Начните с двух-трёх ключевых стран.',
+          'Можно уточнить позже. Достаточно двух-трёх стран из цепочки поставок.',
       onPressed: _continue,
     );
   }
@@ -199,9 +199,9 @@ class _CountriesScreenState extends State<CountriesScreen>
         OnboardingHeader(
           step: 4,
           showChrome: !widget.embedded,
-          title: 'С какими странами работаете?',
+          title: 'Страны поставок и партнёров',
           subtitle:
-              'Выберите страны, где вы работаете или планируете развиваться. Мы учтём рынки, валюты и события, важные для вашего бизнеса.',
+              'Укажите страны, откуда идут производство, сырьё или комплектующие. Мы отберём события, которые влияют на вашу цепочку поставок.',
         ),
         SizedBox(height: 28 * s),
         Text(
@@ -215,7 +215,7 @@ class _CountriesScreenState extends State<CountriesScreen>
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
+        padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 16 * s),
         child: body,
       );
     }
@@ -223,7 +223,7 @@ class _CountriesScreenState extends State<CountriesScreen>
     return OnboardingScaffold(
       buttonLabel: 'Продолжить',
       footerHint:
-          'Можно добавить детали позже. Начните с двух-трёх ключевых стран.',
+          'Можно уточнить позже. Достаточно двух-трёх стран из цепочки поставок.',
       onContinue: _continue,
       body: body,
     );

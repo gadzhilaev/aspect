@@ -44,9 +44,14 @@ class _ProductsScreenState extends State<ProductsScreen>
   late String _market;
   final _addController = TextEditingController();
   final _addFocus = FocusNode();
+  final _customMarketController = TextEditingController();
+  final _customMarketFocus = FocusNode();
   bool _adding = false;
 
   static const _addBorder = AppColors.brandRed;
+  static const _otherMarket = 'Другое';
+
+  bool get _isOtherMarket => _market == _otherMarket;
 
   @override
   bool get wantKeepAlive => true;
@@ -55,9 +60,17 @@ class _ProductsScreenState extends State<ProductsScreen>
   void initState() {
     super.initState();
     _products = List.of(widget.data.products);
-    _market = _markets.contains(widget.data.mainMarket)
-        ? widget.data.mainMarket
-        : '';
+    final stored = widget.data.mainMarket.trim();
+    if (stored.isEmpty) {
+      _market = '';
+    } else if (_markets.contains(stored) && stored != _otherMarket) {
+      _market = stored;
+    } else {
+      _market = _otherMarket;
+      if (stored != _otherMarket) {
+        _customMarketController.text = stored;
+      }
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncFooter());
   }
 
@@ -75,6 +88,8 @@ class _ProductsScreenState extends State<ProductsScreen>
   void dispose() {
     _addController.dispose();
     _addFocus.dispose();
+    _customMarketController.dispose();
+    _customMarketFocus.dispose();
     super.dispose();
   }
 
@@ -107,9 +122,25 @@ class _ProductsScreenState extends State<ProductsScreen>
     setState(() => _products.removeAt(index));
   }
 
+  void _onMarketChanged(String value) {
+    setState(() => _market = value);
+    if (value == _otherMarket) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _customMarketFocus.requestFocus();
+      });
+    } else {
+      _customMarketController.clear();
+    }
+  }
+
   void _continue() {
     widget.data.products = List.of(_products);
-    widget.data.mainMarket = _market;
+    if (_isOtherMarket) {
+      final custom = _customMarketController.text.trim();
+      widget.data.mainMarket = custom.isEmpty ? _otherMarket : custom;
+    } else {
+      widget.data.mainMarket = _market;
+    }
     widget.onNext?.call();
   }
 
@@ -168,6 +199,7 @@ class _ProductsScreenState extends State<ProductsScreen>
                 focusNode: _addFocus,
                 cursorColor: _addBorder,
                 textInputAction: TextInputAction.done,
+                textCapitalization: TextCapitalization.sentences,
                 onSubmitted: (_) => _commitAdd(),
                 onEditingComplete: _commitAdd,
                 style: AppTypography.bold(14 * s, color: AppColors.textInput),
@@ -230,14 +262,25 @@ class _ProductsScreenState extends State<ProductsScreen>
           label: 'Основной рынок',
           value: _market,
           items: _markets,
-          onChanged: (value) => setState(() => _market = value),
+          onChanged: _onMarketChanged,
         ),
+        if (_isOtherMarket) ...[
+          SizedBox(height: 16 * s),
+          AuthTextField(
+            label: 'Укажите рынок',
+            controller: _customMarketController,
+            focusNode: _customMarketFocus,
+            hint: 'Например, Ближний Восток',
+            textInputAction: TextInputAction.done,
+            textCapitalization: TextCapitalization.sentences,
+          ),
+        ],
       ],
     );
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
+        padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 16 * s),
         child: body,
       );
     }

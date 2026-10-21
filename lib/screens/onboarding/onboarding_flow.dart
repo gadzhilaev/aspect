@@ -99,7 +99,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   Future<void> _finish() async {
     final fullName = widget.data.fullName.trim();
-    await SessionStore.saveLogin(userName: fullName);
+    await SessionStore.finishRegistration(widget.data);
     final name = firstNameFromFullName(fullName);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -120,7 +120,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 0),
+              padding: EdgeInsets.fromLTRB(16 * s, 8 * s, 16 * s, 0),
               child: OnboardingChrome(
                 step: _step,
                 onBack: _back,
@@ -185,7 +185,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 24 * s),
+              padding: EdgeInsets.fromLTRB(16 * s, 8 * s, 16 * s, 8 * s),
               child: Column(
                 children: [
                   AuthPrimaryButton(
@@ -193,7 +193,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                     onPressed: _onContinue,
                   ),
                   if (_footerHint != null) ...[
-                    SizedBox(height: 12 * s),
+                    SizedBox(height: 8 * s),
                     Text(
                       _footerHint!,
                       textAlign: TextAlign.center,

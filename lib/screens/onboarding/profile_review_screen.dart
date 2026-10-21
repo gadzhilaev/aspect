@@ -70,7 +70,7 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
       widget.onNext!();
       return;
     }
-    await SessionStore.saveLogin(userName: widget.data.fullName);
+    await SessionStore.finishRegistration(widget.data);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
@@ -149,7 +149,7 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
           onEdit: () => _edit(3),
         ),
         _ProfileField(
-          label: 'С какими странами работаете?',
+          label: 'Страны поставок и партнёров',
           value: _join(data.countries),
           onEdit: () => _edit(4),
         ),
@@ -168,7 +168,7 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
+        padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 16 * s),
         child: body,
       );
     }

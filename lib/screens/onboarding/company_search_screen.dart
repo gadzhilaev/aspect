@@ -194,7 +194,7 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
+        padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 16 * s),
         child: body,
       );
     }

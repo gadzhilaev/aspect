@@ -328,7 +328,7 @@ class _LocationsScreenState extends State<LocationsScreen>
 
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(30 * s, 16 * s, 30 * s, 16 * s),
+        padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 16 * s),
         child: body,
       );
     }
@@ -440,6 +440,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
                     onChanged: _onQuery,
                     cursorColor: _addBorder,
                     textInputAction: TextInputAction.search,
+                    textCapitalization: TextCapitalization.sentences,
                     style: AppTypography.bold(14 * s, color: AppColors.textInput),
                     decoration: InputDecoration(
                       isCollapsed: true,

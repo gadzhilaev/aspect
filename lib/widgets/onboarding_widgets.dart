@@ -283,8 +283,9 @@ class SelectableOptionTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(14 * s),
             border: Border.all(
               color: selected
-                  ? AppColors.brandRed
-                  : Colors.black.withValues(alpha: 0.08),
+                  ? AppColors.brandRedBorderSoft
+                  : AppColors.border,
+              width: 1,
             ),
           ),
           child: Row(
@@ -300,7 +301,7 @@ class SelectableOptionTile extends StatelessWidget {
                         color: AppColors.textInput,
                       ),
                     ),
-                    SizedBox(height: 2 * s),
+                    SizedBox(height: 6 * s),
                     Text(
                       subtitle,
                       style: AppTypography.regular(
@@ -311,19 +312,45 @@ class SelectableOptionTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                selected
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_off,
-                color: selected
-                    ? AppColors.brandRed
-                    : AppColors.textSecondary,
-                size: 22 * s,
-              ),
+              _OptionRadio(selected: selected, size: 22 * s),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _OptionRadio extends StatelessWidget {
+  const _OptionRadio({required this.selected, required this.size});
+
+  final bool selected;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: selected ? AppColors.brandRed : AppColors.border,
+          width: 1,
+        ),
+      ),
+      child: selected
+          ? Center(
+              child: Container(
+                width: size * 0.55,
+                height: size * 0.55,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.brandRed,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
@@ -431,12 +458,12 @@ class OnboardingScaffold extends StatelessWidget {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 16 * s),
+                padding: EdgeInsets.fromLTRB(16 * s, 8 * s, 16 * s, 16 * s),
                 child: body,
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 24 * s),
+              padding: EdgeInsets.fromLTRB(16 * s, 8 * s, 16 * s, 8 * s),
               child: Column(
                 children: [
                   AuthPrimaryButton(
@@ -444,7 +471,7 @@ class OnboardingScaffold extends StatelessWidget {
                     onPressed: onContinue,
                   ),
                   if (footerHint != null) ...[
-                    SizedBox(height: 12 * s),
+                    SizedBox(height: 8 * s),
                     Text(
                       footerHint!,
                       textAlign: TextAlign.center,
