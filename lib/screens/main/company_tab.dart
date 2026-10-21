@@ -3,14 +3,26 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import '../../theme/design_scale.dart';
+import '../../widgets/main_widgets.dart';
 
 class CompanyTab extends StatelessWidget {
   const CompanyTab({super.key});
 
+  /// 2 per row: продукты|рынки, география|мои данные, финансы|контрагенты.
+  static const _contextTiles = <String>[
+    'assets/images/company/products.svg',
+    'assets/images/company/markets.svg',
+    'assets/images/company/geography.svg',
+    'assets/images/company/my_data.svg',
+    'assets/images/company/finance.svg',
+    'assets/images/company/counterparties.svg',
+  ];
+
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final gap = 10 * s;
+
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppColors.screenPadding * s,
@@ -19,183 +31,171 @@ class CompanyTab extends StatelessWidget {
         24 * s,
       ),
       children: [
-        Text(
-          'Ваша компания',
-          style: AppTypography.bold(28 * s, color: AppColors.textPrimary)
-              .copyWith(letterSpacing: -0.4, height: 1.15),
-        ),
+        Text('Ваша компания', style: pageTitleStyle(context)),
         SizedBox(height: 18 * s),
-        Container(
-          padding: EdgeInsets.all(16 * s),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18 * s),
-            border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  SvgPicture.asset(
-                    'assets/images/welcome_logo.svg',
-                    height: 28 * s,
-                  ),
-                  SizedBox(width: 12 * s),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'ООО «СеверПром»',
-                          style: AppTypography.bold(
-                            17 * s,
-                            color: AppColors.textInput,
-                          ),
-                        ),
-                        SizedBox(height: 2 * s),
-                        Text(
-                          'Промышленное производство',
-                          style: AppTypography.regular(
-                            13 * s,
-                            color: AppColors.textCaption,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 14 * s),
-              Divider(height: 1 * s, color: AppColors.divider),
-              SizedBox(height: 12 * s),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Средняя компания · 500–1 000 сотрудников',
-                  style: AppTypography.regular(
-                    13 * s,
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ),
-            ],
+        const _CompanyCard(),
+        SizedBox(height: 15 * s),
+        Padding(
+          padding: EdgeInsets.only(left: (34 - AppColors.screenPadding) * s),
+          child: Text(
+            'Ваш контекст',
+            style: AppTypography.medium(13 * s, color: AppColors.textMuted),
           ),
         ),
-        SizedBox(height: 24 * s),
-        Text(
-          'Ваш контекст',
-          style: AppTypography.bold(16 * s, color: AppColors.textSecondary),
-        ),
-        SizedBox(height: 12 * s),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10 * s,
-          crossAxisSpacing: 10 * s,
-          childAspectRatio: 1.15,
-          children: const [
-            _BrandTile(),
-            _ContextTile(
-              label: 'Рынки',
-              value: 'Россия · Казахстан · Беларусь',
-              dark: false,
-            ),
-            _ContextTile(
-              label: 'География',
-              value: 'Тула · Москва',
-              dark: true,
-            ),
-            _ContextTile(
-              label: 'Продукты',
-              value: 'Насосы · системы управления',
-              dark: false,
-            ),
-          ],
+        SizedBox(height: 14 * s),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final tileW = (constraints.maxWidth - gap) / 2;
+            final tileH = tileW * (95 / 173);
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final asset in _contextTiles)
+                  _ContextTile(
+                    asset: asset,
+                    width: tileW,
+                    height: tileH,
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );
   }
 }
 
-class _BrandTile extends StatelessWidget {
-  const _BrandTile();
+class _ContextTile extends StatelessWidget {
+  const _ContextTile({
+    required this.asset,
+    required this.width,
+    required this.height,
+  });
+
+  final String asset;
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
     return Container(
+      width: width,
+      height: height,
       decoration: BoxDecoration(
-        color: AppColors.impactPurple,
-        borderRadius: BorderRadius.circular(18 * s),
-      ),
-      child: Center(
-        child: Opacity(
-          opacity: 0.35,
-          child: SvgPicture.asset(
-            'assets/images/welcome_logo.svg',
-            height: 56 * s,
-            colorFilter: const ColorFilter.mode(
-              Colors.white,
-              BlendMode.srcIn,
-            ),
+        borderRadius: BorderRadius.circular(17 * s),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            offset: Offset(0, 2 * s),
+            blurRadius: 7.5 * s,
+            spreadRadius: 0,
           ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(17 * s),
+        child: SvgPicture.asset(
+          asset,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
         ),
       ),
     );
   }
 }
 
-class _ContextTile extends StatelessWidget {
-  const _ContextTile({
-    required this.label,
-    required this.value,
-    required this.dark,
-  });
-
-  final String label;
-  final String value;
-  final bool dark;
+class _CompanyCard extends StatelessWidget {
+  const _CompanyCard();
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
-    final fg = dark ? Colors.white : AppColors.textInput;
-    final sub =
-        dark ? Colors.white.withValues(alpha: 0.85) : AppColors.textMuted;
     return Container(
-      padding: EdgeInsets.all(14 * s),
       decoration: BoxDecoration(
-        color: dark ? AppColors.impactPurple : AppColors.surface,
-        borderRadius: BorderRadius.circular(18 * s),
-        border: dark
-            ? null
-            : Border.all(color: Colors.black.withValues(alpha: 0.08)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: Alignment.topRight,
-            child: Icon(
-              Icons.north_east,
-              size: 16 * s,
-              color: dark ? Colors.white : AppColors.textSecondary,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            label,
-            style: AppTypography.medium(13 * s, color: sub),
-          ),
-          SizedBox(height: 4 * s),
-          Text(
-            value,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.bold(14 * s, color: fg).copyWith(height: 1.25),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16 * s),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.08),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.13),
+            offset: Offset(0, 5 * s),
+            blurRadius: 14.2 * s,
+            spreadRadius: 0,
           ),
         ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(13 * s, 24 * s, 13 * s, 20 * s),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  'assets/images/welcome_logo.svg',
+                  width: 48 * s,
+                  height: 38 * s,
+                  fit: BoxFit.contain,
+                ),
+                SizedBox(width: 15 * s),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ООО «СеверПром»',
+                        style: AppTypography.bold(
+                          20 * s,
+                          color: AppColors.textInk,
+                        ),
+                      ),
+                      SizedBox(height: 2 * s),
+                      Text(
+                        'Промышленное производство',
+                        style: AppTypography.regular(
+                          14 * s,
+                          color: AppColors.textCaption,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 20 * s),
+            Divider(height: 1 * s, thickness: 1 * s, color: AppColors.divider),
+            SizedBox(height: 14 * s),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  'assets/images/icon_company_size.svg',
+                  width: 16 * s,
+                  height: 18 * s,
+                  fit: BoxFit.contain,
+                ),
+                SizedBox(width: 15 * s),
+                Expanded(
+                  child: Text(
+                    'Средняя компания · 500–1 000 сотрудников',
+                    style: AppTypography.regular(
+                      11.72 * s,
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
