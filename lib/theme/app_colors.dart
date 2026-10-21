@@ -5,6 +5,9 @@ abstract final class AppColors {
   /// #EF3124 / rgba(239, 49, 36, 1)
   static const brandRed = Color.fromRGBO(239, 49, 36, 1);
 
+  /// Selected option border: rgba(239, 49, 36, 0.14)
+  static const brandRedBorderSoft = Color.fromRGBO(239, 49, 36, 0.14);
+
   /// #000000 / rgba(0, 0, 0, 1)
   static const textPrimary = Color.fromRGBO(0, 0, 0, 1);
 
@@ -13,6 +16,9 @@ abstract final class AppColors {
 
   /// #18232C / rgba(24, 35, 44, 1)
   static const textInput = Color.fromRGBO(24, 35, 44, 1);
+
+  /// #111827 / rgba(17, 24, 39, 1)
+  static const textInk = Color.fromRGBO(17, 24, 39, 1);
 
   /// #B5B5B5 / rgba(181, 181, 181, 1)
   static const textHint = Color.fromRGBO(181, 181, 181, 1);
@@ -55,4 +61,13 @@ abstract final class AppColors {
 
   /// Screen horizontal inset from Figma.
   static const screenPadding = 16.0;
+
+  /// Unselected filter chip border: rgba(101, 113, 122, 0.06).
+  static const filterChipBorder = Color.fromRGBO(101, 113, 122, 0.06);
+
+  /// Unselected filter chip fill: rgba(247, 247, 247, 1).
+  static const filterChipBg = Color.fromRGBO(247, 247, 247, 1);
+
+  /// App bar / nav hairline when content scrolls underneath.
+  static const scrollEdge = Color.fromRGBO(0, 0, 0, 0.06);
 }

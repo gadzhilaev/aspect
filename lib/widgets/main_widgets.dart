@@ -7,6 +7,12 @@ import '../theme/design_scale.dart';
 
 export '../theme/design_scale.dart';
 
+/// Page title style matching overview greeting «Доброе утро, …».
+TextStyle pageTitleStyle(BuildContext context) {
+  final s = designScale(context);
+  return AppTypography.medium(24.83 * s, color: AppColors.textInput);
+}
+
 class AspectBrandHeader extends StatelessWidget {
   const AspectBrandHeader({
     super.key,
@@ -95,6 +101,7 @@ class EventSignalCard extends StatelessWidget {
     required this.contextBody,
     this.warning,
     required this.actionLabel,
+    this.onOpen,
   });
 
   final ImpactLevel level;
@@ -104,6 +111,7 @@ class EventSignalCard extends StatelessWidget {
   final String contextBody;
   final String? warning;
   final String actionLabel;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -133,127 +141,141 @@ class EventSignalCard extends StatelessWidget {
         elevation: 0,
         shadowColor: Colors.transparent,
         borderRadius: BorderRadius.circular(16 * s),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16 * s),
-            border: Border.all(
-              color: const Color(0x3D000000),
-              width: 0.1,
+        child: InkWell(
+          onTap: onOpen,
+          borderRadius: BorderRadius.circular(16 * s),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16 * s),
+              border: Border.all(
+                color: const Color(0x3D000000),
+                width: 0.1,
+              ),
             ),
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  width: 3 * s,
-                  margin: EdgeInsets.fromLTRB(14 * s, 14 * s, 0, 14 * s),
-                  decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(2 * s),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      12 * s,
-                      14 * s,
-                      16 * s,
-                      14 * s,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    width: 3 * s,
+                    margin: EdgeInsets.fromLTRB(14 * s, 14 * s, 0, 14 * s),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(2 * s),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          meta,
-                          style: AppTypography.medium(
-                            11 * s,
-                            color: accent,
-                          ),
-                        ),
-                        SizedBox(height: 2 * s),
-                        Text(
-                          title,
-                          style: AppTypography.bold(
-                            14.3 * s,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 10 * s),
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: contextLead,
-                                style: AppTypography.bold(
-                                  11 * s,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              TextSpan(
-                                text: ' $contextBody',
-                                style: AppTypography.medium(
-                                  11 * s,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (warning != null) ...[
-                          SizedBox(height: 10 * s),
-                          Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10 * s,
-                              vertical: 10 * s,
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        12 * s,
+                        14 * s,
+                        16 * s,
+                        14 * s,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            meta,
+                            style: AppTypography.medium(
+                              11 * s,
+                              color: accent,
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.warningBg,
-                              borderRadius: BorderRadius.circular(10 * s),
-                              border: Border.all(
-                                color: AppColors.warningBorder,
-                              ),
+                          ),
+                          SizedBox(height: 6 * s),
+                          Text(
+                            title,
+                            style: AppTypography.bold(
+                              14.3 * s,
+                              color: AppColors.textPrimary,
                             ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                          ),
+                          SizedBox(height: 14 * s),
+                          Text.rich(
+                            TextSpan(
                               children: [
-                                SvgPicture.asset(
-                                  'assets/images/icon_risk.svg',
-                                  width: 23 * s,
-                                  height: 23 * s,
+                                TextSpan(
+                                  text: contextLead,
+                                  style: AppTypography.bold(
+                                    11 * s,
+                                    color: AppColors.textPrimary,
+                                  ),
                                 ),
-                                SizedBox(width: 8 * s),
-                                Expanded(
-                                  child: Text(
-                                    warning!,
-                                    style: AppTypography.medium(
-                                      11 * s,
-                                      color: accent,
-                                    ),
+                                TextSpan(
+                                  text: ' $contextBody',
+                                  style: AppTypography.medium(
+                                    11 * s,
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                        SizedBox(height: 10 * s),
-                        Text(
-                          actionLabel,
-                          style: AppTypography.medium(
-                            13 * s,
-                            color: accent,
-                          ).copyWith(
-                            decoration: TextDecoration.underline,
-                            decorationColor: accent,
+                          if (warning != null) ...[
+                            SizedBox(height: 14 * s),
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.fromLTRB(
+                                10 * s,
+                                10 * s,
+                                12 * s,
+                                10 * s,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.warningBg,
+                                borderRadius: BorderRadius.circular(6.5 * s),
+                                border: Border.all(
+                                  color: AppColors.warningBorder,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 23 * s,
+                                    height: 23 * s,
+                                    child: Center(
+                                      child: SvgPicture.asset(
+                                        'assets/images/icon_risk.svg',
+                                        width: 23 * s,
+                                        height: 23 * s,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 10 * s),
+                                  Expanded(
+                                    child: Text(
+                                      warning!,
+                                      style: AppTypography.medium(
+                                        11 * s,
+                                        color: accent,
+                                      ).copyWith(height: 1.25),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          SizedBox(height: 14 * s),
+                          Text(
+                            actionLabel,
+                            style: AppTypography.medium(
+                              13 * s,
+                              color: accent,
+                            ).copyWith(
+                              decoration: TextDecoration.underline,
+                              decorationColor: accent,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -286,6 +308,7 @@ class CurrencyChipCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16 * s),
       ),
       child: Stack(
+        clipBehavior: Clip.hardEdge,
         children: [
           Align(
             alignment: Alignment.topLeft,
@@ -313,7 +336,7 @@ class CurrencyChipCard extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.symmetric(
                 horizontal: 8 * s,
-                vertical: 5 * s,
+                vertical: 4 * s,
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -351,22 +374,33 @@ class MonitorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = designScale(context);
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(14 * s),
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14 * s),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14 * s),
-            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.24),
+          width: 0.11,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            offset: Offset(0, 2 * s),
+            blurRadius: 7.71 * s,
+            spreadRadius: 0,
           ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14 * s),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14 * s),
           child: Padding(
             padding: EdgeInsets.symmetric(
               horizontal: 14 * s,
-              vertical: 12 * s,
+              vertical: 15 * s,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -403,10 +437,9 @@ class MonitorTile extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 8 * s),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 22 * s,
-                  color: AppColors.textMuted,
+                CustomPaint(
+                  size: Size(5.5 * s, 11 * s),
+                  painter: _MonitorChevronPainter(AppColors.textMuted),
                 ),
               ],
             ),
@@ -415,4 +448,29 @@ class MonitorTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MonitorChevronPainter extends CustomPainter {
+  const _MonitorChevronPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final path = Path()
+      ..moveTo(size.width * 0.15, size.height * 0.12)
+      ..lineTo(size.width * 0.85, size.height * 0.5)
+      ..lineTo(size.width * 0.15, size.height * 0.88);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MonitorChevronPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
