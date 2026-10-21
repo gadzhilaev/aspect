@@ -6,9 +6,10 @@ import 'package:flutter/services.dart';
 
 import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
+import '../services/session_store.dart';
 import '../theme/app_colors.dart';
-import '../theme/design_scale.dart';
 import '../theme/app_typography.dart';
+import '../theme/design_scale.dart';
 import '../widgets/auth_widgets.dart';
 import 'onboarding/onboarding_flow.dart';
 
@@ -25,6 +26,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
   /// Keeps each cell "non-empty" so iOS soft-keyboard backspace fires onChanged.
   static const _mark = '\u200B';
   static const _resendCooldown = 60;
+  static const _validCode = '123456';
 
   final List<TextEditingController> _digits =
       List.generate(6, (_) => TextEditingController(text: _mark));
@@ -35,6 +37,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
   bool _keepKeyboard = true;
   bool _navigating = false;
   bool _syncing = false;
+  bool _hasError = false;
 
   String _digitOf(int index) => _values[index];
 
@@ -46,6 +49,13 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
       selection: TextSelection.collapsed(offset: text.length),
     );
     _syncing = false;
+  }
+
+  void _clearDigits() {
+    for (var i = 0; i < 6; i++) {
+      _values[i] = '';
+      _writeController(i, '');
+    }
   }
 
   @override
@@ -139,6 +149,10 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
   void _onDigitChanged(int index, String value) {
     if (_syncing) return;
 
+    if (_hasError) {
+      setState(() => _hasError = false);
+    }
+
     final digitsOnly =
         value.replaceAll(_mark, '').replaceAll(RegExp(r'\D'), '');
 
@@ -183,37 +197,40 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
     if (!_isComplete || _navigating) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_isComplete || _navigating) return;
-      _confirm();
+      _submitCode();
     });
   }
 
-  void _confirm() {
+  Future<void> _submitCode() async {
     if (_navigating) return;
+    final code = _values.join();
+    if (code != _validCode) {
+      setState(() => _hasError = true);
+      _clearDigits();
+      _nodes.first.requestFocus();
+      return;
+    }
+
     _navigating = true;
     _keepKeyboard = false;
     FocusManager.instance.primaryFocus?.unfocus();
-    Navigator.of(context)
-        .push(
+    // Persist email / FIO / password early; onboarding will overwrite with full profile.
+    await SessionStore.saveProfile(widget.data);
+    if (!mounted) return;
+    // Replace this screen so Back from onboarding returns to registration.
+    Navigator.of(context).pushReplacement(
       AppPageRoute<void>(
         builder: (_) => OnboardingFlow(data: widget.data),
       ),
-    )
-        .then((_) {
-      if (!mounted) return;
-      _navigating = false;
-      _keepKeyboard = true;
-    });
+    );
   }
 
   void _resend() {
     if (_secondsLeft > 0) return;
     _startTimer();
-    for (var i = 0; i < 6; i++) {
-      _values[i] = '';
-      _writeController(i, '');
-    }
+    _clearDigits();
+    setState(() => _hasError = false);
     _nodes.first.requestFocus();
-    setState(() {});
   }
 
   @override
@@ -226,7 +243,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.fromLTRB(30 * s, 20 * s, 30 * s, 24 * s),
+          padding: EdgeInsets.fromLTRB(16 * s, 20 * s, 16 * s, 8 * s),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -282,6 +299,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                                 controller: _digits[index],
                                 focusNode: _nodes[index],
                                 digit: _digitOf(index),
+                                hasError: _hasError,
                                 onChanged: (value) =>
                                     _onDigitChanged(index, value),
                               );
@@ -293,11 +311,17 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                   ),
                 ),
               ),
-              AuthPrimaryButton(
-                label: 'Подтвердить',
-                onPressed: _isComplete ? _confirm : null,
-              ),
-              SizedBox(height: 16 * s),
+              if (_hasError) ...[
+                Text(
+                  'Неверный код',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.regular(
+                    13 * s,
+                    color: AppColors.brandRed,
+                  ),
+                ),
+                SizedBox(height: 8 * s),
+              ],
               GestureDetector(
                 onTap: canResend ? _resend : null,
                 behavior: HitTestBehavior.opaque,
@@ -329,6 +353,7 @@ class _CodeDigitBox extends StatefulWidget {
     required this.focusNode,
     required this.digit,
     required this.onChanged,
+    this.hasError = false,
   });
 
   final double size;
@@ -336,6 +361,7 @@ class _CodeDigitBox extends StatefulWidget {
   final FocusNode focusNode;
   final String digit;
   final ValueChanged<String> onChanged;
+  final bool hasError;
 
   @override
   State<_CodeDigitBox> createState() => _CodeDigitBoxState();
@@ -376,6 +402,9 @@ class _CodeDigitBoxState extends State<_CodeDigitBox> {
     final digit = widget.digit;
     final boxH = _boxHeight * s;
     final fontSize = _fontSize * s;
+    final borderColor = widget.hasError || focused
+        ? AppColors.brandRed
+        : _border;
 
     return SizedBox(
       width: widget.size,
@@ -388,7 +417,7 @@ class _CodeDigitBoxState extends State<_CodeDigitBox> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16 * s),
                 border: Border.all(
-                  color: focused ? AppColors.brandRed : _border,
+                  color: borderColor,
                   width: 1,
                 ),
               ),

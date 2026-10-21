@@ -49,7 +49,7 @@ class AuthTextField extends StatefulWidget {
     this.obscureText = false,
     this.keyboardType,
     this.textInputAction,
-    this.textCapitalization = TextCapitalization.none,
+    this.textCapitalization,
     this.inputFormatters,
     this.suffix,
     this.onChanged,
@@ -64,7 +64,8 @@ class AuthTextField extends StatefulWidget {
   final bool obscureText;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
-  final TextCapitalization textCapitalization;
+  /// Defaults to sentences (first letter only). Email / password → none.
+  final TextCapitalization? textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
   final Widget? suffix;
   final ValueChanged<String>? onChanged;
@@ -124,7 +125,38 @@ class _AuthTextFieldState extends State<AuthTextField> {
   }
 
   void _onFocus() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    if (!_focusNode.hasFocus) return;
+    // Scroll only when the field is under / clipped by the keyboard.
+    void ensureIfObscured() {
+      if (!mounted || !_focusNode.hasFocus) return;
+      final box = context.findRenderObject();
+      if (box is! RenderBox || !box.hasSize) return;
+      final fieldBottom = box.localToGlobal(Offset(0, box.size.height)).dy;
+      final media = MediaQuery.of(context);
+      final keyboardTop = media.size.height - media.viewInsets.bottom;
+      if (fieldBottom <= keyboardTop - 12) return;
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.2,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => ensureIfObscured());
+    Future<void>.delayed(const Duration(milliseconds: 320), ensureIfObscured);
+  }
+
+  TextCapitalization get _capitalization {
+    if (widget.textCapitalization != null) return widget.textCapitalization!;
+    if (widget.obscureText) return TextCapitalization.none;
+    if (widget.keyboardType == TextInputType.emailAddress) {
+      return TextCapitalization.none;
+    }
+    // First letter of the field / sentence — not after every space.
+    return TextCapitalization.sentences;
   }
 
   @override
@@ -189,12 +221,13 @@ class _AuthTextFieldState extends State<AuthTextField> {
                     obscureText: showToggle ? _isObscured : widget.obscureText,
                     keyboardType: widget.keyboardType,
                     textInputAction: widget.textInputAction,
-                    textCapitalization: widget.textCapitalization,
+                    textCapitalization: _capitalization,
                     inputFormatters: widget.inputFormatters,
                     onChanged: widget.onChanged,
                     onSubmitted: widget.onSubmitted,
                     cursorColor: AppColors.brandRed,
-                    scrollPadding: EdgeInsets.fromLTRB(20 * s, 20 * s, 20 * s, 80 * s),
+                    // Keep modest — large padding forces scroll even when field is visible.
+                    scrollPadding: EdgeInsets.fromLTRB(20 * s, 20 * s, 20 * s, 20 * s),
                     textAlignVertical: TextAlignVertical.center,
                     onEditingComplete: widget.onSubmitted != null
                         ? null

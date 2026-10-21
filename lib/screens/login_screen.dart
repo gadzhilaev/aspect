@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../models/onboarding_data.dart';
 import '../services/session_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/design_scale.dart';
@@ -50,7 +51,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     final raw = _nameController.text.trim();
-    await SessionStore.saveLogin(userName: raw);
+    final existing = await SessionStore.loadProfile();
+    final data = existing ?? OnboardingData();
+    data.fullName = raw;
+    data.email = _emailController.text.trim();
+    data.password = _passwordController.text;
+    await SessionStore.finishRegistration(data);
     final name = firstNameFromFullName(raw);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -71,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 24 * s),
+                padding: EdgeInsets.fromLTRB(16 * s, 8 * s, 16 * s, 24 * s),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -140,14 +146,14 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(30 * s, 8 * s, 30 * s, 24 * s),
+              padding: EdgeInsets.fromLTRB(16 * s, 8 * s, 16 * s, 8 * s),
               child: Column(
                 children: [
                   AuthPrimaryButton(
                     label: 'Войти',
                     onPressed: _login,
                   ),
-                  SizedBox(height: 18 * s),
+                  SizedBox(height: 12 * s),
                   AuthFooterLink(
                     prefix: 'Нет аккаунта? ',
                     action: 'Зарегистрируйтесь',

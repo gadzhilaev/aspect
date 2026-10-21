@@ -32,7 +32,17 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _openNext() async {
     final delay = Future<void>.delayed(const Duration(milliseconds: 1600));
-    final loggedIn = await SessionStore.isLoggedIn();
+    var loggedIn = await SessionStore.isLoggedIn();
+    // Legacy sessions stored only the surname (first FIO token). Drop them so
+    // the user signs in again with the full name and greeting uses given name.
+    if (loggedIn) {
+      final full = await SessionStore.fullName();
+      final parts = full.split(RegExp(r'\s+'));
+      if (parts.length < 2) {
+        await SessionStore.clear();
+        loggedIn = false;
+      }
+    }
     final userName = loggedIn ? await SessionStore.userName() : null;
     await delay;
     if (!mounted) return;

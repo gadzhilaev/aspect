@@ -50,7 +50,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.fromLTRB(30 * s, 52 * s, 30 * s, 24 * s),
+          padding: EdgeInsets.fromLTRB(16 * s, 28 * s, 16 * s, 8 * s),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -69,7 +69,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       Text.rich(
                         TextSpan(
                           style: AppTypography.medium(
-                            24.83 * s,
+                            22.5 * s,
                             color: AppColors.textPrimary,
                           ),
                           children: [
@@ -77,7 +77,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             TextSpan(
                               text: 'вашего бизнеса',
                               style: AppTypography.medium(
-                                24.83 * s,
+                                22.5 * s,
                                 color: AppColors.brandRed,
                               ),
                             ),
@@ -210,7 +210,7 @@ class _InsightCard extends StatelessWidget {
             child: Text(
               'Персональные\nинсайты',
               style: AppTypography.medium(
-                14.85 * s,
+                13.5 * s,
                 color: AppColors.brandRed,
               ),
             ),
@@ -255,7 +255,7 @@ class _RisksCard extends StatelessWidget {
             child: Text(
               'Риски и\nвозможности',
               style: AppTypography.medium(
-                14.85 * s,
+                13.5 * s,
                 color: AppColors.surface,
               ),
             ),
