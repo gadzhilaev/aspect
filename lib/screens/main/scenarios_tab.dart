@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
+import 'chat_screen.dart';
 
 class ScenariosTab extends StatelessWidget {
   const ScenariosTab({super.key});
@@ -66,24 +67,51 @@ class ScenariosTab extends StatelessWidget {
           ),
         ),
         SizedBox(height: 6 * s),
-        const _ScenarioRow(
+        _ScenarioRow(
           accent: AppColors.brandRed,
           title: 'Китай ограничивает экспорт электроники',
           subtitle: 'Аспект: подготовил сценарии для поставок',
           time: '08:24',
           badge: 1,
+          onTap: () => openChatScreen(
+            context,
+            const ChatScreenData(
+              title: 'Китай ограничивает экспорт электроники',
+              meta: 'Высокое влияние · Сегодня 08:24',
+              level: ImpactLevel.high,
+              backLabel: 'Сценарии',
+            ),
+          ),
         ),
-        const _ScenarioRow(
+        _ScenarioRow(
           accent: AppColors.impactPurple,
           title: 'Курс CNY вырос на 1,8% за неделю',
           subtitle: 'Аспект: оценил влияние на покупки',
           time: 'Вчера',
+          onTap: () => openChatScreen(
+            context,
+            const ChatScreenData(
+              title: 'Курс CNY вырос на 1,8% за неделю',
+              meta: 'Среднее влияние · Вчера',
+              level: ImpactLevel.medium,
+              backLabel: 'Сценарии',
+            ),
+          ),
         ),
-        const _ScenarioRow(
+        _ScenarioRow(
           accent: AppColors.impactGreen,
           title: 'Спрос на электронику в Казахстане растет',
           subtitle: 'Аспект: Возможное окно для роста',
           time: 'Пн',
+          onTap: () => openChatScreen(
+            context,
+            const ChatScreenData(
+              title: 'Спрос на электронику в Казахстане растет',
+              meta: 'Возможность · Пн',
+              level: ImpactLevel.opportunity,
+              backLabel: 'Сценарии',
+            ),
+          ),
         ),
       ],
     );
@@ -97,6 +125,7 @@ class _ScenarioRow extends StatelessWidget {
     required this.subtitle,
     required this.time,
     this.badge,
+    this.onTap,
   });
 
   final Color accent;
@@ -104,83 +133,90 @@ class _ScenarioRow extends StatelessWidget {
   final String subtitle;
   final String time;
   final int? badge;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
     return Column(
       children: [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 12 * s),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  width: 3 * s,
-                  decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(2 * s),
-                  ),
-                ),
-                SizedBox(width: 12 * s),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: AppTypography.bold(
-                          15 * s,
-                          color: AppColors.textInput,
-                        ).copyWith(height: 1.25),
-                      ),
-                      SizedBox(height: 4 * s),
-                      Text(
-                        subtitle,
-                        style: AppTypography.regular(
-                          13 * s,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 8 * s),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.start,
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 12 * s),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      time,
-                      style: AppTypography.regular(
-                        12 * s,
-                        color: AppColors.textMuted,
+                    Container(
+                      width: 3 * s,
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(2 * s),
                       ),
                     ),
-                    if (badge != null) ...[
-                      SizedBox(height: 6 * s),
-                      Container(
-                        width: 22 * s,
-                        height: 22 * s,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          color: AppColors.brandRed,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          '$badge',
-                          textAlign: TextAlign.center,
-                          style: AppTypography.bold(
-                            11 * s,
-                            color: Colors.white,
-                          ).copyWith(height: 1),
-                        ),
+                    SizedBox(width: 12 * s),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: AppTypography.bold(
+                              15 * s,
+                              color: AppColors.textInput,
+                            ).copyWith(height: 1.25),
+                          ),
+                          SizedBox(height: 4 * s),
+                          Text(
+                            subtitle,
+                            style: AppTypography.regular(
+                              13 * s,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                    SizedBox(width: 8 * s),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Text(
+                          time,
+                          style: AppTypography.regular(
+                            12 * s,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        if (badge != null) ...[
+                          SizedBox(height: 6 * s),
+                          Container(
+                            width: 22 * s,
+                            height: 22 * s,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              color: AppColors.brandRed,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '$badge',
+                              textAlign: TextAlign.center,
+                              style: AppTypography.bold(
+                                11 * s,
+                                color: Colors.white,
+                              ).copyWith(height: 1),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
