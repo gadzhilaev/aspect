@@ -194,7 +194,9 @@ class _EventsTabState extends State<EventsTab> {
                         level: e.level,
                         title: e.title,
                         meta: e.meta,
+                        warning: e.warning,
                       ),
+                      backLabel: 'События',
                       onOpened: () => _markViewed(e.id),
                     );
                   },

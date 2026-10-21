@@ -78,7 +78,11 @@ class OverviewTab extends StatelessWidget {
                 warning:
                     'Риск роста себестоимости и переноса сроков поставки',
                 actionLabel: 'Открыть влияние',
-                onOpen: () => openNewsDetail(context, chinaExportDetail),
+                onOpen: () => openNewsDetail(
+                  context,
+                  chinaExportDetail,
+                  backLabel: 'Обзор',
+                ),
               ),
               SizedBox(height: 30 * s),
               Text(
