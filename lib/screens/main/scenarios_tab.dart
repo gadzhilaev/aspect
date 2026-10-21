@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import '../../theme/design_scale.dart';
+import '../../widgets/main_widgets.dart';
 
 class ScenariosTab extends StatelessWidget {
   const ScenariosTab({super.key});
@@ -18,36 +18,54 @@ class ScenariosTab extends StatelessWidget {
         24 * s,
       ),
       children: [
-        Text(
-          'Сценарии',
-          style: AppTypography.bold(28 * s, color: AppColors.textPrimary)
-              .copyWith(letterSpacing: -0.4, height: 1.15),
-        ),
+        Text('Сценарии', style: pageTitleStyle(context)),
         SizedBox(height: 8 * s),
         Text(
           'Диалоги по важным событиям',
           style: AppTypography.regular(14 * s, color: AppColors.textMuted),
         ),
-        SizedBox(height: 18 * s),
-        TextField(
-          style: AppTypography.regular(15 * s, color: AppColors.textPrimary),
-          decoration: InputDecoration(
-            hintText: 'Поиск по событиям',
-            hintStyle: AppTypography.regular(15 * s, color: AppColors.textHint),
-            suffixIcon: Icon(
-              Icons.search,
-              color: AppColors.textSecondary,
-              size: 22 * s,
-            ),
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.divider),
-            ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.brandRed, width: 1.5),
-            ),
+        SizedBox(height: 14 * s),
+        Container(
+          height: 50 * s,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16 * s),
+            border: Border.all(color: AppColors.border, width: 1),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16 * s),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  textCapitalization: TextCapitalization.sentences,
+                  style: AppTypography.regular(
+                    15 * s,
+                    color: AppColors.textPrimary,
+                  ),
+                  cursorColor: AppColors.brandRed,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    hintText: 'Поиск по событиям',
+                    hintStyle: AppTypography.regular(
+                      15 * s,
+                      color: AppColors.textHint,
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.search,
+                color: AppColors.textSecondary,
+                size: 22 * s,
+              ),
+            ],
           ),
         ),
-        SizedBox(height: 12 * s),
+        SizedBox(height: 6 * s),
         const _ScenarioRow(
           accent: AppColors.brandRed,
           title: 'Китай ограничивает экспорт электроники',
@@ -93,7 +111,7 @@ class _ScenarioRow extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: EdgeInsets.symmetric(vertical: 14 * s),
+          padding: EdgeInsets.symmetric(vertical: 12 * s),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -110,61 +128,57 @@ class _ScenarioRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              style: AppTypography.bold(
-                                15 * s,
-                                color: AppColors.textInput,
-                              ).copyWith(height: 1.25),
-                            ),
-                          ),
-                          SizedBox(width: 8 * s),
-                          Text(
-                            time,
-                            style: AppTypography.regular(
-                              12 * s,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        title,
+                        style: AppTypography.bold(
+                          15 * s,
+                          color: AppColors.textInput,
+                        ).copyWith(height: 1.25),
                       ),
                       SizedBox(height: 4 * s),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              subtitle,
-                              style: AppTypography.regular(
-                                13 * s,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                          ),
-                          if (badge != null)
-                            Container(
-                              width: 18 * s,
-                              height: 18 * s,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                color: AppColors.brandRed,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                '$badge',
-                                style: AppTypography.bold(
-                                  11 * s,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                        ],
+                      Text(
+                        subtitle,
+                        style: AppTypography.regular(
+                          13 * s,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
+                ),
+                SizedBox(width: 8 * s),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      time,
+                      style: AppTypography.regular(
+                        12 * s,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    if (badge != null) ...[
+                      SizedBox(height: 6 * s),
+                      Container(
+                        width: 22 * s,
+                        height: 22 * s,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: AppColors.brandRed,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$badge',
+                          textAlign: TextAlign.center,
+                          style: AppTypography.bold(
+                            11 * s,
+                            color: Colors.white,
+                          ).copyWith(height: 1),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
