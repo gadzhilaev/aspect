@@ -16,6 +16,8 @@ class OnboardingData {
   List<String> countries;
   List<String> cities;
   List<String> salesRegions;
+  List<String> finances;
+  List<String> counterparties;
 
   OnboardingData({
     this.email = '',
@@ -35,10 +37,14 @@ class OnboardingData {
     List<String>? countries,
     List<String>? cities,
     List<String>? salesRegions,
+    List<String>? finances,
+    List<String>? counterparties,
   })  : products = products ?? [],
         countries = countries ?? [],
         cities = cities ?? [],
-        salesRegions = salesRegions ?? [];
+        salesRegions = salesRegions ?? [],
+        finances = finances ?? [],
+        counterparties = counterparties ?? [];
 
   Map<String, dynamic> toJson() => {
         'email': email,
@@ -58,6 +64,8 @@ class OnboardingData {
         'countries': countries,
         'cities': cities,
         'salesRegions': salesRegions,
+        'finances': finances,
+        'counterparties': counterparties,
       };
 
   factory OnboardingData.fromJson(Map<String, dynamic> json) {
@@ -89,6 +97,8 @@ class OnboardingData {
       countries: listOf(json['countries']),
       cities: listOf(json['cities']),
       salesRegions: listOf(json['salesRegions']),
+      finances: listOf(json['finances']),
+      counterparties: listOf(json['counterparties']),
     );
   }
 }
