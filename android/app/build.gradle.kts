@@ -5,8 +5,9 @@ plugins {
 }
 
 android {
-    namespace = "com.aspect.aspect"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "ru.gadzhilaev.aspect"
+    // permission_handler_android требует API 37+.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -16,11 +17,11 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.aspect.aspect"
+        applicationId = "ru.gadzhilaev.aspect"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 37
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

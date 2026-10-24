@@ -1,4 +1,4 @@
-package com.aspect.aspect
+package ru.gadzhilaev.aspect
 
 import io.flutter.embedding.android.FlutterActivity
 
