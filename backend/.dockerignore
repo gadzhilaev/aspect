@@ -1,0 +1,60 @@
+# Build context exclusions (stage 6.5). Keep synthetic test fixtures available.
+
+.git
+.gitignore
+.cursor
+.vscode
+.idea
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+!.env.competition.example
+**/*.pem
+**/demo_password.local
+
+# Local Python / Node environments
+.venv
+venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+node_modules
+# frontend lives in sibling kontur_front — do not expect web/ here
+web/
+web/node_modules
+web/dist
+web/screenshots
+
+# Local DBs and competition / verification data (not for images)
+*.db
+data/case/raw/
+data/case/reports/
+data/case/verification/
+data/bank_materials/raw/
+data/bank_materials/extracted/
+data/bank_materials/ocr/
+data/bank_materials/reports/
+data/bank_materials/verification/
+data/competition_stand/
+data/competition_docker_smoke/
+data/agent_demo/
+_tmp_hl_debug/
+
+# Docs / brand / large local references (not needed at runtime)
+alfa-brandbook.pdf
+docs/referens/
+REPORT.md
+*.pdf
+
+# Agent / IDE noise
+agent-transcripts/
+terminals/
+
+# Keep: app/, scripts/, alembic/, web/src, package-lock, requirements*.lock,
+# tests/fixtures (for optional smoke materialization on host — not copied into image by default)

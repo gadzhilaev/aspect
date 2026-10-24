@@ -1,0 +1,37 @@
+# Competition API image (SQLite stand). Stage 6.5.
+# Base tag pinned; digest not claimed immutable without recording sha256.
+FROM python:3.12.10-slim-bookworm
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Prefer Linux-targeted hashed lock; fall back documented in COMPETITION_DOCKER.md.
+COPY requirements-linux.lock ./requirements-linux.lock
+RUN python -m pip install --upgrade pip \
+ && python -m pip install --require-hashes -r requirements-linux.lock \
+ && python -m pip check
+
+COPY alembic.ini ./
+COPY alembic ./alembic
+COPY app ./app
+COPY scripts ./scripts
+COPY docker/competition/entrypoint-api.sh /entrypoint-api.sh
+COPY docker/competition/entrypoint-bootstrap.sh /entrypoint-bootstrap.sh
+COPY docker/competition/entrypoint-telegram-worker.sh /entrypoint-telegram-worker.sh
+COPY docker/competition/entrypoint-telegram-polling.sh /entrypoint-telegram-polling.sh
+RUN sed -i 's/\r$//' /entrypoint-api.sh /entrypoint-bootstrap.sh \
+      /entrypoint-telegram-worker.sh /entrypoint-telegram-polling.sh \
+ && chmod +x /entrypoint-api.sh /entrypoint-bootstrap.sh \
+      /entrypoint-telegram-worker.sh /entrypoint-telegram-polling.sh
+
+EXPOSE 8000
+
+# Healthcheck: local HTTP only — no model hosts.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+
+ENTRYPOINT ["/entrypoint-api.sh"]

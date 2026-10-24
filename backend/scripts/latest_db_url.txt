@@ -1,0 +1,1 @@
+sqlite:///C:/Users/неважно/Desktop/kontur_back/scripts/case_verify_20261020T121516Z.db

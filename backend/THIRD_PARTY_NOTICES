@@ -1,0 +1,190 @@
+THIRD_PARTY_NOTICES
+===================
+
+Project: Aspekt / Kontur (hackathon prototype)
+Inventory date: 2026-10-23
+Stage: 6.2–6.5 (lock/clean-env + competition Docker config)
+
+This file is an **inventory of third-party components** used by the project,
+based on declared dependency manifests, lock files where present, installed
+package metadata (License / License-Expression / LICENSE files), and
+documented external tools/data. It is **not** a legal audit and does **not**
+claim a complete license compliance review.
+
+Where license text or SPDX expression could not be read from installed
+metadata or an accompanying LICENSE file, the entry says:
+«условия требуют уточнения».
+
+Access to competition CSV/PDF from organizers does **not** imply a right to
+public redistribution. Raw competition datasets are intentionally kept out of
+Git (see `.gitignore`). Do not treat presence of local copies as permission to
+publish them.
+
+-----------------------------------------------------------------------------
+A. Runtime — Python backend (`requirements.in` / `requirements.lock`)
+-----------------------------------------------------------------------------
+
+Direct pins below match `requirements.in` / `requirements.txt`. Transitive
+versions and hashes are in `requirements.lock` (compiled with pip-tools on
+**Windows win_amd64**, Python 3.12.10 — stage 6.4). Install:
+
+  `pip install --require-hashes -r requirements.lock`
+
+| Component | Declared version | Purpose | Source / install | License (from metadata / LICENSE) |
+|-----------|------------------|---------|------------------|-----------------------------------|
+| fastapi | 0.115.6 | HTTP API | PyPI | MIT (LICENSE in dist-info; verified on an installed env) |
+| uvicorn[standard] | 0.34.0 | ASGI server | PyPI | BSD-3-Clause |
+| sqlalchemy | 2.0.36 | ORM / DB | PyPI | MIT |
+| alembic | 1.14.0 | Migrations | PyPI | MIT |
+| pydantic | 2.10.3 | Schemas / validation | PyPI | MIT |
+| pydantic-settings | 2.6.1 | Settings from env | PyPI | MIT |
+| python-jose[cryptography] | 3.3.0 | JWT | PyPI | MIT (`python-jose`); cryptography: Apache-2.0 OR BSD-3-Clause |
+| bcrypt | 4.2.1 | Password hashes | PyPI | Apache-2.0 |
+| httpx | 0.28.1 | HTTP client (LLM gateway, ingestion) | PyPI | BSD-3-Clause |
+| aiosqlite | 0.20.0 | SQLite async support | PyPI | MIT (classifier / LICENSE) |
+| greenlet | 3.1.1 | SQLAlchemy helper | PyPI | MIT AND PSF-2.0 |
+| email-validator | 2.2.0 | Email validation | PyPI | Unlicense |
+| python-multipart | 0.0.20 | Form/multipart parsing | PyPI | Apache-2.0 |
+| psycopg2-binary | 2.9.10 | PostgreSQL driver (Docker/compose) | PyPI | **условия требуют уточнения** (confirm from installed LICENSE on build host; LGPL historically associated) |
+| pypdf | 5.4.0 | PDF read (bank dry-run / ingest helpers) | PyPI | BSD-3-Clause |
+
+Transitive runtime packages are pinned with hashes in `requirements.lock`
+(e.g. starlette, anyio, click, h11, httpcore, idna, certifi, sniffio,
+typing-extensions, annotated-types, cryptography). Treat their licenses as
+those of the installed dist-info on the build machine.
+
+-----------------------------------------------------------------------------
+B. Development / test — Python (`requirements-dev.in` / `requirements-dev.lock`)
+-----------------------------------------------------------------------------
+
+| Component | Declared version | Purpose | Source | License |
+|-----------|------------------|---------|--------|---------|
+| pytest | 8.3.4 | Tests | PyPI | MIT |
+| pytest-asyncio | 0.24.0 | Async tests | PyPI | Apache-2.0 |
+| Pillow | 11.1.0 | Synthetic page PNG fixtures in tests | PyPI | HPND-ish / PIL license — confirm from installed LICENSE |
+
+Install: `pip install --require-hashes -r requirements-dev.lock`  
+Pillow is **not** required to run a prepared stand with an existing OCR corpus.
+
+-----------------------------------------------------------------------------
+C. Runtime — Web frontend (web/package.json + web/package-lock.json)
+-----------------------------------------------------------------------------
+
+`web/package-lock.json` **is present** (npm lockfile). Versions below are from
+installed `node_modules/*/package.json` on the inventory machine (lock may
+resolve the same range differently on another machine if lock is out of date).
+
+| Component | Version (installed) | Purpose | Source | License field |
+|-----------|---------------------|---------|--------|---------------|
+| react | 19.3.0 | UI | npm | MIT |
+| react-dom | 19.3.0 | UI | npm | MIT |
+| react-router-dom | 7.18.4 | Routing | npm | MIT |
+
+Declared ranges in `package.json`: `react`/`react-dom` ^19.2.8,
+`react-router-dom` ^7.18.4.
+
+-----------------------------------------------------------------------------
+D. Development — Web frontend
+-----------------------------------------------------------------------------
+
+| Component | Version (installed) | Purpose | Source | License field |
+|-----------|---------------------|---------|--------|---------------|
+| vite | 8.3.4 | Dev server / build | npm | MIT |
+| typescript | 6.0.3 | Typecheck | npm | Apache-2.0 |
+| @vitejs/plugin-react | 6.1.2 | Vite React plugin | npm | MIT |
+| oxlint | 1.87.0 | Lint | npm | MIT |
+| @types/react, @types/react-dom, @types/node | (dev ranges) | Types | npm | **условия требуют уточнения** per package LICENSE in node_modules |
+
+-----------------------------------------------------------------------------
+E. Lock / pin status (stages 6.4–6.5)
+-----------------------------------------------------------------------------
+
+| Artifact | Status |
+|----------|--------|
+| `requirements.in` / `requirements.txt` | Present — direct runtime pins |
+| `requirements.lock` | Present — hashed full tree; **verified install on Windows** (6.4) |
+| `requirements-dev.lock` | Present — runtime + test tools; verified on Windows (6.4) |
+| `requirements-linux.lock` | Present — manylinux2014_x86_64 / cp312 hashes (6.5); **Docker install not verified** (no Docker CLI) |
+| `web/package-lock.json` | Present; `npm ci` + `npm run build` verified in temp dir (6.4) |
+| Legacy `Dockerfile` | Still uses `requirements.lock` (Postgres demo compose) |
+| Competition API image | Intended to install `requirements-linux.lock` with `--require-hashes` |
+| Other machine / Linux runtime | **Not verified** — see `docs/CLEAN_ENV_VERIFICATION.md`, `docs/COMPETITION_DOCKER.md` |
+
+-----------------------------------------------------------------------------
+F. OCR tools and language data
+-----------------------------------------------------------------------------
+
+**Runtime / jury stand with a prepared OCR corpus:** Tesseract is **not** required
+(Python runtime lock + stored PDF/OCR artifacts under the stand `storage/`).
+
+**Re-running OCR / building a new corpus:** system Tesseract + language data
+below are required; they are **not** Python package dependencies.
+
+
+| Component | Version / note | Purpose | Source | License / terms |
+|-----------|----------------|---------|--------|-----------------|
+| Tesseract OCR | Documented pilot: v5.4.0.20240606 (UB-Mannheim Windows build) | PDF page OCR | System install (`winget` / UB-Mannheim); binary **not** in Git | Apache-2.0 (upstream Tesseract); Windows packaging terms — **условия требуют уточнения** for the UB-Mannheim installer specifically |
+| eng.traineddata / rus.traineddata | From tesseract-ocr/tessdata | OCR languages | https://github.com/tesseract-ocr/tessdata → local `tools/tessdata/` (gitignored) | Apache-2.0 for tessdata project — confirm per-file NOTICE in the checked-out tessdata tree |
+| Local OCR artifacts under `data/bank_materials/ocr/` | Generated | Corpus | Local pipeline | Derived from competition PDFs — **not for public redistribution via this repo** |
+
+-----------------------------------------------------------------------------
+G. Organizers’ LLM gateway and models
+-----------------------------------------------------------------------------
+
+| Component | Version / ID | Purpose | Source | Terms |
+|-----------|--------------|---------|--------|-------|
+| Changellenge / Alfa hackathon OpenAI-compatible gateway | Base URL `https://changellenge.up.railway.app/v1` | Chat completions for competition mode | Organizers | **условия требуют уточнения** (hackathon rules / team budget; not an open redistributable SDK) |
+| Allowed model IDs (exact) | `google/gemma-4-26b-a4b-it`, `z-ai/glm-5.3-flash`, `qwen/qwen3.6-35b-a3b`, `deepseek/deepseek-v4.1-flash`, `qwen/qwen3-vl-30b-a3b-instruct`, `moonshotai/kimi-k2.6` | Inference via gateway only | Organizers’ allow-list (PDF appendixx. 3) | Model weights are **not** shipped in this repo; gateway usage terms = competition rules. Underlying model licenses — **условия требуют уточнения** beyond the hackathon allow-list |
+
+Default demo model in stand profile: `deepseek/deepseek-v4.1-flash`.
+
+-----------------------------------------------------------------------------
+H. Competition datasets (CSV / PDF)
+-----------------------------------------------------------------------------
+
+| Component | Purpose | Source | Redistribution |
+|-----------|---------|--------|----------------|
+| Case CSV (orgs, person links, payments) | Company context import | Organizers’ case package | Local / verification DBs only; **not** auto-added to Git |
+| Bank analytical PDFs (9 materials, e.g. Policy Rate) | Bank evidence / OCR | Organizers’ materials | Raw files gitignored (`data/bank_materials/raw/`); access ≠ public publish right |
+| Synthetic demo twin «СеверПром» / agent-demo fixtures | Offline / jury navigation without live import | Generated by project scripts | Synthetic; not competition raw data |
+
+-----------------------------------------------------------------------------
+I. Fonts, images, icons
+-----------------------------------------------------------------------------
+
+| Component | Purpose | Source | License / terms |
+|-----------|---------|--------|-----------------|
+| Onest (Google Fonts CSS) | Interim UI font fallback | fonts.googleapis.com / fonts.gstatic.com linked from `web/index.html` | Google Fonts / Onest OFL — confirm current OFL text at font source; CDN delivery terms apply |
+| Styrene A LC / Styrene B LC | Brandbook UI/display fonts | Referenced in `web/src/styles/fonts.css`; **woff2 files not shipped** in repo until licensed | Alfa brandbook / commercial — **условия требуют уточнения**; not claimed as freely redistributable here |
+| `/aspekt-mark.svg` and other `web/public` marks | Product mark in UI | Project assets | Project / brand — **условия требуют уточнения** if third-party brand elements are embedded |
+| Alfa brandbook PDF (`alfa-brandbook.pdf` if present locally) | Design reference | Bank materials | **условия требуют уточнения**; not a grant to redistribute |
+
+-----------------------------------------------------------------------------
+J. Container base images
+-----------------------------------------------------------------------------
+
+| Component | Purpose | Source | License / terms |
+|-----------|---------|--------|-----------------|
+| `python:3.12-slim` | Legacy API image (`Dockerfile` + Postgres compose) | Docker Hub | **условия требуют уточнения** |
+| `python:3.12.10-slim-bookworm` | Competition API (`docker/competition/Dockerfile.api`) | Docker Hub | **условия требуют уточнения** |
+| `node:24.19.0-bookworm-slim` | Competition web build stage | Docker Hub | **условия требуют уточнения** |
+| `nginx:1.27.5-alpine` | Competition web runtime | Docker Hub | **условия требуют уточнения** |
+| `postgres:16-alpine` | Legacy compose DB only | Docker Hub | **условия требуют уточнения** |
+
+Tags are pinned in Dockerfiles; **image digests are not recorded** — do not claim
+bit-for-bit immutability. Competition compose (`docker-compose.competition.yml`)
+does **not** use Postgres. Legacy `docker-compose.yml` remains db+api+worker on `:8000`.
+See `docs/COMPETITION_DOCKER.md`.
+
+-----------------------------------------------------------------------------
+K. Components with unknown / incomplete terms (summary)
+-----------------------------------------------------------------------------
+
+- `psycopg2-binary` — confirm from installed LICENSE on the build host  
+- Organizers’ gateway + underlying model weights — competition rules only inventoried  
+- Styrene corporate fonts — not shipped; licensing unresolved in-repo  
+- Docker base images — image ToS not reproduced here  
+- Competition raw CSV/PDF — redistribution rights not asserted  
+- Some `@types/*` and transitive npm packages — check each LICENSE in `node_modules` before redistribution  
+
+End of inventory.

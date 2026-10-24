@@ -1,0 +1,108 @@
+"""Static checks for competition Docker config when Docker daemon is unavailable."""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = BACKEND_ROOT.parent
+
+
+def main() -> int:
+    errors: list[str] = []
+    files = [
+        REPO_ROOT / "docker-compose.competition.yml",
+        BACKEND_ROOT / "docker" / "competition" / "Dockerfile.api",
+        BACKEND_ROOT / "docker" / "competition" / "Dockerfile.web",
+        REPO_ROOT / "frontend" / "Dockerfile",
+        REPO_ROOT / "frontend" / "nginx.conf",
+        BACKEND_ROOT / "docker" / "competition" / "entrypoint-api.sh",
+        BACKEND_ROOT / "docker" / "competition" / "entrypoint-bootstrap.sh",
+        BACKEND_ROOT / ".dockerignore",
+        BACKEND_ROOT / ".env.competition.example",
+        BACKEND_ROOT / "requirements-linux.lock",
+    ]
+    for p in files:
+        if not p.is_file():
+            try:
+                rel = p.relative_to(REPO_ROOT)
+            except ValueError:
+                rel = p
+            errors.append(f"missing:{rel}")
+
+    compose = (REPO_ROOT / "docker-compose.competition.yml").read_text(encoding="utf-8")
+    # Ignore comments when scanning for forbidden services.
+    compose_code = "\n".join(
+        ln for ln in compose.splitlines() if not ln.lstrip().startswith("#")
+    )
+    if re.search(r"(?im)^\s*image:\s*postgres", compose_code) or re.search(
+        r"(?im)^\s*postgres:", compose_code
+    ):
+        errors.append("compose_contains_postgres")
+    if re.search(r"(?im)^\s*worker:", compose_code):
+        errors.append("compose_contains_worker")
+    if "context: ./backend" not in compose and "context:./backend" not in compose.replace(
+        " ", ""
+    ):
+        if "dockerfile: docker/competition/Dockerfile.api" in compose and "context: ./backend" not in compose:
+            errors.append("compose_api_context_not_backend")
+    if "./frontend" not in compose and "KONTUR_FRONT_DIR" not in compose:
+        errors.append("compose_web_context_not_frontend")
+
+    if "HACKATHON_API_KEY" in (
+        BACKEND_ROOT / "docker/competition/Dockerfile.api"
+    ).read_text(encoding="utf-8"):
+        errors.append("api_dockerfile_mentions_key")
+
+    front_df = (REPO_ROOT / "frontend" / "Dockerfile").read_text(encoding="utf-8")
+    if "ARG HACKATHON" in front_df:
+        errors.append("web_dockerfile_buildarg_key")
+    if "npm ci" not in front_df:
+        errors.append("web_dockerfile_no_npm_ci")
+    if "npm run build" not in front_df:
+        errors.append("web_dockerfile_no_production_build")
+    if re.search(r"npm\s+run\s+dev", front_df):
+        errors.append("web_dockerfile_uses_dev_server")
+
+    nginx = (REPO_ROOT / "frontend" / "nginx.conf").read_text(encoding="utf-8")
+    if "proxy_read_timeout 120s" not in nginx:
+        errors.append("nginx_missing_120s_timeout")
+    if "try_files" not in nginx:
+        errors.append("nginx_missing_spa_fallback")
+    if "location /api/" not in nginx:
+        errors.append("nginx_missing_api_proxy")
+
+    api_df = (BACKEND_ROOT / "docker/competition/Dockerfile.api").read_text(
+        encoding="utf-8"
+    )
+    if "--require-hashes" not in api_df:
+        errors.append("api_dockerfile_no_require_hashes")
+    if "requirements-linux.lock" not in api_df:
+        errors.append("api_dockerfile_no_linux_lock")
+
+    dockerignore = (BACKEND_ROOT / ".dockerignore").read_text(encoding="utf-8")
+    for needle in (".env", "node_modules", "data/bank_materials/raw/", "*.db"):
+        if needle not in dockerignore:
+            errors.append(f"dockerignore_missing:{needle}")
+
+    # Entrypoint must not run seed/import.
+    api_ep = (BACKEND_ROOT / "docker/competition/entrypoint-api.sh").read_text(
+        encoding="utf-8"
+    )
+    for bad in ("seed_demo", "bootstrap_competition", "import_bank", "alembic upgrade"):
+        if bad in api_ep:
+            errors.append(f"api_entrypoint_runs:{bad}")
+
+    if errors:
+        print("STATIC_FAIL")
+        for e in errors:
+            print(f"  - {e}")
+        return 1
+    print("STATIC_OK competition docker config")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

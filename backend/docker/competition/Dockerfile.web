@@ -1,0 +1,9 @@
+# DEPRECATED — frontend is at repo-root ./frontend.
+# Compose builds: context ${KONTUR_FRONT_DIR:-./frontend}, dockerfile Dockerfile
+FROM alpine:3.20
+RUN printf '%s\n' \
+  'ERROR: docker/competition/Dockerfile.web is deprecated.' \
+  'Build the monorepo frontend instead:' \
+  '  context: ./frontend' \
+  '  dockerfile: Dockerfile' \
+  && exit 1

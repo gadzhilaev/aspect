@@ -1,0 +1,5 @@
+# Runtime + test/dev tools. Compile to requirements-dev.lock.
+-r requirements.in
+pytest==8.3.4
+pytest-asyncio==0.24.0
+Pillow==11.1.0
