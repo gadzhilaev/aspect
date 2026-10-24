@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../app/app_controller.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/design_scale.dart';
@@ -57,23 +59,11 @@ class AspectBrandHeader extends StatelessWidget {
   }
 }
 
-String formatOverviewDate([DateTime? date]) {
-  const months = [
-    'января',
-    'февраля',
-    'марта',
-    'апреля',
-    'мая',
-    'июня',
-    'июля',
-    'августа',
-    'сентября',
-    'октября',
-    'ноября',
-    'декабря',
-  ];
+String formatOverviewDate([DateTime? date, AppLocalizations? l10n]) {
   final d = date ?? DateTime.now();
-  return '${d.day} ${months[d.month - 1]} ${d.year} г';
+  if (l10n != null) return l10n.formatDate(d);
+  // Fallback without context (e.g. early build).
+  return AppLocalizations(AppController.instance.locale).formatDate(d);
 }
 
 enum ImpactLevel { high, medium, opportunity }
@@ -137,7 +127,7 @@ class EventSignalCard extends StatelessWidget {
         ],
       ),
       child: Material(
-        color: AppColors.surface,
+        color: AppColors.surfaceRaised,
         elevation: 0,
         shadowColor: Colors.transparent,
         borderRadius: BorderRadius.circular(16 * s),
@@ -146,11 +136,11 @@ class EventSignalCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16 * s),
           child: Ink(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.surfaceRaised,
               borderRadius: BorderRadius.circular(16 * s),
               border: Border.all(
-                color: const Color(0x3D000000),
-                width: 0.1,
+                color: AppColors.border,
+                width: AppColors.isDark ? 1 : 0.1,
               ),
             ),
             child: IntrinsicHeight(
@@ -251,7 +241,7 @@ class EventSignalCard extends StatelessWidget {
                                       warning!,
                                       style: AppTypography.medium(
                                         11 * s,
-                                        color: accent,
+                                        color: AppColors.warningText,
                                       ).copyWith(height: 1.25),
                                     ),
                                   ),
@@ -376,15 +366,15 @@ class MonitorTile extends StatelessWidget {
     final s = designScale(context);
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(14 * s),
         border: Border.all(
-          color: Colors.black.withValues(alpha: 0.24),
-          width: 0.11,
+          color: AppColors.border,
+          width: AppColors.isDark ? 1 : 0.11,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
+            color: Colors.black.withValues(alpha: AppColors.isDark ? 0.35 : 0.15),
             offset: Offset(0, 2 * s),
             blurRadius: 7.71 * s,
             spreadRadius: 0,

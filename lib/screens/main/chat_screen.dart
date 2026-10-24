@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
@@ -15,13 +16,13 @@ class ChatScreenData {
     required this.title,
     required this.meta,
     required this.level,
-    this.backLabel = 'Сценарии',
+    this.backLabel,
   });
 
   final String title;
   final String meta;
   final ImpactLevel level;
-  final String backLabel;
+  final String? backLabel;
 }
 
 const chinaExportChat = ChatScreenData(
@@ -74,17 +75,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final accent = ImpactColors.accent(widget.data.level);
     const hPad = AppColors.screenPadding;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final backLabel = widget.data.backLabel ?? l10n.navScenarios;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -103,7 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         onTap: () => Navigator.of(context).maybePop(),
                         behavior: HitTestBehavior.opaque,
                         child: Text(
-                          '‹ ${widget.data.backLabel}',
+                          '‹ $backLabel',
                           style: AppTypography.regular(
                             15 * s,
                             color: AppColors.brandRed,
@@ -145,7 +144,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             borderRadius: BorderRadius.circular(6 * s),
                           ),
                           child: Text(
-                            'AI-объяснение',
+                            l10n.aiExplanation,
                             softWrap: false,
                             style: AppTypography.medium(
                               9.4 * s,
@@ -177,17 +176,20 @@ class _ChatScreenState extends State<ChatScreen> {
                       text:
                           'Я подготовил варианты действий по этой новости. Начнём с влияния на ваши поставки из Китая?',
                       showBankLink: true,
+                      senderLabel: l10n.appName,
+                      bankLinkLabel: l10n.showBankMaterial,
                       onBankLinkTap: () => openBankMaterialScreen(
                         context,
-                        data: const BankMaterialData(backLabel: 'Событие'),
+                        data: BankMaterialData(backLabel: l10n.backEvent),
                       ),
                     ),
                     SizedBox(height: 12 * s),
                     const _UserBubble(text: 'Какие контракты под риском?'),
                     SizedBox(height: 12 * s),
-                    const _AspectBubble(
+                    _AspectBubble(
                       text:
                           'В первую очередь — контракты с поставкой критичных компонентов в ближайшие 60 дней. Риск выше по договорам без альтернативного поставщика и запаса по срокам.\n\nМогу сравнить три сценария: ждать разъяснений, искать замену или пересогласовать сроки поставки.',
+                      senderLabel: l10n.appName,
                     ),
                   ],
                 ),
@@ -210,12 +212,12 @@ class _ChatScreenState extends State<ChatScreen> {
                           children: [
                             if (_savedPlan == null)
                               _QuickChip(
-                                label: 'Покажи 3 сценария',
+                                label: l10n.showThreeScenarios,
                                 onTap: _openScenarios,
                               )
                             else
                               _QuickChip(
-                                label: 'План действий',
+                                label: l10n.actionPlan,
                                 filled: true,
                                 onTap: _openSavedPlan,
                               ),
@@ -249,7 +251,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   isDense: true,
                                   border: InputBorder.none,
                                   filled: false,
-                                  hintText: 'Спросите об этом событии',
+                                  hintText: l10n.askAboutEvent,
                                   hintStyle: AppTypography.regular(
                                     15.9 * s,
                                     color: AppColors.textMuted,
@@ -287,11 +289,15 @@ class _AspectBubble extends StatelessWidget {
     required this.text,
     this.showBankLink = false,
     this.onBankLinkTap,
+    this.senderLabel = 'Аспект',
+    this.bankLinkLabel = 'Показать материал банка',
   });
 
   final String text;
   final bool showBankLink;
   final VoidCallback? onBankLinkTap;
+  final String senderLabel;
+  final String bankLinkLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +308,7 @@ class _AspectBubble extends StatelessWidget {
         Padding(
           padding: EdgeInsets.only(left: 10 * s),
           child: Text(
-            'Аспект',
+            senderLabel,
             style: AppTypography.medium(13 * s, color: AppColors.textMuted),
           ),
         ),
@@ -349,7 +355,7 @@ class _AspectBubble extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
-                            'Показать материал банка',
+                            bankLinkLabel,
                             style: AppTypography.bold(
                               13 * s,
                               color: AppColors.brandRed,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
@@ -20,16 +21,13 @@ class FinanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -45,7 +43,7 @@ class FinanceScreen extends StatelessWidget {
                     onTap: () => Navigator.of(context).maybePop(),
                     behavior: HitTestBehavior.opaque,
                     child: Text(
-                      '‹ Компания',
+                      l10n.settingsBackCompany,
                       style: AppTypography.regular(
                         15 * s,
                         color: AppColors.brandRed,
@@ -59,7 +57,7 @@ class FinanceScreen extends StatelessWidget {
                   padding: EdgeInsets.fromLTRB(hPad, 10 * s, hPad, 24 * s),
                   children: [
                     Text(
-                      'Финансы',
+                      l10n.finance,
                       style: AppTypography.medium(
                         _titleSize * s,
                         color: AppColors.textInput,
@@ -67,7 +65,7 @@ class FinanceScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 4 * s),
                     Text(
-                      'Банковские продукты и параметры расчёта',
+                      l10n.financeSubtitle,
                       style: AppTypography.medium(
                         _titleSize * s,
                         color: AppColors.brandRed,
@@ -77,7 +75,7 @@ class FinanceScreen extends StatelessWidget {
                     Padding(
                       padding: EdgeInsets.only(left: 10 * s),
                       child: Text(
-                        'Продукты по данным источника',
+                        l10n.productsFromSource,
                         style: AppTypography.bold(
                           12 * s,
                           color: AppColors.textMuted,
@@ -92,15 +90,15 @@ class FinanceScreen extends StatelessWidget {
                           value: 'Есть',
                           valueColor: _statusGreen,
                         ),
-                        const _KvRow(
+                        _KvRow(
                           label: 'Депозит',
                           value: 'Нет по источнику',
                         ),
-                        const _KvRow(
+                        _KvRow(
                           label: 'Лизинг',
                           value: 'Неизвестно',
                         ),
-                        const _KvRow(
+                        _KvRow(
                           label: 'Факторинг',
                           value: 'Данные расходятся',
                           valueColor: AppColors.brandRed,
@@ -111,7 +109,7 @@ class FinanceScreen extends StatelessWidget {
                     Padding(
                       padding: EdgeInsets.only(left: 10 * s),
                       child: Text(
-                        'Для финансовых сценариев',
+                        l10n.forFinanceScenarios,
                         style: AppTypography.bold(
                           12 * s,
                           color: AppColors.textMuted,
@@ -119,7 +117,7 @@ class FinanceScreen extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: 10 * s),
-                    const _Card(
+                    _Card(
                       children: [
                         _KvRow(
                           label: 'Сумма долга',
@@ -147,7 +145,7 @@ class FinanceScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Пока без денежного расчёта',
+                            l10n.noMonetaryCalcYet,
                             style: AppTypography.medium(
                               13 * s,
                               color: AppColors.textInput,
@@ -155,7 +153,7 @@ class FinanceScreen extends StatelessWidget {
                           ),
                           SizedBox(height: 6 * s),
                           Text(
-                            'Наличие кредита не раскрывает его условия. Нужны параметры долга и ставок.',
+                            l10n.noMonetaryCalcBody,
                             style: AppTypography.regular(
                               12 * s,
                               color: AppColors.textMuted,
@@ -182,7 +180,7 @@ class FinanceScreen extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          'Дополнить финансовые параметры',
+                          l10n.supplementFinanceParams,
                           textAlign: TextAlign.center,
                           style: AppTypography.bold(
                             14.06 * s,
@@ -223,11 +221,11 @@ class _Card extends StatelessWidget {
 }
 
 class _KvRow extends StatelessWidget {
-  const _KvRow({
+  _KvRow({
     required this.label,
     required this.value,
-    this.valueColor = AppColors.textPrimary,
-  });
+    Color? valueColor,
+  }) : valueColor = valueColor ?? AppColors.textPrimary;
 
   final String label;
   final String value;

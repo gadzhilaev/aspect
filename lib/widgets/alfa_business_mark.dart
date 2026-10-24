@@ -8,15 +8,16 @@ class AlfaBusinessMark extends StatelessWidget {
   const AlfaBusinessMark({
     super.key,
     this.height = 13,
-    this.color = AppColors.brandRed,
+    this.color,
   });
 
   final double height;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    final style = AppTypography.bold(height, color: color).copyWith(
+    final c = color ?? AppColors.brandRed;
+    final style = AppTypography.bold(height, color: c).copyWith(
       height: 1,
     );
     final barH = (height * 0.11).clamp(1.2, 2.0);
@@ -34,7 +35,7 @@ class AlfaBusinessMark extends StatelessWidget {
             Container(
               width: height * 0.7,
               height: barH,
-              color: color,
+              color: c,
             ),
           ],
         ),

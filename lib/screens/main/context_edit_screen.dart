@@ -50,8 +50,8 @@ class ContextEditScreen extends StatefulWidget {
 }
 
 class _ContextEditScreenState extends State<ContextEditScreen> {
-  static const _borderColor = AppColors.border;
-  static const _addBorder = AppColors.brandRed;
+  static Color get _borderColor => AppColors.border;
+  static const _addBorder = AppColors.brandRedLight;
 
   static const _roles = [
     'Операционный директор',
@@ -483,7 +483,7 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
                 width: 48 * s,
                 height: 48 * s,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.brandRed,
                   shape: BoxShape.circle,
                 ),

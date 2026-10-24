@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../data/cities_catalog.dart';
 import '../../models/onboarding_data.dart';
 import '../../theme/app_colors.dart';
@@ -29,8 +30,8 @@ class LocationsScreen extends StatefulWidget {
 
 class _LocationsScreenState extends State<LocationsScreen>
     with AutomaticKeepAliveClientMixin {
-  static const _borderColor = AppColors.border;
-  static const _addBorder = AppColors.brandRed;
+  static Color get _borderColor => AppColors.border;
+  static const _addBorder = AppColors.brandRedLight;
 
   static const _allCountries = [
     'Россия',
@@ -96,7 +97,7 @@ class _LocationsScreenState extends State<LocationsScreen>
 
   void _syncFooter() {
     widget.bindFooter?.call(
-      label: 'Продолжить',
+      label: context.l10n.continueAction,
       onPressed: _continue,
     );
   }
@@ -189,6 +190,7 @@ class _LocationsScreenState extends State<LocationsScreen>
 
   Widget _addRegionDropdown() {
     final s = context.scale;
+    final l10n = context.l10n;
     final available = _availableRegions;
     return Padding(
       padding: EdgeInsets.only(top: 12 * s),
@@ -204,7 +206,7 @@ class _LocationsScreenState extends State<LocationsScreen>
             ? Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Все регионы добавлены',
+                  l10n.onboardingAllRegionsAdded,
                   style: AppTypography.regular(15 * s, color: AppColors.textHint),
                 ),
               )
@@ -212,7 +214,7 @@ class _LocationsScreenState extends State<LocationsScreen>
                 child: DropdownButton<String>(
                   isExpanded: true,
                   hint: Text(
-                    '+ Добавить регион',
+                    l10n.onboardingAddRegion,
                     style: AppTypography.regular(15 * s, color: _addBorder),
                   ),
                   icon: const Icon(
@@ -244,6 +246,7 @@ class _LocationsScreenState extends State<LocationsScreen>
 
   Widget _addCityButton() {
     final s = context.scale;
+    final l10n = context.l10n;
     final enabled = _regions.isNotEmpty && _citiesReady;
     return Padding(
       padding: EdgeInsets.only(top: 12 * s),
@@ -265,10 +268,10 @@ class _LocationsScreenState extends State<LocationsScreen>
               Expanded(
                 child: Text(
                   !_citiesReady
-                      ? 'Загрузка городов…'
+                      ? l10n.onboardingLoadingCities
                       : _regions.isEmpty
-                          ? 'Сначала выберите регион'
-                          : '+ Добавить город',
+                          ? l10n.onboardingSelectRegionFirst
+                          : l10n.onboardingAddCity,
                   style: AppTypography.regular(15 * s, color: enabled ? _addBorder : AppColors.textHint,
                   ),
                 ),
@@ -289,19 +292,19 @@ class _LocationsScreenState extends State<LocationsScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final s = context.scale;
+    final l10n = context.l10n;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OnboardingHeader(
           step: 5,
           showChrome: !widget.embedded,
-          title: 'Где работает бизнес?',
-          subtitle:
-              'Сначала выберите регионы продаж, затем укажите города в этих странах.',
+          title: l10n.onboardingLocationsTitle,
+          subtitle: l10n.onboardingLocationsSubtitle,
         ),
         SizedBox(height: 28 * s),
         Text(
-          'РЕГИОНЫ ПРОДАЖ',
+          l10n.onboardingSalesRegionsSection,
           style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _regions.length; i++)
@@ -313,7 +316,7 @@ class _LocationsScreenState extends State<LocationsScreen>
         _addRegionDropdown(),
         SizedBox(height: 28 * s),
         Text(
-          'ГОРОДА',
+          l10n.onboardingCitiesSection,
           style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _cities.length; i++)
@@ -334,7 +337,7 @@ class _LocationsScreenState extends State<LocationsScreen>
     }
 
     return OnboardingScaffold(
-      buttonLabel: 'Продолжить',
+      buttonLabel: l10n.continueAction,
       onContinue: _continue,
       body: body,
     );
@@ -355,7 +358,7 @@ class _CitySearchSheet extends StatefulWidget {
 }
 
 class _CitySearchSheetState extends State<_CitySearchSheet> {
-  static const _addBorder = AppColors.brandRed;
+  static const _addBorder = AppColors.brandRedLight;
 
   late final List<String> _all;
   late List<String> _filtered;
@@ -394,6 +397,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final media = MediaQuery.of(context);
     final bottom = media.viewInsets.bottom;
     return Padding(
@@ -419,7 +423,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
               Padding(
                 padding: EdgeInsets.fromLTRB(20 * s, 16 * s, 20 * s, 8 * s),
                 child: Text(
-                  'Выберите город',
+                  l10n.onboardingPickCityTitle,
                   style: AppTypography.bold(18 * s, color: AppColors.textPrimary),
                 ),
               ),
@@ -445,7 +449,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
-                      hintText: 'Поиск города',
+                      hintText: l10n.onboardingSearchCityHint,
                       hintStyle: AppTypography.regular(
                         14 * s,
                         color: AppColors.textHint,
@@ -457,7 +461,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
               Padding(
                 padding: EdgeInsets.fromLTRB(20 * s, 0, 20 * s, 8 * s),
                 child: Text(
-                  '${_filtered.length} из ${_all.length}',
+                  l10n.onboardingCityCount(_filtered.length, _all.length),
                   style: AppTypography.regular(
                     12 * s,
                     color: AppColors.textSecondary,
@@ -468,7 +472,7 @@ class _CitySearchSheetState extends State<_CitySearchSheet> {
                 child: _filtered.isEmpty
                     ? Center(
                         child: Text(
-                          'Ничего не найдено',
+                          l10n.onboardingNothingFound,
                           style: AppTypography.regular(
                             15 * s,
                             color: AppColors.textHint,

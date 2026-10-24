@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
 import '../theme/app_colors.dart';
@@ -34,15 +35,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.surface,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
+    SystemChrome.setSystemUIOverlayStyle(AppColors.systemOverlay);
     for (final c in [
       _nameController,
       _emailController,
@@ -90,6 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final keyboardOpen = keyboardInset > 0;
@@ -135,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Center(child: AuthLogo(height: 28 * s)),
                           SizedBox(height: 12 * s),
                           Text(
-                            'Создайте аккаунт',
+                            l10n.createAccount,
                             style: AppTypography.medium(
                               24 * s,
                               color: AppColors.textPrimary,
@@ -143,7 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           SizedBox(height: 4 * s),
                           Text(
-                            'Рабочая почта подойдёт лучше всего',
+                            l10n.registerSubtitle,
                             style: AppTypography.regular(
                               12 * s,
                               color: AppColors.textSecondary,
@@ -151,33 +145,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           SizedBox(height: 22 * s),
                           AuthTextField(
-                            label: 'ФИО',
+                            label: l10n.fullName,
                             controller: _nameController,
-                            hint: 'Иванов Иван Иванович',
+                            hint: l10n.fullNameHint,
                             textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.text,
                           ),
                           SizedBox(height: 14 * s),
                           AuthTextField(
-                            label: 'Рабочая почта',
+                            label: l10n.workEmail,
                             controller: _emailController,
-                            hint: 'name@company.ru',
+                            hint: l10n.emailHint,
                             textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.emailAddress,
                           ),
                           SizedBox(height: 14 * s),
                           AuthTextField(
-                            label: 'Пароль',
+                            label: l10n.password,
                             controller: _passwordController,
-                            hint: 'Не менее 8 символов',
+                            hint: l10n.passwordMin8Hint,
                             obscureText: true,
                             textInputAction: TextInputAction.next,
                           ),
                           SizedBox(height: 14 * s),
                           AuthTextField(
-                            label: 'Повторите пароль',
+                            label: l10n.confirmPassword,
                             controller: _confirmPasswordController,
-                            hint: 'Повторите пароль',
+                            hint: l10n.confirmPassword,
                             obscureText: true,
                             textInputAction: TextInputAction.done,
                           ),
@@ -196,7 +190,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     );
                                   },
                                   activeColor: AppColors.brandRed,
-                                  side: const BorderSide(
+                                  side: BorderSide(
                                     color: AppColors.textSecondary,
                                     width: 1,
                                   ),
@@ -208,7 +202,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               SizedBox(width: 10 * s),
                               Expanded(
                                 child: Text(
-                                  'Принимаю условия использования и политику данных',
+                                  l10n.acceptTerms,
                                   style: AppTypography.regular(
                                     10 * s,
                                     color: AppColors.textSecondary,
@@ -223,13 +217,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Column(
                         children: [
                           AuthPrimaryButton(
-                            label: 'Продолжить',
+                            label: l10n.continueAction,
                             onPressed: _canContinue ? _continue : null,
                           ),
                           SizedBox(height: 12 * s),
                           AuthFooterLink(
-                            prefix: 'Уже есть аккаунт? ',
-                            action: 'Войти',
+                            prefix: l10n.alreadyHaveAccount,
+                            action: l10n.signIn,
                             onTap: _openLogin,
                           ),
                         ],

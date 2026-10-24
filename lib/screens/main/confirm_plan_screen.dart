@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
@@ -60,6 +61,7 @@ class ConfirmPlanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
@@ -67,11 +69,7 @@ class ConfirmPlanScreen extends StatelessWidget {
     const heading = Color.fromRGBO(24, 27, 34, 1);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -87,7 +85,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                     onTap: () => Navigator.of(context).maybePop(false),
                     behavior: HitTestBehavior.opaque,
                     child: Text(
-                      '‹ Варианты действий',
+                      '‹ ${l10n.actionOptions}',
                       style: AppTypography.regular(
                         15 * s,
                         color: AppColors.textMuted,
@@ -104,7 +102,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                       TextSpan(
                         children: [
                           TextSpan(
-                            text: 'Подтвердить план\n',
+                            text: '${l10n.confirmPlan}\n',
                             style: AppTypography.bold(
                               24.83 * s,
                               color: titleDark,
@@ -122,7 +120,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 10 * s),
                     Text(
-                      'По событию «${data.eventTitle}»',
+                      l10n.planForEvent(data.eventTitle),
                       style: AppTypography.regular(
                         13 * s,
                         color: AppColors.textMuted,
@@ -149,7 +147,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'План действий',
+                            l10n.actionPlan,
                             style: AppTypography.bold(
                               15.13 * s,
                               color: heading,
@@ -171,7 +169,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 24 * s),
                     Text(
-                      'Почему выбран этот вариант',
+                      l10n.whyThisOption,
                       style: AppTypography.bold(
                         15.13 * s,
                         color: heading,
@@ -208,7 +206,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Подтвердить и сохранить',
+                      l10n.confirmAndSave,
                       style: AppTypography.bold(
                         14.06 * s,
                         color: AppColors.surface,

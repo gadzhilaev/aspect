@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../theme/design_scale.dart';
 import '../../widgets/onboarding_widgets.dart';
@@ -58,7 +59,7 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
 
   void _syncFooter() {
     widget.bindFooter?.call(
-      label: 'Продолжить',
+      label: context.l10n.continueAction,
       onPressed: _continue,
     );
   }
@@ -76,14 +77,15 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final s = context.scale;
+    final l10n = context.l10n;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OnboardingHeader(
           step: 2,
           showChrome: !widget.embedded,
-          title: 'Чем занимается бизнес?',
-          subtitle: 'Выберите основное направление',
+          title: l10n.onboardingBusinessTitle,
+          subtitle: l10n.onboardingBusinessSubtitle,
         ),
         SizedBox(height: 24 * s),
         for (final option in _options) ...[
@@ -106,7 +108,7 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
     }
 
     return OnboardingScaffold(
-      buttonLabel: 'Продолжить',
+      buttonLabel: l10n.continueAction,
       onContinue: _continue,
       body: body,
     );

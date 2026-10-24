@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../l10n/app_localizations.dart';
 import '../navigation/app_page_route.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -20,15 +21,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.surface,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
+    SystemChrome.setSystemUIOverlayStyle(AppColors.systemOverlay);
   }
 
   void _openRegister() {
@@ -48,6 +41,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
@@ -75,9 +69,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             color: AppColors.textPrimary,
                           ),
                           children: [
-                            const TextSpan(text: 'Перемены именно для\n'),
+                            TextSpan(text: l10n.welcomeHeadlineLead),
                             TextSpan(
-                              text: 'вашего бизнеса',
+                              text: l10n.welcomeHeadlineAccent,
                               style: AppTypography.medium(
                                 22.5 * s,
                                 color: AppColors.brandRed,
@@ -88,8 +82,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ),
                       SizedBox(height: 4 * s),
                       Text(
-                        'События, которые влияют на вашу компанию. '
-                        'Последствия и варианты действий - в одном месте.',
+                        l10n.welcomeSubtitle,
                         style: AppTypography.regular(
                           12.7 * s,
                           color: AppColors.textSecondary,
@@ -111,9 +104,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       SizedBox(height: 14 * s),
                       Row(
                         children: [
-                          Expanded(child: _InsightCard()),
+                          Expanded(child: _InsightCard(title: l10n.welcomeInsightCard)),
                           SizedBox(width: 16 * s),
-                          Expanded(child: _RisksCard()),
+                          Expanded(child: _RisksCard(title: l10n.welcomeRisksCard)),
                         ],
                       ),
                     ],
@@ -136,8 +129,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       color: AppColors.surface,
                     ),
                   ),
-                  child: const Text(
-                    'Создать аккаунт',
+                  child: Text(
+                    l10n.welcomeCreateAccount,
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -151,14 +144,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       color: AppColors.textSecondary,
                     ),
                     children: [
-                      const TextSpan(text: 'Уже есть аккаунт? '),
+                      TextSpan(text: l10n.alreadyHaveAccount),
                       WidgetSpan(
                         alignment: PlaceholderAlignment.baseline,
                         baseline: TextBaseline.alphabetic,
                         child: GestureDetector(
                           onTap: _openLogin,
                           child: Text(
-                            'Войти',
+                            l10n.welcomeSignIn,
                             style: AppTypography.regular(
                               13 * s,
                               color: AppColors.brandRed,
@@ -180,7 +173,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 }
 
 class _InsightCard extends StatelessWidget {
-  const _InsightCard();
+  const _InsightCard({required this.title});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +205,7 @@ class _InsightCard extends StatelessWidget {
             left: 16 * s,
             right: 16 * s,
             child: Text(
-              'Персональные\nинсайты',
+              title,
               style: AppTypography.medium(
                 13.5 * s,
                 color: AppColors.brandRed,
@@ -236,7 +231,9 @@ class _InsightCard extends StatelessWidget {
 }
 
 class _RisksCard extends StatelessWidget {
-  const _RisksCard();
+  const _RisksCard({required this.title});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -255,7 +252,7 @@ class _RisksCard extends StatelessWidget {
             left: 16 * s,
             right: 16 * s,
             child: Text(
-              'Риски и\nвозможности',
+              title,
               style: AppTypography.medium(
                 13.5 * s,
                 color: AppColors.surface,

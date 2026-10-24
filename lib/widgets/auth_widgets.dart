@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/design_scale.dart';
@@ -18,7 +19,7 @@ class AuthBackButton extends StatelessWidget {
       onTap: onPressed ?? () => Navigator.of(context).maybePop(),
       behavior: HitTestBehavior.opaque,
       child: Text(
-        '‹ Назад',
+        context.l10n.back,
         style: AppTypography.regular(15 * s, color: AppColors.textSecondary),
       ),
     );
@@ -291,18 +292,19 @@ class AuthDropdown extends StatelessWidget {
     required this.value,
     required this.items,
     required this.onChanged,
-    this.hint = 'Выберите',
+    this.hint,
   });
 
   final String label;
   final String value;
   final List<String> items;
   final ValueChanged<String> onChanged;
-  final String hint;
+  final String? hint;
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final hintText = hint ?? context.l10n.selectHint;
     final selected = items.contains(value) ? value : null;
 
     return Column(
@@ -326,7 +328,7 @@ class AuthDropdown extends StatelessWidget {
               value: selected,
               isExpanded: true,
               hint: Text(
-                hint,
+                hintText,
                 style: AppTypography.regular(15 * s, color: AppColors.textHint),
               ),
               icon: Icon(

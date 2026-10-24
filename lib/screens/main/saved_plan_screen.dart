@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
@@ -67,6 +68,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
@@ -76,11 +78,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
     final doneCount = _done.length.clamp(0, total);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, _) {
@@ -101,7 +99,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                       onTap: _popWithData,
                       behavior: HitTestBehavior.opaque,
                       child: Text(
-                        '‹ Обсуждение',
+                        '‹ ${l10n.discussionBack}',
                         style: AppTypography.regular(
                           15 * s,
                           color: AppColors.brandRed,
@@ -118,7 +116,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                         TextSpan(
                           children: [
                             TextSpan(
-                              text: 'План действий\n',
+                              text: '${l10n.actionPlan}\n',
                               style: AppTypography.bold(
                                 24.83 * s,
                                 color: titleDark,
@@ -136,7 +134,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                       ),
                       SizedBox(height: 10 * s),
                       Text(
-                        'По событию «${_data.eventTitle}»',
+                        l10n.planForEvent(_data.eventTitle),
                         style: AppTypography.regular(
                           13 * s,
                           color: AppColors.textMuted,
@@ -144,7 +142,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                       ),
                       SizedBox(height: 22 * s),
                       Text(
-                        'Выполнено $doneCount из $total',
+                        l10n.progressCompleted(doneCount, total),
                         style: AppTypography.bold(15.13 * s, color: heading),
                       ),
                       SizedBox(height: 8 * s),
@@ -189,7 +187,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                             ),
                           ),
                           child: Text(
-                            'Сменить план',
+                            l10n.changePlan,
                             style: AppTypography.bold(
                               14.06 * s,
                               color: AppColors.brandRed,
@@ -199,7 +197,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                       ),
                       SizedBox(height: 10 * s),
                       Text(
-                        'Предыдущие выводы сохранены в истории обсуждения.',
+                        l10n.planHistoryNote,
                         textAlign: TextAlign.center,
                         style: AppTypography.regular(
                           13 * s,
@@ -237,7 +235,7 @@ class _ProgressBar extends StatelessWidget {
             FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: progress.clamp(0.0, 1.0),
-              child: const ColoredBox(color: AppColors.brandRed),
+              child: ColoredBox(color: AppColors.brandRed),
             ),
           ],
         ),

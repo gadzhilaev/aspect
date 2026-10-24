@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
 import 'news_detail_screen.dart';
 
 class OverviewTab extends StatelessWidget {
-  const OverviewTab({super.key, this.userName = 'Пользователь'});
+  const OverviewTab({super.key, this.userName = ''});
 
   final String userName;
 
   @override
   Widget build(BuildContext context) {
     final s = designScale(context);
+    final l10n = context.l10n;
+    final name = userName.trim().isEmpty ? l10n.defaultUserName : userName;
     final chipH = 70 * s;
     const hPad = AppColors.screenPadding;
 
@@ -28,7 +31,7 @@ class OverviewTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Доброе утро, $userName',
+                l10n.overviewGoodMorning(name),
                 style: pageTitleStyle(context),
               ),
               SizedBox(height: 18 * s),
@@ -41,21 +44,21 @@ class OverviewTab extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: hPad),
             children: [
-              const CurrencyChipCard(
+              CurrencyChipCard(
                 code: 'CNY',
-                country: 'Китай',
+                country: l10n.countryChina,
                 rate: '12,75 ₽',
               ),
               SizedBox(width: 9 * s),
-              const CurrencyChipCard(
+              CurrencyChipCard(
                 code: '10 AMD',
-                country: 'Армения',
+                country: l10n.countryArmenia,
                 rate: '2,36 ₽',
               ),
               SizedBox(width: 9 * s),
-              const CurrencyChipCard(
+              CurrencyChipCard(
                 code: 'KRW',
-                country: 'Южная Корея',
+                country: l10n.countrySouthKorea,
                 rate: '6,36 ₽',
               ),
               const SizedBox(width: hPad),
@@ -70,39 +73,37 @@ class OverviewTab extends StatelessWidget {
               SizedBox(height: 20 * s),
               EventSignalCard(
                 level: ImpactLevel.high,
-                meta: 'Высокое влияние · 08:24',
-                title: 'Китай ограничивает экспорт электроники',
-                contextLead: 'Почему вам:',
-                contextBody:
-                    'Китай указан как страна поставки электронных компонентов',
-                warning:
-                    'Риск роста себестоимости и переноса сроков поставки',
-                actionLabel: 'Открыть влияние',
+                meta: l10n.impactMeta(l10n.impactHigh, '08:24'),
+                title: l10n.eventChinaTitle,
+                contextLead: l10n.whyForYou,
+                contextBody: l10n.eventChinaContext,
+                warning: l10n.eventChinaWarning,
+                actionLabel: l10n.openImpact,
                 onOpen: () => openNewsDetail(
                   context,
                   chinaExportDetail,
-                  backLabel: 'Обзор',
+                  backLabel: l10n.navOverview,
                 ),
               ),
               SizedBox(height: 30 * s),
               Text(
-                'На контроле',
+                l10n.onWatch,
                 style: AppTypography.bold(
                   17.09 * s,
                   color: AppColors.textInput,
                 ),
               ),
               SizedBox(height: 14 * s),
-              const MonitorTile(
+              MonitorTile(
                 dotColor: AppColors.impactPurple,
-                title: 'Курс CNY вырос на 1,8% за неделю',
-                subtitle: 'Валюта используется в расчетах с поставщиками',
+                title: l10n.eventCnyTitle,
+                subtitle: l10n.eventCnyContext,
               ),
               SizedBox(height: 9 * s),
-              const MonitorTile(
+              MonitorTile(
                 dotColor: AppColors.impactGreen,
-                title: 'Спрос на электронику в Казахстане растет',
-                subtitle: 'Валюта используется в расчетах с поставщиками',
+                title: l10n.eventKzTitle,
+                subtitle: l10n.eventCnyContext,
               ),
             ],
           ),

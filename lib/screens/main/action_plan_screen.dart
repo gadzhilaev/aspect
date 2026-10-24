@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
@@ -74,16 +75,13 @@ class ActionPlanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -99,7 +97,7 @@ class ActionPlanScreen extends StatelessWidget {
                     onTap: () => Navigator.of(context).maybePop(),
                     behavior: HitTestBehavior.opaque,
                     child: Text(
-                      '‹ Обсуждение',
+                      '‹ ${l10n.discussionBack}',
                       style: AppTypography.regular(
                         15 * s,
                         color: AppColors.textMuted,
@@ -118,7 +116,7 @@ class ActionPlanScreen extends StatelessWidget {
                   ),
                   children: [
                     Text(
-                      'Варианты действий',
+                      l10n.actionOptions,
                       style: AppTypography.bold(
                         24.83 * s,
                         color: AppColors.textInput,
@@ -137,7 +135,7 @@ class ActionPlanScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6 * s),
                           ),
                           child: Text(
-                            'Качественное сравнение',
+                            l10n.qualityComparison,
                             softWrap: false,
                             style: AppTypography.medium(
                               9.4 * s,
@@ -155,6 +153,7 @@ class ActionPlanScreen extends StatelessWidget {
                         title: _items[i].$1,
                         body: _items[i].$2,
                         note: _items[i].$3,
+                        selectLabel: l10n.selectForPlan,
                         onSelect: () => _select(context, i),
                       ),
                     ],
@@ -175,6 +174,7 @@ class _ActionCard extends StatelessWidget {
     required this.title,
     required this.body,
     required this.note,
+    required this.selectLabel,
     required this.onSelect,
   });
 
@@ -182,6 +182,7 @@ class _ActionCard extends StatelessWidget {
   final String title;
   final String body;
   final String note;
+  final String selectLabel;
   final VoidCallback onSelect;
 
   @override
@@ -257,7 +258,7 @@ class _ActionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'Выбрать для плана',
+                  selectLabel,
                   style: AppTypography.bold(
                     13 * s,
                     color: AppColors.brandRed,

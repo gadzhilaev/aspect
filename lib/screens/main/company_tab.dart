@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
@@ -82,18 +83,19 @@ class _CompanyTabState extends State<CompanyTab> {
   }
 
   /// Три строки: роль / фамилия И. О. / почта.
-  static String _myDataSubtitle(OnboardingData d) {
+  static String _myDataSubtitle(OnboardingData d, AppLocalizations l10n) {
     final lines = [
       _shortRole(d.role),
       _surnameWithInitials(d.fullName),
       d.email.trim(),
     ].where((v) => v.isNotEmpty);
-    if (lines.isEmpty) return 'Пока пусто';
+    if (lines.isEmpty) return l10n.emptyPlaceholder;
     return lines.join('\n');
   }
 
-  List<_TileSpec> _tilesFor(OnboardingData? data) {
+  List<_TileSpec> _tilesFor(OnboardingData? data, AppLocalizations l10n) {
     final d = data ?? OnboardingData();
+    final empty = l10n.emptyPlaceholder;
     final products = _join(
       d.products.isNotEmpty
           ? d.products
@@ -102,6 +104,7 @@ class _CompanyTabState extends State<CompanyTab> {
                 d.businessTypeSubtitle,
               if (d.businessType.trim().isNotEmpty) d.businessType,
             ],
+      empty: empty,
     );
     final markets = _join(
       d.countries.isNotEmpty
@@ -109,56 +112,69 @@ class _CompanyTabState extends State<CompanyTab> {
           : d.salesRegions.isNotEmpty
               ? d.salesRegions
               : [d.mainMarket],
+      empty: empty,
     );
     final geography = _join(
       d.cities.isNotEmpty ? d.cities : [d.companyCity],
+      empty: empty,
     );
     return [
       _TileSpec(
-        title: 'Продукты',
+        title: l10n.sectionProducts,
         subtitle: products,
-        background: AppColors.brandRed,
+        background: AppColors.tileRed,
         foreground: Colors.white,
         decor: Colors.white.withValues(alpha: 0.17),
         section: ContextSection.products,
       ),
       _TileSpec(
-        title: 'Рынки',
+        title: l10n.sectionMarkets,
         subtitle: markets,
-        background: AppColors.surface,
+        background: AppColors.surfaceRaised,
         foreground: AppColors.textPrimary,
-        decor: Colors.black.withValues(alpha: 0.06),
+        decor: AppColors.isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.black.withValues(alpha: 0.06),
+        bordered: AppColors.isDark,
         section: ContextSection.markets,
       ),
       _TileSpec(
-        title: 'География',
+        title: l10n.sectionGeography,
         subtitle: geography,
-        background: AppColors.impactPurple,
+        background: AppColors.tilePurple,
         foreground: Colors.white,
         decor: Colors.white.withValues(alpha: 0.17),
         section: ContextSection.geography,
       ),
       _TileSpec(
-        title: 'Мои данные',
-        subtitle: _myDataSubtitle(d),
-        background: Colors.black,
+        title: l10n.myData,
+        subtitle: _myDataSubtitle(d, l10n),
+        background: AppColors.tileDark,
         foreground: Colors.white,
-        decor: const Color(0xFF1F1F1F),
+        decor: AppColors.isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : const Color(0xFF1F1F1F),
+        bordered: AppColors.isDark,
         section: ContextSection.myData,
       ),
       _TileSpec(
-        title: 'Финансы',
-        subtitle: d.finances.isEmpty ? '' : _join(d.finances),
-        background: AppColors.surface,
+        title: l10n.finance,
+        subtitle: d.finances.isEmpty ? '' : _join(d.finances, empty: empty),
+        background: AppColors.surfaceRaised,
         foreground: AppColors.textPrimary,
-        decor: Colors.black.withValues(alpha: 0.06),
+        decor: AppColors.isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.black.withValues(alpha: 0.06),
+        bordered: AppColors.isDark,
         centerTitle: d.finances.isEmpty,
         onTap: _TileAction.finance,
       ),
       _TileSpec(
-        title: 'Контрагенты и связи',
-        subtitle: d.counterparties.isEmpty ? '' : _join(d.counterparties),
-        background: AppColors.brandRed,
+        title: l10n.counterpartiesAndLinks,
+        subtitle: d.counterparties.isEmpty
+            ? ''
+            : _join(d.counterparties, empty: empty),
+        background: AppColors.tileRed,
         foreground: Colors.white,
         decor: Colors.white.withValues(alpha: 0.17),
         centerTitle: d.counterparties.isEmpty,
@@ -203,6 +219,7 @@ class _CompanyTabState extends State<CompanyTab> {
 
   Future<void> _onTelegramTap() async {
     final s = context.scale;
+    final l10n = context.l10n;
     if (_telegramUsername != null) {
       final disconnect = await showModalBottomSheet<bool>(
         context: context,
@@ -248,7 +265,7 @@ class _CompanyTabState extends State<CompanyTab> {
                       minimumSize: Size(double.infinity, 48 * s),
                     ),
                     child: Text(
-                      'Отключить',
+                      l10n.telegramDisconnect,
                       style: AppTypography.bold(
                         14 * s,
                         color: AppColors.brandRed,
@@ -277,6 +294,7 @@ class _CompanyTabState extends State<CompanyTab> {
 
   Future<void> _logout() async {
     final s = context.scale;
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -286,18 +304,18 @@ class _CompanyTabState extends State<CompanyTab> {
             borderRadius: BorderRadius.circular(16 * s),
           ),
           title: Text(
-            'Выйти из аккаунта?',
+            l10n.logoutConfirmTitle,
             style: AppTypography.bold(18 * s, color: AppColors.textInk),
           ),
           content: Text(
-            'Вы уверены, что хотите выйти?',
+            l10n.logoutConfirmBody,
             style: AppTypography.regular(14 * s, color: AppColors.textMuted),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
               child: Text(
-                'Отмена',
+                l10n.cancel,
                 style: AppTypography.regular(
                   14 * s,
                   color: AppColors.textMuted,
@@ -307,7 +325,7 @@ class _CompanyTabState extends State<CompanyTab> {
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(
-                'Выйти',
+                l10n.logout,
                 style: AppTypography.bold(
                   14 * s,
                   color: AppColors.brandRed,
@@ -337,8 +355,9 @@ class _CompanyTabState extends State<CompanyTab> {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final gap = 10 * s;
-    final tiles = _tilesFor(_profile);
+    final tiles = _tilesFor(_profile, l10n);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return ListView(
@@ -353,17 +372,21 @@ class _CompanyTabState extends State<CompanyTab> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Text('Ваша компания', style: pageTitleStyle(context)),
+              child: Text(l10n.yourCompany, style: pageTitleStyle(context)),
             ),
             GestureDetector(
               onTap: () => openSettingsScreen(context),
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: EdgeInsets.only(left: 8 * s),
-                child: Icon(
-                  Icons.settings_outlined,
-                  size: 24 * s,
-                  color: AppColors.textMuted,
+                child: SvgPicture.asset(
+                  'assets/images/icon_settings.svg',
+                  width: 23 * s,
+                  height: 23 * s,
+                  colorFilter: ColorFilter.mode(
+                    AppColors.textMuted,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),
@@ -382,7 +405,7 @@ class _CompanyTabState extends State<CompanyTab> {
         Padding(
           padding: EdgeInsets.only(left: (34 - AppColors.screenPadding) * s),
           child: Text(
-            'Ваш контекст',
+            l10n.yourContext,
             style: AppTypography.medium(13 * s, color: AppColors.textMuted),
           ),
         ),
@@ -430,7 +453,7 @@ class _CompanyTabState extends State<CompanyTab> {
               surfaceTintColor: Colors.transparent,
             ),
             child: Text(
-              'Выйти из аккаунта',
+              l10n.logoutFromAccount,
               style: AppTypography.bold(
                 14.06 * s,
                 color: AppColors.brandRed,
@@ -457,6 +480,7 @@ class _TelegramConnectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final connected = username != null && username!.isNotEmpty;
 
     return GestureDetector(
@@ -466,17 +490,17 @@ class _TelegramConnectCard extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.fromLTRB(14 * s, 14 * s, 14 * s, 14 * s),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.surfaceRaised,
           borderRadius: BorderRadius.circular(16 * s),
           border: Border.all(
             color: connected
                 ? _telegramBlue.withValues(alpha: 0.35)
-                : Colors.black.withValues(alpha: 0.08),
+                : AppColors.border,
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withValues(alpha: AppColors.isDark ? 0.35 : 0.1),
               offset: Offset(0, 4 * s),
               blurRadius: 12 * s,
             ),
@@ -495,7 +519,7 @@ class _TelegramConnectCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    connected ? 'Telegram подключён' : 'Подключить Telegram',
+                    connected ? l10n.telegramConnected : l10n.telegramConnect,
                     style: AppTypography.bold(
                       15.13 * s,
                       color: AppColors.textInk,
@@ -503,9 +527,7 @@ class _TelegramConnectCard extends StatelessWidget {
                   ),
                   SizedBox(height: 2 * s),
                   Text(
-                    connected
-                        ? '@$username'
-                        : 'Уведомления о событиях и сценариях',
+                    connected ? '@$username' : l10n.telegramEventsSub,
                     style: AppTypography.regular(
                       12 * s,
                       color: connected ? _telegramBlue : AppColors.textMuted,
@@ -554,6 +576,7 @@ class _TileSpec {
     this.section,
     this.onTap = _TileAction.edit,
     this.centerTitle = false,
+    this.bordered = false,
   });
 
   final String title;
@@ -564,6 +587,7 @@ class _TileSpec {
   final ContextSection? section;
   final _TileAction? onTap;
   final bool centerTitle;
+  final bool bordered;
 }
 
 class _ContextTile extends StatelessWidget {
@@ -592,9 +616,12 @@ class _ContextTile extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(17 * s),
+        border: spec.bordered
+            ? Border.all(color: AppColors.border, width: 1)
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
+            color: Colors.black.withValues(alpha: AppColors.isDark ? 0.35 : 0.25),
             offset: Offset(0, 2 * s),
             blurRadius: 7.5 * s,
             spreadRadius: 0,
@@ -686,31 +713,32 @@ class _CompanyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final name = profile?.companyName.trim().isNotEmpty == true
         ? profile!.companyName.trim()
-        : 'Компания не указана';
+        : l10n.companyNameMissing;
     final industry = () {
       final industry = profile?.companyIndustry.trim() ?? '';
       if (industry.isNotEmpty) return industry;
       final type = profile?.businessType.trim() ?? '';
       if (type.isNotEmpty) return type;
-      return 'Отрасль не указана';
+      return l10n.industryNotSpecified;
     }();
     final size = profile?.companySize.trim().isNotEmpty == true
         ? profile!.companySize.trim()
-        : 'Размер не указан';
+        : l10n.companySizeMissing;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(16 * s),
         border: Border.all(
-          color: Colors.black.withValues(alpha: 0.08),
+          color: AppColors.border,
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.13),
+            color: Colors.black.withValues(alpha: AppColors.isDark ? 0.35 : 0.13),
             offset: Offset(0, 5 * s),
             blurRadius: 14.2 * s,
             spreadRadius: 0,

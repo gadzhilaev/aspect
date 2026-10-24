@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
@@ -51,18 +52,18 @@ class ConclusionBasisScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
     const titleDark = Color.fromRGBO(24, 35, 44, 1);
     const heading = Color.fromRGBO(24, 27, 34, 1);
+    final backLabel = data.backLabel == 'Разбор события'
+        ? l10n.eventAnalysis
+        : data.backLabel;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -81,7 +82,7 @@ class ConclusionBasisScreen extends StatelessWidget {
                           onTap: () => Navigator.of(context).maybePop(),
                           behavior: HitTestBehavior.opaque,
                           child: Text(
-                            '‹ ${data.backLabel}',
+                            '‹ $backLabel',
                             style: AppTypography.regular(
                               15 * s,
                               color: AppColors.brandRed,
@@ -107,14 +108,14 @@ class ConclusionBasisScreen extends StatelessWidget {
                       TextSpan(
                         children: [
                           TextSpan(
-                            text: 'Разбор события\n',
+                            text: '${l10n.eventAnalysis}\n',
                             style: AppTypography.bold(
                               24.83 * s,
                               color: titleDark,
                             ),
                           ),
                           TextSpan(
-                            text: 'На чем основан вывод',
+                            text: l10n.conclusionBasisHeading,
                             style: AppTypography.bold(
                               24.83 * s,
                               color: AppColors.brandRed,
@@ -177,7 +178,7 @@ class _AlfaBankBadge extends StatelessWidget {
         width: 51 * s,
         height: 10 * s,
         fit: BoxFit.contain,
-        colorFilter: const ColorFilter.mode(
+        colorFilter: ColorFilter.mode(
           AppColors.surface,
           BlendMode.srcIn,
         ),

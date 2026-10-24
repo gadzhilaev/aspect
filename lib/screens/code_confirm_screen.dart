@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
 import '../services/session_store.dart';
@@ -72,15 +73,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.surface,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
+    SystemChrome.setSystemUIOverlayStyle(AppColors.systemOverlay);
     for (final node in _nodes) {
       node.addListener(_onFocusChanged);
     }
@@ -253,6 +246,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final canResend = _secondsLeft <= 0;
 
@@ -279,7 +273,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                       const Center(child: AuthLogo()),
                       SizedBox(height: 16 * s),
                       Text(
-                        'Подтверждение',
+                        l10n.codeConfirmHeading,
                         style: AppTypography.medium(
                           28 * s,
                           color: AppColors.textPrimary,
@@ -287,7 +281,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                       ),
                       SizedBox(height: 4 * s),
                       Text(
-                        'Мы отправили код на почту\n$_maskedEmail',
+                        l10n.codeSentBody(_maskedEmail),
                         style: AppTypography.regular(
                           14 * s,
                           color: AppColors.textMuted,
@@ -305,7 +299,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                       ],
                       SizedBox(height: 32 * s),
                       Text(
-                        'КОД ИЗ ПИСЬМА',
+                        l10n.codeFromEmail,
                         style: AppTypography.bold(
                           11 * s,
                           color: AppColors.brandRed,
@@ -341,7 +335,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
               ),
               if (_hasError) ...[
                 Text(
-                  'Неверный код',
+                  l10n.wrongCode,
                   textAlign: TextAlign.center,
                   style: AppTypography.regular(
                     13 * s,
@@ -355,8 +349,8 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                 behavior: HitTestBehavior.opaque,
                 child: Text(
                   canResend
-                      ? 'Отправить код повторно'
-                      : 'Отправить код повторно через $_timerLabel',
+                      ? l10n.resendCode
+                      : l10n.resendCodeIn(_timerLabel),
                   textAlign: TextAlign.center,
                   style: AppTypography.regular(
                     13 * s,
@@ -396,7 +390,7 @@ class _CodeDigitBox extends StatefulWidget {
 }
 
 class _CodeDigitBoxState extends State<_CodeDigitBox> {
-  static const _border = AppColors.textMuted;
+  static Color get _border => AppColors.textMuted;
   static const _boxHeight = 56.0;
   static const _fontSize = 24.0;
 

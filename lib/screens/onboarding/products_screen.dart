@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -29,7 +30,7 @@ class ProductsScreen extends StatefulWidget {
 
 class _ProductsScreenState extends State<ProductsScreen>
     with AutomaticKeepAliveClientMixin {
-  static const _borderColor = AppColors.border;
+  static Color get _borderColor => AppColors.border;
   static const _markets = [
     'Россия и СНГ',
     'Россия',
@@ -48,7 +49,7 @@ class _ProductsScreenState extends State<ProductsScreen>
   final _customMarketFocus = FocusNode();
   bool _adding = false;
 
-  static const _addBorder = AppColors.brandRed;
+  static const _addBorder = AppColors.brandRedLight;
   static const _otherMarket = 'Другое';
 
   bool get _isOtherMarket => _market == _otherMarket;
@@ -94,10 +95,10 @@ class _ProductsScreenState extends State<ProductsScreen>
   }
 
   void _syncFooter() {
+    final l10n = context.l10n;
     widget.bindFooter?.call(
-      label: 'Продолжить',
-      hint:
-          'Можно добавить детали позже. Начните с двух-трёх ключевых продуктов.',
+      label: l10n.continueAction,
+      hint: l10n.onboardingProductsFooterHint,
       onPressed: _continue,
     );
   }
@@ -182,6 +183,7 @@ class _ProductsScreenState extends State<ProductsScreen>
 
   Widget _addProductField() {
     final s = context.scale;
+    final l10n = context.l10n;
     return Padding(
       padding: EdgeInsets.only(top: 12 * s),
       child: _adding
@@ -206,7 +208,7 @@ class _ProductsScreenState extends State<ProductsScreen>
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
-                  hintText: 'Название продукта',
+                  hintText: l10n.onboardingProductNameHint,
                   hintStyle: AppTypography.regular(
                     14 * s,
                     color: AppColors.textHint,
@@ -228,7 +230,7 @@ class _ProductsScreenState extends State<ProductsScreen>
                 ),
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '+ Добавить продукт',
+                  l10n.onboardingAddProduct,
                   style: AppTypography.regular(15 * s, color: _addBorder),
                 ),
               ),
@@ -240,26 +242,26 @@ class _ProductsScreenState extends State<ProductsScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final s = context.scale;
+    final l10n = context.l10n;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OnboardingHeader(
           step: 3,
           showChrome: !widget.embedded,
-          title: 'Что вы производите?',
-          subtitle:
-              'Добавьте ключевые продукты. Так мы поймём, какие изменения важны.',
+          title: l10n.onboardingProductsTitle,
+          subtitle: l10n.onboardingProductsSubtitle,
         ),
         SizedBox(height: 28 * s),
         Text(
-          'ПРОДУКТЫ',
+          l10n.onboardingProductsSection,
           style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _products.length; i++) _productField(i),
         _addProductField(),
         SizedBox(height: 28 * s),
         AuthDropdown(
-          label: 'Основной рынок',
+          label: l10n.onboardingMainMarket,
           value: _market,
           items: _markets,
           onChanged: _onMarketChanged,
@@ -267,10 +269,10 @@ class _ProductsScreenState extends State<ProductsScreen>
         if (_isOtherMarket) ...[
           SizedBox(height: 16 * s),
           AuthTextField(
-            label: 'Укажите рынок',
+            label: l10n.onboardingSpecifyMarket,
             controller: _customMarketController,
             focusNode: _customMarketFocus,
-            hint: 'Например, Ближний Восток',
+            hint: l10n.onboardingMarketHintExample,
             textInputAction: TextInputAction.done,
             textCapitalization: TextCapitalization.sentences,
           ),
@@ -286,9 +288,8 @@ class _ProductsScreenState extends State<ProductsScreen>
     }
 
     return OnboardingScaffold(
-      buttonLabel: 'Продолжить',
-      footerHint:
-          'Можно добавить детали позже. Начните с двух-трёх ключевых продуктов.',
+      buttonLabel: l10n.continueAction,
+      footerHint: l10n.onboardingProductsFooterHint,
       onContinue: _continue,
       body: body,
     );

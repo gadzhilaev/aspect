@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -28,8 +29,8 @@ class CountriesScreen extends StatefulWidget {
 
 class _CountriesScreenState extends State<CountriesScreen>
     with AutomaticKeepAliveClientMixin {
-  static const _borderColor = AppColors.border;
-  static const _addBorder = AppColors.brandRed;
+  static Color get _borderColor => AppColors.border;
+  static const _addBorder = AppColors.brandRedLight;
 
   static const _allCountries = [
     'Россия',
@@ -76,10 +77,10 @@ class _CountriesScreenState extends State<CountriesScreen>
   }
 
   void _syncFooter() {
+    final l10n = context.l10n;
     widget.bindFooter?.call(
-      label: 'Продолжить',
-      hint:
-          'Можно уточнить позже. Достаточно двух-трёх стран из цепочки поставок.',
+      label: l10n.continueAction,
+      hint: l10n.onboardingCountriesFooterHint,
       onPressed: _continue,
     );
   }
@@ -136,6 +137,7 @@ class _CountriesScreenState extends State<CountriesScreen>
 
   Widget _addCountryDropdown() {
     final s = context.scale;
+    final l10n = context.l10n;
     final available = _available;
     return Padding(
       padding: EdgeInsets.only(top: 12 * s),
@@ -151,7 +153,7 @@ class _CountriesScreenState extends State<CountriesScreen>
             ? Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Все страны добавлены',
+                  l10n.onboardingAllCountriesAdded,
                   style: AppTypography.regular(15 * s, color: AppColors.textHint),
                 ),
               )
@@ -159,7 +161,7 @@ class _CountriesScreenState extends State<CountriesScreen>
                 child: DropdownButton<String>(
                   isExpanded: true,
                   hint: Text(
-                    '+ Добавить страну',
+                    l10n.onboardingAddCountry,
                     style: AppTypography.regular(15 * s, color: _addBorder),
                   ),
                   icon: const Icon(
@@ -193,19 +195,19 @@ class _CountriesScreenState extends State<CountriesScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final s = context.scale;
+    final l10n = context.l10n;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OnboardingHeader(
           step: 4,
           showChrome: !widget.embedded,
-          title: 'Страны поставок и партнёров',
-          subtitle:
-              'Укажите страны, откуда идут производство, сырьё или комплектующие. Мы отберём события, которые влияют на вашу цепочку поставок.',
+          title: l10n.onboardingCountriesTitle,
+          subtitle: l10n.onboardingCountriesSubtitle,
         ),
         SizedBox(height: 28 * s),
         Text(
-          'СТРАНЫ',
+          l10n.onboardingCountriesSection,
           style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _countries.length; i++) _countryField(i),
@@ -221,9 +223,8 @@ class _CountriesScreenState extends State<CountriesScreen>
     }
 
     return OnboardingScaffold(
-      buttonLabel: 'Продолжить',
-      footerHint:
-          'Можно уточнить позже. Достаточно двух-трёх стран из цепочки поставок.',
+      buttonLabel: l10n.continueAction,
+      footerHint: l10n.onboardingCountriesFooterHint,
       onContinue: _continue,
       body: body,
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
@@ -45,18 +46,18 @@ class BankMaterialScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
     const titleDark = Color.fromRGBO(24, 35, 44, 1);
     const heading = Color.fromRGBO(24, 27, 34, 1);
+    final backLabel = data.backLabel == 'Событие'
+        ? l10n.backEvent
+        : data.backLabel;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -75,7 +76,7 @@ class BankMaterialScreen extends StatelessWidget {
                           onTap: () => Navigator.of(context).maybePop(),
                           behavior: HitTestBehavior.opaque,
                           child: Text(
-                            '‹ ${data.backLabel}',
+                            '‹ $backLabel',
                             style: AppTypography.regular(
                               15 * s,
                               color: AppColors.brandRed,
@@ -93,7 +94,7 @@ class BankMaterialScreen extends StatelessWidget {
                   padding: EdgeInsets.fromLTRB(hPad, 8 * s, hPad, 16 * s),
                   children: [
                     Text(
-                      'Материал Банка',
+                      l10n.bankMaterialHeading,
                       style: AppTypography.bold(
                         24.83 * s,
                         color: titleDark,
@@ -199,7 +200,7 @@ class BankMaterialScreen extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Открыть оригинал документа',
+                      l10n.openOriginalDocument,
                       style: AppTypography.bold(
                         14.06 * s,
                         color: AppColors.surface,
@@ -235,7 +236,7 @@ class _AlfaBankBadge extends StatelessWidget {
         width: 51 * s,
         height: 10 * s,
         fit: BoxFit.contain,
-        colorFilter: const ColorFilter.mode(
+        colorFilter: ColorFilter.mode(
           AppColors.surface,
           BlendMode.srcIn,
         ),

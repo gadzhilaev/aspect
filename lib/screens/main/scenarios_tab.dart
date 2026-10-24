@@ -1,16 +1,79 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
 import 'chat_screen.dart';
 
-class ScenariosTab extends StatelessWidget {
-  const ScenariosTab({super.key});
+/// Ids сценариев, которые считаются новыми, пока пользователь их не открыл.
+const kNewScenarioIds = <String>{
+  'china-electronics-export',
+};
+
+class ScenariosTab extends StatefulWidget {
+  const ScenariosTab({
+    super.key,
+    this.onUnreadChanged,
+  });
+
+  final ValueChanged<int>? onUnreadChanged;
+
+  @override
+  State<ScenariosTab> createState() => _ScenariosTabState();
+}
+
+class _ScenariosTabState extends State<ScenariosTab> {
+  Set<String> _viewedIds = {};
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadViewed();
+  }
+
+  Future<void> _loadViewed() async {
+    final viewed = await SessionStore.viewedScenarioIds();
+    if (!mounted) return;
+    setState(() {
+      _viewedIds = viewed;
+      _loaded = true;
+    });
+    _notifyUnread();
+  }
+
+  int get _unreadCount {
+    if (!_loaded) return kNewScenarioIds.length;
+    return kNewScenarioIds.where((id) => !_viewedIds.contains(id)).length;
+  }
+
+  void _notifyUnread() {
+    widget.onUnreadChanged?.call(_unreadCount);
+  }
+
+  Future<void> _openScenario({
+    required String id,
+    required ChatScreenData data,
+  }) async {
+    if (!_viewedIds.contains(id)) {
+      await SessionStore.markScenarioViewed(id);
+      if (!mounted) return;
+      setState(() => _viewedIds = {..._viewedIds, id});
+      _notifyUnread();
+    }
+    if (!mounted) return;
+    await openChatScreen(context, data);
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
+    final chinaUnread =
+        _loaded && !_viewedIds.contains('china-electronics-export');
+
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppColors.screenPadding * s,
@@ -19,10 +82,10 @@ class ScenariosTab extends StatelessWidget {
         24 * s,
       ),
       children: [
-        Text('Сценарии', style: pageTitleStyle(context)),
+        Text(l10n.scenariosTitle, style: pageTitleStyle(context)),
         SizedBox(height: 8 * s),
         Text(
-          'Диалоги по важным событиям',
+          l10n.scenariosSubtitle,
           style: AppTypography.regular(14 * s, color: AppColors.textMuted),
         ),
         SizedBox(height: 14 * s),
@@ -49,7 +112,7 @@ class ScenariosTab extends StatelessWidget {
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
-                    hintText: 'Поиск по событиям',
+                    hintText: l10n.scenariosSearchHint,
                     hintStyle: AppTypography.regular(
                       15 * s,
                       color: AppColors.textHint,
@@ -69,47 +132,44 @@ class ScenariosTab extends StatelessWidget {
         SizedBox(height: 6 * s),
         _ScenarioRow(
           accent: AppColors.brandRed,
-          title: 'Китай ограничивает экспорт электроники',
-          subtitle: 'Аспект: подготовил сценарии для поставок',
+          title: l10n.eventChinaTitle,
+          subtitle: l10n.scenarioChinaSub,
           time: '08:24',
-          badge: 1,
-          onTap: () => openChatScreen(
-            context,
-            const ChatScreenData(
-              title: 'Китай ограничивает экспорт электроники',
-              meta: 'Высокое влияние · Сегодня 08:24',
+          badge: chinaUnread || !_loaded ? 1 : null,
+          onTap: () => _openScenario(
+            id: 'china-electronics-export',
+            data: ChatScreenData(
+              title: l10n.eventChinaTitle,
+              meta: l10n.impactMeta(l10n.impactHigh, '${l10n.today} 08:24'),
               level: ImpactLevel.high,
-              backLabel: 'Сценарии',
             ),
           ),
         ),
         _ScenarioRow(
           accent: AppColors.impactPurple,
-          title: 'Курс CNY вырос на 1,8% за неделю',
-          subtitle: 'Аспект: оценил влияние на покупки',
-          time: 'Вчера',
-          onTap: () => openChatScreen(
-            context,
-            const ChatScreenData(
-              title: 'Курс CNY вырос на 1,8% за неделю',
-              meta: 'Среднее влияние · Вчера',
+          title: l10n.eventCnyTitle,
+          subtitle: l10n.scenarioCnySub,
+          time: l10n.yesterday,
+          onTap: () => _openScenario(
+            id: 'cny-rate-week',
+            data: ChatScreenData(
+              title: l10n.eventCnyTitle,
+              meta: l10n.impactMeta(l10n.impactMedium, l10n.yesterday),
               level: ImpactLevel.medium,
-              backLabel: 'Сценарии',
             ),
           ),
         ),
         _ScenarioRow(
           accent: AppColors.impactGreen,
-          title: 'Спрос на электронику в Казахстане растет',
-          subtitle: 'Аспект: Возможное окно для роста',
-          time: 'Пн',
-          onTap: () => openChatScreen(
-            context,
-            const ChatScreenData(
-              title: 'Спрос на электронику в Казахстане растет',
-              meta: 'Возможность · Пн',
+          title: l10n.eventKzTitle,
+          subtitle: l10n.scenarioKzSub,
+          time: l10n.mondayShort,
+          onTap: () => _openScenario(
+            id: 'kz-electronics-demand',
+            data: ChatScreenData(
+              title: l10n.eventKzTitle,
+              meta: l10n.impactMeta(l10n.impactOpportunity, l10n.mondayShort),
               level: ImpactLevel.opportunity,
-              backLabel: 'Сценарии',
             ),
           ),
         ),
@@ -198,7 +258,7 @@ class _ScenarioRow extends StatelessWidget {
                             width: 22 * s,
                             height: 22 * s,
                             alignment: Alignment.center,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: AppColors.brandRed,
                               shape: BoxShape.circle,
                             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -71,10 +72,10 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
   }
 
   void _syncFooter() {
+    final l10n = context.l10n;
     widget.bindFooter?.call(
-      label: 'Это моя компания',
-      hint:
-          'Данные компании можно будет исправить. И дополнить на следующем шаге.',
+      label: l10n.onboardingThisIsMyCompany,
+      hint: l10n.onboardingCompanyFooterHint,
       onPressed: _selected ? _continue : null,
     );
   }
@@ -113,23 +114,23 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final s = context.scale;
+    final l10n = context.l10n;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OnboardingHeader(
           step: 0,
           showChrome: !widget.embedded,
-          title: 'Ваша компания',
-          subtitle:
-              'Найдите компанию по названию или ИНН. Мы подставим открытые данные для проверки.',
+          title: l10n.onboardingCompanyTitle,
+          subtitle: l10n.onboardingCompanySubtitle,
         ),
         SizedBox(height: 32 * s),
         AuthTextField(
-          label: 'Название или ИНН',
+          label: l10n.onboardingCompanyQueryLabel,
           controller: _queryController,
           focusNode: _queryFocus,
           autofocus: widget.embedded,
-          hint: 'Введите название или ИНН',
+          hint: l10n.onboardingCompanyQueryHint,
           textInputAction: TextInputAction.search,
           onChanged: _onQueryChanged,
           onSubmitted: _runSearch,
@@ -170,14 +171,14 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
                 color: AppColors.textSecondary,
               ),
               children: [
-                const TextSpan(text: 'Нет в списке? '),
+                TextSpan(text: l10n.onboardingNotInList),
                 WidgetSpan(
                   alignment: PlaceholderAlignment.baseline,
                   baseline: TextBaseline.alphabetic,
                   child: GestureDetector(
                     onTap: () {},
                     child: Text(
-                      'Добавить вручную',
+                      l10n.onboardingAddManually,
                       style: AppTypography.medium(
                         12 * s,
                         color: AppColors.brandRed,
@@ -200,9 +201,8 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
     }
 
     return OnboardingScaffold(
-      buttonLabel: 'Это моя компания',
-      footerHint:
-          'Данные компании можно будет исправить. И дополнить на следующем шаге.',
+      buttonLabel: l10n.onboardingThisIsMyCompany,
+      footerHint: l10n.onboardingCompanyFooterHint,
       onContinue: _selected ? _continue : null,
       body: body,
     );

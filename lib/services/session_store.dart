@@ -21,6 +21,7 @@ class SessionStore {
   static const _userNameKey = 'user_name';
   static const _profileKey = 'user_profile';
   static const _viewedEventsKey = 'viewed_event_ids';
+  static const _viewedScenariosKey = 'viewed_scenario_ids';
   static const _telegramUsernameKey = 'telegram_username';
   static const _pushNotificationsKey = 'settings_push';
   static const _telegramAlertsKey = 'settings_tg_alerts';
@@ -143,6 +144,21 @@ class SessionStore {
     await prefs.setStringList(_viewedEventsKey, next);
   }
 
+  static Future<Set<String>> viewedScenarioIds() async {
+    final prefs = await _prefs();
+    final list = prefs?.getStringList(_viewedScenariosKey) ?? const <String>[];
+    return list.toSet();
+  }
+
+  static Future<void> markScenarioViewed(String id) async {
+    final prefs = await _prefs();
+    if (prefs == null) return;
+    final next = (prefs.getStringList(_viewedScenariosKey) ?? <String>[])
+      ..remove(id)
+      ..add(id);
+    await prefs.setStringList(_viewedScenariosKey, next);
+  }
+
   /// Telegram @username without leading @, or null if not connected.
   static Future<String?> telegramUsername() async {
     final prefs = await _prefs();
@@ -172,7 +188,7 @@ class SessionStore {
       quietStart: prefs?.getString(_quietStartKey) ?? '22:00',
       quietEnd: prefs?.getString(_quietEndKey) ?? '08:00',
       language: prefs?.getString(_languageKey) ?? 'ru',
-      themeMode: prefs?.getString(_themeModeKey) ?? 'light',
+      themeMode: prefs?.getString(_themeModeKey) ?? 'system',
     );
   }
 
@@ -196,6 +212,7 @@ class SessionStore {
     await prefs.remove(_userNameKey);
     await prefs.remove(_profileKey);
     await prefs.remove(_viewedEventsKey);
+    await prefs.remove(_viewedScenariosKey);
     await prefs.remove(_telegramUsernameKey);
     await prefs.remove(_pushNotificationsKey);
     await prefs.remove(_telegramAlertsKey);
@@ -215,7 +232,7 @@ class AppSettings {
     this.quietStart = '22:00',
     this.quietEnd = '08:00',
     this.language = 'ru',
-    this.themeMode = 'light',
+    this.themeMode = 'system',
   });
 
   final bool pushNotifications;

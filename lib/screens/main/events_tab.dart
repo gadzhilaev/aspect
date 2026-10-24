@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -28,36 +29,39 @@ class _EventItem {
   final String actionLabel;
 }
 
-const _allEvents = <_EventItem>[
-  _EventItem(
-    id: 'china_export',
-    level: ImpactLevel.high,
-    meta: 'Высокое влияние • 08:24',
-    title: 'Китай ограничивает экспорт электроники',
-    contextLead: 'Почему вам:',
-    contextBody: 'Китай указан как страна поставки электронных компонентов',
-    warning: 'Риск роста себестоимости и переноса сроков поставки',
-    actionLabel: 'Открыть влияние',
-  ),
-  _EventItem(
-    id: 'cny_rate',
-    level: ImpactLevel.medium,
-    meta: 'Среднее влияние • вчера',
-    title: 'Курс CNY вырос на 1,8% за неделю',
-    contextLead: 'Почему вам:',
-    contextBody: 'Валюта используется в расчетах с поставщиками',
-    actionLabel: 'Открыть',
-  ),
-  _EventItem(
-    id: 'kz_demand',
-    level: ImpactLevel.opportunity,
-    meta: 'Возможность • вчера',
-    title: 'Спрос на электронику в Казахстане растет',
-    contextLead: 'Почему вам:',
-    contextBody: 'Казахстан указан как рынок сбыта',
-    actionLabel: 'Посмотреть сценарий',
-  ),
-];
+List<_EventItem> _eventsFor(AppLocalizations l10n) => [
+      _EventItem(
+        id: 'china_export',
+        level: ImpactLevel.high,
+        meta: l10n.impactMeta(l10n.impactHigh, '08:24'),
+        title: l10n.eventChinaTitle,
+        contextLead: l10n.whyForYou,
+        contextBody: l10n.eventChinaContext,
+        warning: l10n.eventChinaWarning,
+        actionLabel: l10n.openImpact,
+      ),
+      _EventItem(
+        id: 'cny_rate',
+        level: ImpactLevel.medium,
+        meta: l10n.impactMeta(l10n.impactMedium, l10n.yesterday.toLowerCase()),
+        title: l10n.eventCnyTitle,
+        contextLead: l10n.whyForYou,
+        contextBody: l10n.eventCnyContext,
+        actionLabel: l10n.openAction,
+      ),
+      _EventItem(
+        id: 'kz_demand',
+        level: ImpactLevel.opportunity,
+        meta: l10n.impactMeta(
+          l10n.impactOpportunity,
+          l10n.yesterday.toLowerCase(),
+        ),
+        title: l10n.eventKzTitle,
+        contextLead: l10n.whyForYou,
+        contextBody: l10n.eventKzContext,
+        actionLabel: l10n.viewScenario,
+      ),
+    ];
 
 class EventsTab extends StatefulWidget {
   const EventsTab({super.key});
@@ -92,30 +96,31 @@ class _EventsTabState extends State<EventsTab> {
     await SessionStore.markEventViewed(id);
   }
 
-  int get _newCount =>
-      _allEvents.where((e) => !_viewedIds.contains(e.id)).length;
-
-  List<_EventItem> get _visible {
+  List<_EventItem> _visible(List<_EventItem> all) {
     switch (_filter) {
       case 1:
         return [
-          for (final e in _allEvents)
+          for (final e in all)
             if (!_viewedIds.contains(e.id)) e,
         ];
       case 2:
         return [
-          for (final e in _allEvents)
+          for (final e in all)
             if (e.level == ImpactLevel.high) e,
         ];
       default:
-        return _allEvents;
+        return all;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
-    final newCount = _loaded ? _newCount : _allEvents.length;
+    final l10n = context.l10n;
+    final all = _eventsFor(l10n);
+    final newCount =
+        _loaded ? all.where((e) => !_viewedIds.contains(e.id)).length : all.length;
+    final visible = _visible(all);
     const hPad = AppColors.screenPadding;
 
     return ListView(
@@ -129,10 +134,10 @@ class _EventsTabState extends State<EventsTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Главные новости для вас', style: pageTitleStyle(context)),
+              Text(l10n.eventsTitle, style: pageTitleStyle(context)),
               SizedBox(height: 8 * s),
               Text(
-                'Сигналы, отобранные для вашей компании',
+                l10n.eventsSubtitle,
                 style: AppTypography.regular(
                   13 * s,
                   color: AppColors.textMuted,
@@ -149,20 +154,20 @@ class _EventsTabState extends State<EventsTab> {
             padding: EdgeInsets.only(left: hPad * s),
             children: [
               _FilterChip(
-                label: 'Все',
+                label: l10n.filterAll,
                 selected: _filter == 0,
                 onTap: () => setState(() => _filter = 0),
               ),
               SizedBox(width: 8 * s),
               _FilterChip(
-                label: 'Новые',
+                label: l10n.filterNew,
                 badge: newCount > 0 ? '$newCount' : null,
                 selected: _filter == 1,
                 onTap: () => setState(() => _filter = 1),
               ),
               SizedBox(width: 8 * s),
               _FilterChip(
-                label: 'Высокое влияние',
+                label: l10n.filterHighImpact,
                 selected: _filter == 2,
                 onTap: () => setState(() => _filter = 2),
               ),
@@ -175,19 +180,19 @@ class _EventsTabState extends State<EventsTab> {
           child: Column(
             children: [
               SizedBox(height: 16 * s),
-              for (var i = 0; i < _visible.length; i++) ...[
+              for (var i = 0; i < visible.length; i++) ...[
                 if (i > 0) SizedBox(height: 12 * s),
                 EventSignalCard(
-                  key: ValueKey(_visible[i].id),
-                  level: _visible[i].level,
-                  meta: _visible[i].meta,
-                  title: _visible[i].title,
-                  contextLead: _visible[i].contextLead,
-                  contextBody: _visible[i].contextBody,
-                  warning: _visible[i].warning,
-                  actionLabel: _visible[i].actionLabel,
+                  key: ValueKey(visible[i].id),
+                  level: visible[i].level,
+                  meta: visible[i].meta,
+                  title: visible[i].title,
+                  contextLead: visible[i].contextLead,
+                  contextBody: visible[i].contextBody,
+                  warning: visible[i].warning,
+                  actionLabel: visible[i].actionLabel,
                   onOpen: () {
-                    final e = _visible[i];
+                    final e = visible[i];
                     openNewsDetail(
                       context,
                       newsDetailFor(
@@ -196,7 +201,7 @@ class _EventsTabState extends State<EventsTab> {
                         meta: e.meta,
                         warning: e.warning,
                       ),
-                      backLabel: 'События',
+                      backLabel: l10n.navEvents,
                       onOpened: () => _markViewed(e.id),
                     );
                   },
@@ -247,7 +252,7 @@ class _FilterChip extends StatelessWidget {
               label,
               style: AppTypography.regular(
                 13 * s,
-                color: selected ? AppColors.surface : AppColors.textPrimary,
+                color: selected ? AppColors.surface : AppColors.textMuted,
               ),
             ),
             if (badge != null) ...[

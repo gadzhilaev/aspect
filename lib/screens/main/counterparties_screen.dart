@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
@@ -48,7 +49,7 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
         ..addAll([
           for (final name in profile.counterparties)
             if (name.trim().isNotEmpty)
-              _Supplier(name: name.trim(), detail: 'Поставщик'),
+              _Supplier(name: name.trim(), detail: ''),
         ]);
     });
   }
@@ -82,7 +83,7 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
     setState(() {
       _adding = false;
       if (value.isNotEmpty) {
-        _suppliers.add(_Supplier(name: value, detail: 'Поставщик'));
+        _suppliers.add(_Supplier(name: value, detail: ''));
       }
     });
     if (value.isNotEmpty) await _persistSuppliers();
@@ -90,16 +91,13 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -115,7 +113,7 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
                     onTap: () => Navigator.of(context).maybePop(),
                     behavior: HitTestBehavior.opaque,
                     child: Text(
-                      '‹ Компания',
+                      l10n.settingsBackCompany,
                       style: AppTypography.regular(
                         15 * s,
                         color: AppColors.brandRed,
@@ -134,7 +132,7 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
                   ),
                   children: [
                     Text(
-                      'Контрагенты и связи',
+                      l10n.counterpartiesAndLinks,
                       style: AppTypography.medium(
                         _titleSize * s,
                         color: AppColors.textInput,
@@ -142,14 +140,14 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
                     ),
                     SizedBox(height: 4 * s),
                     Text(
-                      'Разные типы связей — разные основания',
+                      l10n.counterpartiesSubtitle,
                       style: AppTypography.medium(
                         _titleSize * s,
                         color: AppColors.brandRed,
                       ),
                     ),
                     SizedBox(height: 28 * s),
-                    _sectionLabel(context, 'Платежные связи'),
+                    _sectionLabel(context, l10n.paymentLinks),
                     SizedBox(height: 10 * s),
                     _InfoCard(
                       title: 'Организация U_1042',
@@ -167,7 +165,7 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
                       onLinkTap: () {},
                     ),
                     SizedBox(height: 24 * s),
-                    _sectionLabel(context, 'Группа компаний'),
+                    _sectionLabel(context, l10n.companyGroupSection),
                     SizedBox(height: 10 * s),
                     const _InfoCard(
                       title: 'Группа G_17',
@@ -175,14 +173,14 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
                           'Принадлежность по данным источника. Операционная зависимость не установлена.',
                     ),
                     SizedBox(height: 24 * s),
-                    _sectionLabel(context, 'Указанные поставщики'),
+                    _sectionLabel(context, l10n.listedSuppliers),
                     SizedBox(height: 10 * s),
                     for (var i = 0; i < _suppliers.length; i++) ...[
                       if (i > 0) SizedBox(height: 12 * s),
                       _InfoCard(
                         title: _suppliers[i].name,
                         body: _suppliers[i].detail.isEmpty
-                            ? 'Поставщик'
+                            ? l10n.supplierRole
                             : _suppliers[i].detail,
                       ),
                     ],
@@ -212,7 +210,7 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
                               decoration: InputDecoration(
                                 isCollapsed: true,
                                 border: InputBorder.none,
-                                hintText: 'Название поставщика',
+                                hintText: l10n.supplierNameHint,
                                 hintStyle: AppTypography.regular(
                                   13 * s,
                                   color: AppColors.textHint,
@@ -233,7 +231,7 @@ class _CounterpartiesScreenState extends State<CounterpartiesScreen> {
                                 border: Border.all(color: _addBorder, width: 1),
                               ),
                               child: Text(
-                                '+ Добавить поставщика',
+                                l10n.addSupplier,
                                 style: AppTypography.bold(
                                   13 * s,
                                   color: _addBorder,

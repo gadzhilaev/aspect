@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../navigation/app_page_route.dart';
 import '../../services/session_store.dart';
@@ -60,7 +61,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     if (stored.isNotEmpty && stored != current) {
       if (!mounted) return;
       setState(() {
-        _error = 'Текущий пароль неверный';
+        _error = context.l10n.wrongCurrentPassword;
         _submitting = false;
       });
       return;
@@ -74,7 +75,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           builder: (_) => CodeConfirmScreen(
             data: OnboardingData(email: email),
             verifyOnly: true,
-            verifyHint: 'на почту $email',
+            verifyHint: context.l10n.verifyHintEmail(email),
           ),
         ),
       );
@@ -92,16 +93,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -117,7 +115,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     onTap: () => Navigator.of(context).maybePop(false),
                     behavior: HitTestBehavior.opaque,
                     child: Text(
-                      '‹ Мои данные',
+                      l10n.backMyData,
                       style: AppTypography.regular(
                         15 * s,
                         color: AppColors.brandRed,
@@ -131,7 +129,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   padding: EdgeInsets.fromLTRB(hPad, 8 * s, hPad, 16 * s),
                   children: [
                     Text(
-                      'Пароль',
+                      l10n.passwordSection,
                       style: AppTypography.bold(
                         24.83 * s,
                         color: AppColors.textInput,
@@ -139,7 +137,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ),
                     SizedBox(height: 4 * s),
                     Text(
-                      'Смена пароля',
+                      l10n.changePassword,
                       style: AppTypography.bold(
                         24.83 * s,
                         color: AppColors.brandRed,
@@ -147,24 +145,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ),
                     SizedBox(height: 24 * s),
                     AuthTextField(
-                      label: 'Текущий пароль',
-                      hint: 'Введите текущий пароль',
+                      label: l10n.currentPassword,
+                      hint: l10n.currentPasswordHint,
                       controller: _currentController,
                       obscureText: true,
                       onChanged: (_) => setState(() {}),
                     ),
                     SizedBox(height: 14 * s),
                     AuthTextField(
-                      label: 'Новый пароль',
-                      hint: 'Не меньше 6 символов',
+                      label: l10n.newPassword,
+                      hint: l10n.newPasswordMinHint,
                       controller: _newController,
                       obscureText: true,
                       onChanged: (_) => setState(() {}),
                     ),
                     SizedBox(height: 14 * s),
                     AuthTextField(
-                      label: 'Повторите пароль',
-                      hint: 'Повторите новый пароль',
+                      label: l10n.confirmPassword,
+                      hint: l10n.confirmNewPasswordHint,
                       controller: _confirmController,
                       obscureText: true,
                       onChanged: (_) => setState(() {}),
@@ -190,7 +188,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   12 * s + bottom,
                 ),
                 child: AuthPrimaryButton(
-                  label: 'Сохранить пароль',
+                  label: l10n.savePassword,
                   onPressed: _canSubmit ? _submit : null,
                 ),
               ),

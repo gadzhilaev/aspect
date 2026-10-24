@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/design_scale.dart';
@@ -162,6 +163,7 @@ class CompanyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16 * s),
@@ -224,7 +226,7 @@ class CompanyCard extends StatelessWidget {
                           ),
                           SizedBox(height: 8 * s),
                           Text(
-                            'ИНН $inn • $city',
+                            '${l10n.innLabel} $inn • $city',
                             style: AppTypography.regular(
                               13 * s,
                               color: AppColors.textMuted,
@@ -344,7 +346,7 @@ class _OptionRadio extends StatelessWidget {
               child: Container(
                 width: size * 0.55,
                 height: size * 0.55,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.brandRed,
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../widgets/auth_widgets.dart';
 import '../../theme/design_scale.dart';
@@ -70,10 +71,10 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
   }
 
   void _syncFooter() {
+    final l10n = context.l10n;
     widget.bindFooter?.call(
-      label: 'Подтвердить данные',
-      hint:
-          'Эти сведения нужны, чтобы подобрать релевантные события и отраслевые источники.',
+      label: l10n.onboardingConfirmData,
+      hint: l10n.onboardingVerifyFooterHint,
       onPressed: _continue,
     );
   }
@@ -88,6 +89,7 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final s = context.scale;
+    final l10n = context.l10n;
     final data = widget.data;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -95,8 +97,8 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
         OnboardingHeader(
           step: 1,
           showChrome: !widget.embedded,
-          title: 'Проверьте данные',
-          subtitle: 'Мы нашли открытую карточку компании',
+          title: l10n.onboardingVerifyTitle,
+          subtitle: l10n.onboardingVerifySubtitle,
         ),
         SizedBox(height: 24 * s),
         CompanyCard(
@@ -107,14 +109,14 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
         ),
         SizedBox(height: 28 * s),
         AuthDropdown(
-          label: 'Ваша роль',
+          label: l10n.onboardingYourRole,
           value: _role,
           items: _roles,
           onChanged: (value) => setState(() => _role = value),
         ),
         SizedBox(height: 20 * s),
         AuthDropdown(
-          label: 'Размер компании',
+          label: l10n.onboardingCompanySize,
           value: _size,
           items: _sizes,
           onChanged: (value) => setState(() => _size = value),
@@ -130,9 +132,8 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
     }
 
     return OnboardingScaffold(
-      buttonLabel: 'Подтвердить данные',
-      footerHint:
-          'Эти сведения нужны, чтобы подобрать релевантные события и отраслевые источники.',
+      buttonLabel: l10n.onboardingConfirmData,
+      footerHint: l10n.onboardingVerifyFooterHint,
       onContinue: _continue,
       body: body,
     );

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
@@ -139,16 +140,13 @@ class NewsDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = context.scale;
     final accent = ImpactColors.accent(data.level);
     final hPad = AppColors.screenPadding * s;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -229,7 +227,7 @@ class NewsDetailScreen extends StatelessWidget {
                             color: AppColors.textMuted,
                           ),
                           children: [
-                            const TextSpan(text: 'Источник: '),
+                            TextSpan(text: l10n.sourcePrefix),
                             WidgetSpan(
                               alignment: PlaceholderAlignment.baseline,
                               baseline: TextBaseline.alphabetic,
@@ -258,7 +256,7 @@ class NewsDetailScreen extends StatelessWidget {
                           data.heroAsset,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
-                              const ColoredBox(color: AppColors.progressTrack),
+                              ColoredBox(color: AppColors.progressTrack),
                         ),
                       ),
                     ),
@@ -272,7 +270,7 @@ class NewsDetailScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 20 * s),
                     Text(
-                      'Что произошло',
+                      l10n.whatHappened,
                       style: AppTypography.bold(
                         _bodySize * s,
                         color: AppColors.textPrimary,
@@ -293,19 +291,22 @@ class NewsDetailScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 20 * s),
                     Text(
-                      'Что это значит для вас',
+                      l10n.whatItMeansForYou,
                       style: AppTypography.bold(
                         _bodySize * s,
                         color: AppColors.textPrimary,
                       ),
                     ),
                     SizedBox(height: 10 * s),
-                    _ChangeLine(label: 'Риск:', text: data.risk),
+                    _ChangeLine(label: l10n.riskLabel, text: data.risk),
                     SizedBox(height: 8 * s),
-                    _ChangeLine(label: 'Возможность:', text: data.opportunity),
+                    _ChangeLine(
+                      label: l10n.opportunityLabel,
+                      text: data.opportunity,
+                    ),
                     SizedBox(height: 20 * s),
                     Text(
-                      'Следующее действие',
+                      l10n.nextActionTitle,
                       style: AppTypography.bold(
                         _bodySize * s,
                         color: AppColors.textPrimary,
@@ -323,6 +324,8 @@ class NewsDetailScreen extends StatelessWidget {
                     _BankCard(
                       title: data.bankTitle,
                       body: data.bankBody,
+                      analyticsLabel: l10n.alfaBankAnalytics,
+                      materialLinkLabel: l10n.viewMaterial,
                       onMaterialTap: () => openBankMaterialScreen(context),
                     ),
                     SizedBox(height: 24 * s),
@@ -333,9 +336,9 @@ class NewsDetailScreen extends StatelessWidget {
                         child: FilledButton(
                           onPressed: () {
                             final impact = switch (data.level) {
-                              ImpactLevel.high => 'Высокое влияние',
-                              ImpactLevel.medium => 'Среднее влияние',
-                              ImpactLevel.opportunity => 'Возможность',
+                              ImpactLevel.high => l10n.impactHigh,
+                              ImpactLevel.medium => l10n.impactMedium,
+                              ImpactLevel.opportunity => l10n.impactOpportunity,
                             };
                             openChatScreen(
                               context,
@@ -359,7 +362,7 @@ class NewsDetailScreen extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            data.ctaLabel,
+                            l10n.discussWithAspect,
                             textAlign: TextAlign.center,
                             style: AppTypography.bold(
                               14.06 * s,
@@ -374,7 +377,7 @@ class NewsDetailScreen extends StatelessWidget {
                       onTap: () => openConclusionBasisScreen(context),
                       behavior: HitTestBehavior.opaque,
                       child: Text(
-                        data.ctaCaption,
+                        l10n.conclusionBasisPrompt,
                         textAlign: TextAlign.center,
                         style: AppTypography.medium(
                           13 * s,
@@ -448,11 +451,15 @@ class _BankCard extends StatelessWidget {
   const _BankCard({
     required this.title,
     required this.body,
+    required this.analyticsLabel,
+    required this.materialLinkLabel,
     this.onMaterialTap,
   });
 
   final String title;
   final String body;
+  final String analyticsLabel;
+  final String materialLinkLabel;
   final VoidCallback? onMaterialTap;
 
   @override
@@ -490,7 +497,7 @@ class _BankCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6.56 * s),
                 ),
                 child: Text(
-                  'Аналитика Альфа-Банка',
+                  analyticsLabel,
                   style: AppTypography.bold(9.19 * s, color: AppColors.surface),
                 ),
               ),
@@ -531,7 +538,7 @@ class _BankCard extends StatelessWidget {
           ),
           SizedBox(height: 14 * s),
           _RedLink(
-            label: 'Посмотреть материал',
+            label: materialLinkLabel,
             onTap: onMaterialTap,
           ),
         ],
