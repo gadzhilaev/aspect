@@ -5,6 +5,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
+import 'action_plan_screen.dart';
+import 'bank_material_screen.dart';
+import 'confirm_plan_screen.dart';
+import 'saved_plan_screen.dart';
 
 class ChatScreenData {
   const ChatScreenData({
@@ -37,16 +41,42 @@ Future<void> openChatScreen(
   );
 }
 
-class ChatScreen extends StatelessWidget {
+class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.data});
 
   final ChatScreenData data;
 
   @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  ConfirmPlanData? _savedPlan;
+
+  Future<void> _openScenarios() async {
+    final plan = await openActionPlanScreen(
+      context,
+      eventTitle: widget.data.title,
+    );
+    if (plan != null && mounted) {
+      setState(() => _savedPlan = plan);
+    }
+  }
+
+  Future<void> _openSavedPlan() async {
+    final plan = _savedPlan;
+    if (plan == null) return;
+    final updated = await openSavedPlanScreen(context, plan);
+    if (updated != null && mounted) {
+      setState(() => _savedPlan = updated);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final s = context.scale;
-    final accent = ImpactColors.accent(data.level);
-    const hPad = AppColors.screenPadding; // 16
+    final accent = ImpactColors.accent(widget.data.level);
+    const hPad = AppColors.screenPadding;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -73,7 +103,7 @@ class ChatScreen extends StatelessWidget {
                         onTap: () => Navigator.of(context).maybePop(),
                         behavior: HitTestBehavior.opaque,
                         child: Text(
-                          '‹ ${data.backLabel}',
+                          '‹ ${widget.data.backLabel}',
                           style: AppTypography.regular(
                             15 * s,
                             color: AppColors.brandRed,
@@ -82,11 +112,11 @@ class ChatScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 14 * s),
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
                             width: 3.8 * s,
-                            height: 46 * s,
+                            height: 40 * s,
                             decoration: BoxDecoration(
                               color: accent,
                               borderRadius: BorderRadius.circular(2 * s),
@@ -94,28 +124,35 @@ class ChatScreen extends StatelessWidget {
                           ),
                           SizedBox(width: 12 * s),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  data.title,
-                                  style: AppTypography.bold(
-                                    18.88 * s,
-                                    color: AppColors.textInput,
-                                  ),
-                                ),
-                                SizedBox(height: 5 * s),
-                                Text(
-                                  data.meta,
-                                  style: AppTypography.regular(
-                                    13 * s,
-                                    color: AppColors.textMuted,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              widget.data.title,
+                              style: AppTypography.bold(
+                                18.88 * s,
+                                color: AppColors.textInput,
+                              ),
                             ),
                           ),
                         ],
+                      ),
+                      SizedBox(height: 10 * s),
+                      IntrinsicWidth(
+                        child: Container(
+                          height: 25 * s,
+                          padding: EdgeInsets.symmetric(horizontal: 6 * s),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.brandRed,
+                            borderRadius: BorderRadius.circular(6 * s),
+                          ),
+                          child: Text(
+                            'AI-объяснение',
+                            softWrap: false,
+                            style: AppTypography.medium(
+                              9.4 * s,
+                              color: AppColors.surface,
+                            ),
+                          ),
+                        ),
                       ),
                       SizedBox(height: 14 * s),
                       Divider(
@@ -136,9 +173,14 @@ class ChatScreen extends StatelessWidget {
                     16 * s,
                   ),
                   children: [
-                    const _AspectBubble(
+                    _AspectBubble(
                       text:
                           'Я подготовил варианты действий по этой новости. Начнём с влияния на ваши поставки из Китая?',
+                      showBankLink: true,
+                      onBankLinkTap: () => openBankMaterialScreen(
+                        context,
+                        data: const BankMaterialData(backLabel: 'Событие'),
+                      ),
                     ),
                     SizedBox(height: 12 * s),
                     const _UserBubble(text: 'Какие контракты под риском?'),
@@ -166,15 +208,17 @@ class ChatScreen extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            _QuickChip(
-                              label: 'Покажи 3 сценария',
-                              onTap: () {},
-                            ),
-                            SizedBox(width: 10 * s),
-                            _QuickChip(
-                              label: 'Сравнить сценарии',
-                              onTap: () {},
-                            ),
+                            if (_savedPlan == null)
+                              _QuickChip(
+                                label: 'Покажи 3 сценария',
+                                onTap: _openScenarios,
+                              )
+                            else
+                              _QuickChip(
+                                label: 'План действий',
+                                filled: true,
+                                onTap: _openSavedPlan,
+                              ),
                           ],
                         ),
                       ),
@@ -239,14 +283,19 @@ class ChatScreen extends StatelessWidget {
 }
 
 class _AspectBubble extends StatelessWidget {
-  const _AspectBubble({required this.text});
+  const _AspectBubble({
+    required this.text,
+    this.showBankLink = false,
+    this.onBankLinkTap,
+  });
 
   final String text;
+  final bool showBankLink;
+  final VoidCallback? onBankLinkTap;
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
-    // Screen pad 16 → label at 26 ⇒ extra 10 inside the list.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -280,12 +329,43 @@ class _AspectBubble extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Text(
-                text,
-                style: AppTypography.regular(
-                  13 * s,
-                  color: AppColors.textPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    text,
+                    style: AppTypography.regular(
+                      13 * s,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  if (showBankLink) ...[
+                    SizedBox(height: 14 * s),
+                    GestureDetector(
+                      onTap: onBankLinkTap,
+                      behavior: HitTestBehavior.opaque,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Показать материал банка',
+                            style: AppTypography.bold(
+                              13 * s,
+                              color: AppColors.brandRed,
+                            ),
+                          ),
+                          SizedBox(width: 4 * s),
+                          Icon(
+                            Icons.arrow_forward,
+                            size: 14 * s,
+                            color: AppColors.brandRed,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
@@ -322,10 +402,15 @@ class _UserBubble extends StatelessWidget {
 }
 
 class _QuickChip extends StatelessWidget {
-  const _QuickChip({required this.label, required this.onTap});
+  const _QuickChip({
+    required this.label,
+    required this.onTap,
+    this.filled = false,
+  });
 
   final String label;
   final VoidCallback onTap;
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {
@@ -337,12 +422,18 @@ class _QuickChip extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 10 * s),
         alignment: Alignment.center,
         decoration: BoxDecoration(
+          color: filled ? AppColors.brandRed : Colors.transparent,
           borderRadius: BorderRadius.circular(16 * s),
-          border: Border.all(color: AppColors.textMuted, width: 1),
+          border: filled
+              ? null
+              : Border.all(color: AppColors.textMuted, width: 1),
         ),
         child: Text(
           label,
-          style: AppTypography.regular(13 * s, color: AppColors.textPrimary),
+          style: AppTypography.regular(
+            13 * s,
+            color: filled ? AppColors.surface : AppColors.textPrimary,
+          ),
         ),
       ),
     );
