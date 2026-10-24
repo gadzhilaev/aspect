@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/onboarding_data.dart';
+import '../navigation/enter_main.dart';
 import '../services/session_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/design_scale.dart';
 import '../widgets/auth_widgets.dart';
-import 'main/main_shell.dart';
 
 const _alfaBg = Color(0xFFF2F3F5);
 const _alfaCard = Color(0xFFFFFFFF);
@@ -93,7 +94,7 @@ class _AlfaBusinessGateScreenState extends State<AlfaBusinessGateScreen> {
     final picked = await _openCompanyPicker(
       context,
       current: _company,
-      title: 'Выбор компании',
+      title: context.l10n.companyPickerTitle,
     );
     if (picked != null && mounted) {
       setState(() => _company = picked);
@@ -113,14 +114,11 @@ class _AlfaBusinessGateScreenState extends State<AlfaBusinessGateScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final bottom = MediaQuery.paddingOf(context).bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: _alfaBg,
         body: Column(
@@ -152,7 +150,7 @@ class _AlfaBusinessGateScreenState extends State<AlfaBusinessGateScreen> {
                                       MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: Text(
-                                  '‹ Назад',
+                                  l10n.back,
                                   style: AppTypography.regular(
                                     15 * s,
                                     color: _alfaMuted,
@@ -176,14 +174,14 @@ class _AlfaBusinessGateScreenState extends State<AlfaBusinessGateScreen> {
                                 Expanded(
                                   child: _MiniLinkCard(
                                     s: s,
-                                    title: 'Все счета и карты',
+                                    title: l10n.allAccountsCards,
                                   ),
                                 ),
                                 SizedBox(width: 10 * s),
                                 Expanded(
                                   child: _MiniLinkCard(
                                     s: s,
-                                    title: 'Мои продукты',
+                                    title: l10n.myProducts,
                                   ),
                                 ),
                               ],
@@ -194,7 +192,7 @@ class _AlfaBusinessGateScreenState extends State<AlfaBusinessGateScreen> {
                             _AspectEntryCard(s: s, onEnter: _openAspect),
                             SizedBox(height: 18 * s),
                             Text(
-                              'Дела в работе',
+                              l10n.tasksInProgress,
                               style: AppTypography.bold(
                                 17 * s,
                                 color: _alfaInk,
@@ -261,14 +259,11 @@ class AlfaBusinessProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final bottom = MediaQuery.paddingOf(context).bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: _alfaBg,
         body: SafeArea(
@@ -289,7 +284,7 @@ class AlfaBusinessProfileScreen extends StatelessWidget {
                     ),
                     Expanded(
                       child: Text(
-                        'Профиль',
+                        l10n.profile,
                         textAlign: TextAlign.center,
                         style: AppTypography.bold(17 * s, color: _alfaInk),
                       ),
@@ -391,7 +386,7 @@ class AlfaBusinessProfileScreen extends StatelessWidget {
                                 ),
                                 SizedBox(width: 6 * s),
                                 Text(
-                                  'Редактировать',
+                                  l10n.edit,
                                   style: AppTypography.regular(
                                     14 * s,
                                     color: _alfaInk,
@@ -455,14 +450,14 @@ class AlfaBusinessProfileScreen extends StatelessWidget {
                     _AspectEntryCard(s: s, onEnter: onEnterAspect),
                     SizedBox(height: 20 * s),
                     Text(
-                      'Данные компании',
+                      l10n.companyData,
                       style: AppTypography.bold(17 * s, color: _alfaInk),
                     ),
                     SizedBox(height: 10 * s),
                     _ProfileMenuItem(
                       s: s,
                       icon: Icons.apartment_rounded,
-                      title: 'Карточка компании',
+                      title: l10n.companyCard,
                       subtitle:
                           'Реквизиты, контакты, виды деятельности, руководители',
                     ),
@@ -502,6 +497,7 @@ class _AspectEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 14 * s),
       decoration: BoxDecoration(
@@ -518,7 +514,7 @@ class _AspectEntryCard extends StatelessWidget {
               SizedBox(width: 10 * s),
               Expanded(
                 child: Text(
-                  'Аспект',
+                  l10n.aspectCardTitle,
                   style: AppTypography.bold(16 * s, color: AppColors.textInput),
                 ),
               ),
@@ -526,10 +522,7 @@ class _AspectEntryCard extends StatelessWidget {
           ),
           SizedBox(height: 10 * s),
           Text(
-            'Аспект — помощник для бизнеса на данных Альфа-Бизнес. '
-            'Следите за новостями отрасли и тем, что влияет на компанию. '
-            'Смотрите финансы, контрагентов и собирайте план действий. '
-            'Входите одним нажатием — компания подтянется из банка.',
+            l10n.aspectCardBody,
             style: AppTypography.regular(
               13 * s,
               color: AppColors.textSecondary,
@@ -537,7 +530,7 @@ class _AspectEntryCard extends StatelessWidget {
           ),
           SizedBox(height: 14 * s),
           AuthPrimaryButton(
-            label: 'Войти в Аспект',
+            label: l10n.enterAspect,
             onPressed: onEnter,
           ),
         ],
@@ -571,7 +564,7 @@ class _AlfaHomeHeader extends StatelessWidget {
                 Container(
                   width: 36 * s,
                   height: 36 * s,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.brandRed,
                     shape: BoxShape.circle,
                   ),
@@ -640,7 +633,7 @@ class _AlfaHomeHeader extends StatelessWidget {
               child: Container(
                 width: 16 * s,
                 height: 16 * s,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.brandRed,
                   shape: BoxShape.circle,
                 ),
@@ -670,6 +663,7 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 12 * s, 16 * s),
       decoration: BoxDecoration(
@@ -683,7 +677,7 @@ class _BalanceCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Доступный остаток',
+                  l10n.availableBalance,
                   style: AppTypography.regular(13 * s, color: _alfaMuted),
                 ),
                 SizedBox(height: 6 * s),
@@ -693,7 +687,7 @@ class _BalanceCard extends StatelessWidget {
                 ),
                 SizedBox(height: 4 * s),
                 Text(
-                  'на 3 рублёвых счетах',
+                  l10n.onRubleAccounts(3),
                   style: AppTypography.regular(12 * s, color: _alfaMuted),
                 ),
               ],
@@ -1109,12 +1103,9 @@ class _AlfaCompanyPickerPageState extends State<_AlfaCompanyPickerPage> {
     final companies = _filtered;
     final canConfirm = _selected != null;
 
+    final l10n = context.l10n;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: _alfaBg,
         body: SafeArea(
@@ -1165,7 +1156,7 @@ class _AlfaCompanyPickerPageState extends State<_AlfaCompanyPickerPage> {
                           decoration: InputDecoration(
                             isDense: true,
                             border: InputBorder.none,
-                            hintText: 'Поиск компании',
+                            hintText: l10n.companySearchHint,
                             hintStyle: AppTypography.regular(
                               14 * s,
                               color: _alfaMuted,
@@ -1208,7 +1199,7 @@ class _AlfaCompanyPickerPageState extends State<_AlfaCompanyPickerPage> {
                   12 * s + bottom,
                 ),
                 child: AuthPrimaryButton(
-                  label: 'Продолжить',
+                  label: l10n.continueAction,
                   onPressed: canConfirm ? _confirm : null,
                 ),
               ),
@@ -1271,7 +1262,7 @@ class _AlfaCompanyTile extends StatelessWidget {
               Container(
                 width: 28 * s,
                 height: 28 * s,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.brandRed,
                   shape: BoxShape.circle,
                 ),
@@ -1333,28 +1324,21 @@ class _AlfaCompanyPickScreenState extends State<AlfaCompanyPickScreen> {
     }
     await SessionStore.finishRegistration(data);
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) => MainShell(
-          userName: firstNameFromFullName(data.fullName),
-        ),
-      ),
-      (_) => false,
+    await enterMainApp(
+      context,
+      userName: firstNameFromFullName(data.fullName),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final companies = _filtered;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: _alfaBg,
         body: SafeArea(
@@ -1376,7 +1360,7 @@ class _AlfaCompanyPickScreenState extends State<AlfaCompanyPickScreen> {
                     ),
                     Expanded(
                       child: Text(
-                        'Выберите компанию',
+                        l10n.chooseCompany,
                         style: AppTypography.bold(17 * s, color: _alfaInk),
                       ),
                     ),
@@ -1386,7 +1370,7 @@ class _AlfaCompanyPickScreenState extends State<AlfaCompanyPickScreen> {
               Padding(
                 padding: EdgeInsets.fromLTRB(16 * s, 4 * s, 16 * s, 0),
                 child: Text(
-                  'Компания из Альфа-Бизнес для работы в Аспекте',
+                  l10n.chooseCompanySub,
                   style: AppTypography.regular(13 * s, color: _alfaMuted),
                 ),
               ),
@@ -1409,7 +1393,7 @@ class _AlfaCompanyPickScreenState extends State<AlfaCompanyPickScreen> {
                           decoration: InputDecoration(
                             isDense: true,
                             border: InputBorder.none,
-                            hintText: 'Поиск компании',
+                            hintText: l10n.companySearchHint,
                             hintStyle: AppTypography.regular(
                               14 * s,
                               color: _alfaMuted,
@@ -1446,7 +1430,7 @@ class _AlfaCompanyPickScreenState extends State<AlfaCompanyPickScreen> {
                   12 * s + bottom,
                 ),
                 child: AuthPrimaryButton(
-                  label: 'Продолжить',
+                  label: l10n.continueAction,
                   onPressed: _selected == null ? null : _continue,
                 ),
               ),

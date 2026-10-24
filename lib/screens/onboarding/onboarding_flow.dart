@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
+import '../../navigation/enter_main.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
 import '../../widgets/auth_widgets.dart';
 import '../../widgets/onboarding_widgets.dart';
-import '../main/main_shell.dart';
 import 'business_type_screen.dart';
 import 'company_search_screen.dart';
 import 'company_verify_screen.dart';
@@ -35,9 +36,19 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   /// When set, Continue/Back returns here instead of adjacent step (edit from review).
   int? _returnStep;
 
-  String _buttonLabel = 'Продолжить';
+  late String _buttonLabel;
   String? _footerHint;
   VoidCallback? _onContinue;
+  bool _footerInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_footerInitialized) {
+      _buttonLabel = context.l10n.continueAction;
+      _footerInitialized = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -102,12 +113,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     await SessionStore.finishRegistration(widget.data);
     final name = firstNameFromFullName(fullName);
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) => MainShell(userName: name),
-      ),
-      (route) => false,
-    );
+    await enterMainApp(context, userName: name);
   }
 
   @override

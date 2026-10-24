@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
+import '../../navigation/enter_main.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
 import '../../widgets/onboarding_widgets.dart';
-import '../main/main_shell.dart';
 
 class ProfileReviewScreen extends StatefulWidget {
   const ProfileReviewScreen({
@@ -58,7 +59,7 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
 
   void _syncFooter() {
     widget.bindFooter?.call(
-      label: 'Готово',
+      label: context.l10n.done,
       onPressed: _finish,
     );
   }
@@ -72,25 +73,22 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
     }
     await SessionStore.finishRegistration(widget.data);
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) => MainShell(userName: _userName),
-      ),
-      (route) => false,
-    );
+    await enterMainApp(context, userName: _userName);
   }
 
   void _edit(int step) => widget.onEditStep?.call(step);
 
-  String _orDash(String value) => value.trim().isEmpty ? '—' : value;
+  String _orDash(String value, AppLocalizations l10n) =>
+      value.trim().isEmpty ? l10n.emptyValueDash : value;
 
-  String _join(List<String> items) =>
-      items.isEmpty ? '—' : items.join(', ');
+  String _join(List<String> items, AppLocalizations l10n) =>
+      items.isEmpty ? l10n.emptyValueDash : items.join(', ');
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final s = context.scale;
+    final l10n = context.l10n;
     final data = widget.data;
 
     final body = Column(
@@ -99,11 +97,11 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
         OnboardingHeader(
           step: 6,
           showChrome: !widget.embedded,
-          title: 'Проверьте профиль',
+          title: l10n.onboardingReviewTitle,
         ),
         SizedBox(height: 24 * s),
         Text(
-          'ВАША КОМПАНИЯ',
+          l10n.onboardingYourCompanySection,
           style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         SizedBox(height: 10 * s),
@@ -119,48 +117,48 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
         ),
         SizedBox(height: 28 * s),
         _ProfileField(
-          label: 'Ваша роль',
-          value: _orDash(data.role),
+          label: l10n.onboardingYourRole,
+          value: _orDash(data.role, l10n),
           onEdit: () => _edit(1),
         ),
         _ProfileField(
-          label: 'Размер компании',
-          value: _orDash(data.companySize),
+          label: l10n.onboardingCompanySize,
+          value: _orDash(data.companySize, l10n),
           onEdit: () => _edit(1),
         ),
         _ProfileField(
-          label: 'Чем занимается?',
-          value: _orDash(data.businessType),
+          label: l10n.onboardingReviewWhatBusiness,
+          value: _orDash(data.businessType, l10n),
           onEdit: () => _edit(2),
         ),
         _ProfileField(
-          label: 'Направление',
-          value: _orDash(data.businessTypeSubtitle),
+          label: l10n.onboardingReviewDirection,
+          value: _orDash(data.businessTypeSubtitle, l10n),
           onEdit: () => _edit(2),
         ),
         _ProfileField(
-          label: 'Что вы производите?',
-          value: _join(data.products),
+          label: l10n.onboardingProductsTitle,
+          value: _join(data.products, l10n),
           onEdit: () => _edit(3),
         ),
         _ProfileField(
-          label: 'Основной рынок',
-          value: _orDash(data.mainMarket),
+          label: l10n.onboardingMainMarket,
+          value: _orDash(data.mainMarket, l10n),
           onEdit: () => _edit(3),
         ),
         _ProfileField(
-          label: 'Страны поставок и партнёров',
-          value: _join(data.countries),
+          label: l10n.onboardingCountriesTitle,
+          value: _join(data.countries, l10n),
           onEdit: () => _edit(4),
         ),
         _ProfileField(
-          label: 'Регионы продаж',
-          value: _join(data.salesRegions),
+          label: l10n.onboardingReviewSalesRegions,
+          value: _join(data.salesRegions, l10n),
           onEdit: () => _edit(5),
         ),
         _ProfileField(
-          label: 'Города',
-          value: _join(data.cities),
+          label: l10n.onboardingReviewCities,
+          value: _join(data.cities, l10n),
           onEdit: () => _edit(5),
         ),
       ],
@@ -174,7 +172,7 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
     }
 
     return OnboardingScaffold(
-      buttonLabel: 'Готово',
+      buttonLabel: l10n.done,
       onContinue: _finish,
       body: body,
     );
@@ -188,7 +186,7 @@ class _ProfileField extends StatelessWidget {
     this.onEdit,
   });
 
-  static const _borderColor = AppColors.border;
+  static Color get _borderColor => AppColors.border;
 
   final String label;
   final String value;
@@ -197,6 +195,7 @@ class _ProfileField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     return Padding(
       padding: EdgeInsets.only(bottom: 12 * s),
       child: Container(
@@ -227,7 +226,7 @@ class _ProfileField extends StatelessWidget {
                   onTap: onEdit,
                   behavior: HitTestBehavior.opaque,
                   child: Text(
-                    'Изменить',
+                    l10n.onboardingChange,
                     style: AppTypography.bold(
                       12 * s,
                       color: AppColors.brandRed,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/main_widgets.dart';
@@ -9,36 +10,49 @@ import 'company_tab.dart';
 import 'events_tab.dart';
 import 'overview_tab.dart';
 import 'scenarios_tab.dart';
+import 'settings_screen.dart';
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key, this.userName = 'Пользователь'});
+  const MainShell({
+    super.key,
+    this.userName = 'Пользователь',
+    this.openSettingsOnStart = false,
+    /// 0 Обзор · 1 События · 2 Сценарии · 3 Компания
+    this.initialTabIndex = 0,
+  });
 
   final String userName;
+  final bool openSettingsOnStart;
+  final int initialTabIndex;
 
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
 class _MainShellState extends State<MainShell> {
-  int _index = 0;
+  late int _index;
   late String _userName;
   bool _headerScrolled = false;
   final Map<int, double> _scrollOffsets = {};
+  int _scenariosUnread = 0;
 
   @override
   void initState() {
     super.initState();
+    // Настройки открываются из Компании — после splash возвращаем туда же.
+    _index = widget.openSettingsOnStart
+        ? 3
+        : widget.initialTabIndex.clamp(0, 3);
     _userName = widget.userName;
     _refreshUserName();
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.surface,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
+    _loadScenariosUnread();
+    SystemChrome.setSystemUIOverlayStyle(AppColors.systemOverlay);
+    if (widget.openSettingsOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        openSettingsScreen(context, animated: false);
+      });
+    }
   }
 
   Future<void> _refreshUserName() async {
@@ -47,6 +61,21 @@ class _MainShellState extends State<MainShell> {
     if (name != _userName) {
       setState(() => _userName = name);
     }
+  }
+
+  Future<void> _loadScenariosUnread() async {
+    final viewed = await SessionStore.viewedScenarioIds();
+    if (!mounted) return;
+    final count =
+        kNewScenarioIds.where((id) => !viewed.contains(id)).length;
+    if (count != _scenariosUnread) {
+      setState(() => _scenariosUnread = count);
+    }
+  }
+
+  void _onScenariosUnreadChanged(int count) {
+    if (!mounted || count == _scenariosUnread) return;
+    setState(() => _scenariosUnread = count);
   }
 
   void _onTabScroll(ScrollNotification notification) {
@@ -71,10 +100,11 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final pages = [
       OverviewTab(userName: _userName),
       const EventsTab(),
-      const ScenariosTab(),
+      ScenariosTab(onUnreadChanged: _onScenariosUnreadChanged),
       const CompanyTab(),
     ];
 
@@ -102,7 +132,9 @@ class _MainShellState extends State<MainShell> {
                 AppColors.screenPadding * s,
                 0,
               ),
-              child: AspectBrandHeader(dateText: formatOverviewDate()),
+              child: AspectBrandHeader(
+                dateText: formatOverviewDate(null, context.l10n),
+              ),
             ),
             Expanded(
               child: NotificationListener<ScrollNotification>(
@@ -134,26 +166,27 @@ class _MainShellState extends State<MainShell> {
               children: [
                 _NavItem(
                   asset: 'assets/images/nav/home.svg',
-                  label: 'Обзор',
+                  label: l10n.navOverview,
                   selected: _index == 0,
                   onTap: () => _selectTab(0),
                 ),
                 _NavItem(
                   asset: 'assets/images/nav/events.svg',
-                  label: 'События',
+                  label: l10n.navEvents,
                   selected: _index == 1,
                   onTap: () => _selectTab(1),
                 ),
                 _NavItem(
                   asset: 'assets/images/nav/scenarios.svg',
-                  label: 'Сценарии',
+                  label: l10n.navScenarios,
                   selected: _index == 2,
                   onTap: () => _selectTab(2),
                   keepWhiteFills: true,
+                  showBadge: _scenariosUnread > 0,
                 ),
                 _NavItem(
                   asset: 'assets/images/nav/company.svg',
-                  label: 'Компания',
+                  label: l10n.navCompany,
                   selected: _index == 3,
                   onTap: () => _selectTab(3),
                 ),
@@ -173,6 +206,7 @@ class _NavItem extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.keepWhiteFills = false,
+    this.showBadge = false,
   });
 
   final String asset;
@@ -182,11 +216,26 @@ class _NavItem extends StatelessWidget {
 
   /// When true, only recolor strokes — keep white circle fills (scenarios).
   final bool keepWhiteFills;
+  final bool showBadge;
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
     final color = selected ? AppColors.brandRed : AppColors.navInactive;
+
+    final icon = keepWhiteFills
+        ? _TintedStrokeSvg(
+            asset: asset,
+            color: color,
+            width: 18 * s,
+            height: 20 * s,
+          )
+        : SvgPicture.asset(
+            asset,
+            width: 18 * s,
+            height: 20 * s,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+          );
 
     return Expanded(
       child: InkWell(
@@ -194,20 +243,25 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (keepWhiteFills)
-              _TintedStrokeSvg(
-                asset: asset,
-                color: color,
-                width: 18 * s,
-                height: 20 * s,
-              )
-            else
-              SvgPicture.asset(
-                asset,
-                width: 18 * s,
-                height: 20 * s,
-                colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-              ),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                icon,
+                if (showBadge)
+                  Positioned(
+                    right: -4 * s,
+                    top: -2 * s,
+                    child: Container(
+                      width: 8 * s,
+                      height: 8 * s,
+                      decoration: BoxDecoration(
+                        color: AppColors.brandRed,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             SizedBox(height: 4 * s),
             Text(
               label,
@@ -244,6 +298,9 @@ class _TintedStrokeSvg extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Кружки fill=white должны совпадать с фоном навбара.
+    final hole = Theme.of(context).scaffoldBackgroundColor;
+    final holeHex = _hex(hole == Colors.transparent ? AppColors.surface : hole);
     return FutureBuilder<String>(
       future: DefaultAssetBundle.of(context).loadString(asset),
       builder: (context, snap) {
@@ -253,7 +310,11 @@ class _TintedStrokeSvg extends StatelessWidget {
         final hex = _hex(color);
         final svg = snap.data!
             .replaceAll(RegExp(r'stroke="#757575"'), 'stroke="$hex"')
-            .replaceAll(RegExp(r'stroke="#EF3124"'), 'stroke="$hex"');
+            .replaceAll(RegExp(r'stroke="#EF3124"'), 'stroke="$hex"')
+            .replaceAll(RegExp(r'fill="white"'), 'fill="$holeHex"')
+            .replaceAll(RegExp(r'fill="#FFFFFF"', caseSensitive: false),
+                'fill="$holeHex"')
+            .replaceAll(RegExp(r"fill='white'"), 'fill="$holeHex"');
         return SvgPicture.string(
           svg,
           width: width,

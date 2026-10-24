@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
+import '../navigation/enter_main.dart';
 import '../services/session_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -10,7 +12,6 @@ import '../theme/design_scale.dart';
 import '../widgets/alfa_business_mark.dart';
 import '../widgets/auth_widgets.dart';
 import 'alfa_business_demo_screen.dart';
-import 'main/main_shell.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -29,25 +30,20 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _scrollController = ScrollController();
+  bool _keyboardWasOpen = false;
 
   @override
   void initState() {
     super.initState();
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.surface,
-        systemNavigationBarIconBrightness: Brightness.dark,
-      ),
-    );
+    SystemChrome.setSystemUIOverlayStyle(AppColors.systemOverlay);
   }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -63,31 +59,38 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     _dismissKeyboard();
+    final defaultUserName = context.l10n.defaultUserName;
     final existing = await SessionStore.loadProfile();
     final data = existing ?? OnboardingData();
     data.email = _emailController.text.trim();
     data.password = _passwordController.text;
     if (data.fullName.trim().isEmpty) {
       final local = data.email.split('@').first.trim();
-      data.fullName = local.isEmpty ? 'Пользователь Аспект' : local;
+      data.fullName = local.isEmpty ? defaultUserName : local;
     }
     await SessionStore.finishRegistration(data);
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute<void>(
-        builder: (_) => MainShell(
-          userName: firstNameFromFullName(data.fullName),
-        ),
-      ),
-      (_) => false,
+    await enterMainApp(
+      context,
+      userName: firstNameFromFullName(data.fullName),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final bottom = MediaQuery.paddingOf(context).bottom;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final showBack = widget.showBackButton;
+
+    if (_keyboardWasOpen && !keyboardOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) return;
+        _scrollController.jumpTo(0);
+      });
+    }
+    _keyboardWasOpen = keyboardOpen;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -97,9 +100,12 @@ class _LoginScreenState extends State<LoginScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
-              ),
+              controller: _scrollController,
+              physics: keyboardOpen
+                  ? const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    )
+                  : const NeverScrollableScrollPhysics(),
               padding: EdgeInsets.fromLTRB(
                 16 * s,
                 8 * s,
@@ -125,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Center(child: AuthLogo()),
                       SizedBox(height: 10 * s),
                       Text(
-                        'Войти в Аспект',
+                        l10n.loginTitle,
                         style: AppTypography.medium(
                           22.5 * s,
                           color: AppColors.textPrimary,
@@ -133,8 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       SizedBox(height: 4 * s),
                       Text(
-                        'Продолжите работу с вашей компанией. '
-                        'Введите свои данные с приложения Альфа-Бизнес',
+                        l10n.loginSubtitle,
                         style: AppTypography.regular(
                           12.7 * s,
                           color: AppColors.textSecondary,
@@ -155,16 +160,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       SizedBox(height: 22 * s),
                       AuthTextField(
-                        label: 'Рабочая почта',
+                        label: l10n.workEmail,
                         controller: _emailController,
                         autoScrollOnFocus: false,
-                        hint: 'name@company.ru',
+                        hint: l10n.emailHint,
                         textInputAction: TextInputAction.next,
                         keyboardType: TextInputType.emailAddress,
                       ),
                       SizedBox(height: 16 * s),
                       AuthTextField(
-                        label: 'Пароль',
+                        label: l10n.password,
                         controller: _passwordController,
                         autoScrollOnFocus: false,
                         obscureText: true,
@@ -183,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           child: Text(
-                            'Забыли пароль?',
+                            l10n.forgotPassword,
                             style: AppTypography.bold(
                               13 * s,
                               color: AppColors.brandRed,
@@ -193,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       SizedBox(height: 12 * s),
                       AuthPrimaryButton(
-                        label: 'Войти',
+                        label: l10n.signIn,
                         onPressed: _login,
                       ),
                       SizedBox(height: 12 * s),
@@ -217,7 +222,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Демо вход через',
+                                l10n.demoLoginVia,
                                 style: AppTypography.bold(
                                   13 * s,
                                   color: AppColors.brandRed,
@@ -231,8 +236,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       SizedBox(height: 14 * s),
                       AuthFooterLink(
-                        prefix: 'Нет аккаунта? ',
-                        action: 'Зарегистрируйтесь',
+                        prefix: l10n.noAccount,
+                        action: l10n.registerAction,
                         onTap: _openRegister,
                       ),
                     ],

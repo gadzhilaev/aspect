@@ -2,16 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../app/app_controller.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../navigation/app_page_route.dart';
+import '../../services/notification_permission.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
 import '../code_confirm_screen.dart';
 import '../login_screen.dart';
+import '../splash_screen.dart';
 
-Future<void> openSettingsScreen(BuildContext context) {
+Future<void> openSettingsScreen(
+  BuildContext context, {
+  bool animated = true,
+}) {
+  if (!animated) {
+    return Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (_, _, _) => const SettingsScreen(),
+      ),
+    );
+  }
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => const SettingsScreen(),
@@ -26,7 +42,8 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with WidgetsBindingObserver {
   static const _supportEmail = 'help@aspect.app';
   static const _timeOptions = [
     '06:00',
@@ -41,25 +58,92 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   AppSettings _settings = const AppSettings();
   bool _loading = true;
+  bool _pushGranted = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AppController.instance.addListener(_onAppChanged);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    AppController.instance.removeListener(_onAppChanged);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncPushPermission();
+    }
+  }
+
+  void _onAppChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
     final settings = await SessionStore.loadSettings();
+    final granted = await NotificationPermission.isGranted();
+    if (!mounted) return;
+    final next = settings.copyWith(pushNotifications: granted);
+    if (next.pushNotifications != settings.pushNotifications) {
+      await SessionStore.saveSettings(next);
+    }
     if (!mounted) return;
     setState(() {
-      _settings = settings;
+      _settings = next;
+      _pushGranted = granted;
       _loading = false;
     });
+  }
+
+  Future<void> _syncPushPermission() async {
+    final granted = await NotificationPermission.isGranted();
+    if (!mounted) return;
+    if (granted == _pushGranted &&
+        granted == _settings.pushNotifications) {
+      return;
+    }
+    final next = _settings.copyWith(pushNotifications: granted);
+    await SessionStore.saveSettings(next);
+    if (!mounted) return;
+    setState(() {
+      _settings = next;
+      _pushGranted = granted;
+    });
+  }
+
+  Future<void> _onPushToggle(bool _) async {
+    await NotificationPermission.openSystemSettings();
   }
 
   Future<void> _update(AppSettings next) async {
     setState(() => _settings = next);
     await SessionStore.saveSettings(next);
+  }
+
+  Future<void> _setLanguage(String code) async {
+    if (_settings.language == code) return;
+    await AppController.instance.setLanguage(code);
+    if (!mounted) return;
+    await relaunchThroughSplashToSettings(context);
+  }
+
+  Future<void> _setTheme(String mode) async {
+    if (_settings.themeMode == mode) return;
+    final themeMode = switch (mode) {
+      'dark' => ThemeMode.dark,
+      'system' => ThemeMode.system,
+      _ => ThemeMode.light,
+    };
+    await AppController.instance.setThemeMode(themeMode);
+    if (!mounted) return;
+    await relaunchThroughSplashToSettings(context);
   }
 
   Future<void> _openUrl(String url) async {
@@ -71,27 +155,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _deleteAccount() async {
     final s = context.scale;
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          backgroundColor: AppColors.surface,
+          backgroundColor: AppColors.surfaceRaised,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16 * s),
           ),
           title: Text(
-            'Удалить аккаунт?',
+            l10n.deleteAccountTitle,
             style: AppTypography.bold(18 * s, color: AppColors.textInk),
           ),
           content: Text(
-            'Вы уверены? После подтверждения кода на почте аккаунт будет удалён.',
+            l10n.deleteAccountBody,
             style: AppTypography.regular(14 * s, color: AppColors.textMuted),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
               child: Text(
-                'Отмена',
+                l10n.cancel,
                 style: AppTypography.regular(
                   14 * s,
                   color: AppColors.textMuted,
@@ -101,7 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(
-                'Удалить',
+                l10n.delete,
                 style: AppTypography.bold(
                   14 * s,
                   color: AppColors.brandRed,
@@ -121,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Не удалось отправить код: почта не указана',
+            context.l10n.deleteAccountNoEmail,
             style: AppTypography.regular(13, color: AppColors.surface),
           ),
           behavior: SnackBarBehavior.floating,
@@ -137,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         builder: (_) => CodeConfirmScreen(
           data: OnboardingData(email: email),
           verifyOnly: true,
-          verifyHint: 'на почту $email',
+          verifyHint: context.l10n.verifyHintEmail(email),
         ),
       ),
     );
@@ -160,19 +245,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final l10n = context.l10n;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
+    // Названия языков всегда на своём языке (не переводятся с локалью UI).
+    const languageRuNative = 'Русский';
+    const languageEnNative = 'English';
     final languageLabel =
-        _settings.language == 'ru' ? 'Русский' : _settings.language;
-    final themeLabel =
-        _settings.themeMode == 'system' ? 'Системная' : 'Светлая';
+        _settings.language == 'en' ? languageEnNative : languageRuNative;
+    final themeLabel = switch (_settings.themeMode) {
+      'dark' => l10n.themeDark,
+      'system' => l10n.themeSystem,
+      _ => l10n.themeLight,
+    };
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: AppColors.systemOverlay,
       child: Scaffold(
         backgroundColor: AppColors.surface,
         body: SafeArea(
@@ -188,7 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () => Navigator.of(context).maybePop(),
                     behavior: HitTestBehavior.opaque,
                     child: Text(
-                      '‹ Компания',
+                      l10n.settingsBackCompany,
                       style: AppTypography.regular(
                         15 * s,
                         color: AppColors.brandRed,
@@ -199,7 +287,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               Expanded(
                 child: _loading
-                    ? const Center(
+                    ? Center(
                         child: CircularProgressIndicator(
                           color: AppColors.brandRed,
                         ),
@@ -213,29 +301,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         children: [
                           Text(
-                            'Настройки',
+                            l10n.settingsTitle,
                             style: AppTypography.bold(
                               24.83 * s,
                               color: AppColors.textInput,
                             ),
                           ),
                           SizedBox(height: 24 * s),
-                          const _SectionLabel(label: 'Уведомления'),
+                          _SectionLabel(label: l10n.sectionNotifications),
                           SizedBox(height: 10 * s),
                           _SettingsCard(
                             children: [
                               _SwitchRow(
-                                title: 'Push-уведомления',
-                                subtitle: 'События и важные изменения',
-                                value: _settings.pushNotifications,
-                                onChanged: (v) => _update(
-                                  _settings.copyWith(pushNotifications: v),
-                                ),
+                                title: l10n.pushNotifications,
+                                subtitle: l10n.pushNotificationsSub,
+                                value: _pushGranted,
+                                onChanged: _onPushToggle,
                               ),
                               const _Divider(),
                               _SwitchRow(
-                                title: 'Telegram-алерты',
-                                subtitle: 'Дублировать уведомления в Telegram',
+                                title: l10n.telegramAlerts,
+                                subtitle: l10n.telegramAlertsSub,
                                 value: _settings.telegramAlerts,
                                 onChanged: (v) => _update(
                                   _settings.copyWith(telegramAlerts: v),
@@ -243,10 +329,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                               const _Divider(),
                               _SwitchRow(
-                                title: 'Тихие часы',
+                                title: l10n.quietHours,
                                 subtitle: _settings.quietHours
                                     ? '${_settings.quietStart} – ${_settings.quietEnd}'
-                                    : 'Не беспокоить ночью',
+                                    : l10n.quietHoursOffSub,
                                 value: _settings.quietHours,
                                 onChanged: (v) => _update(
                                   _settings.copyWith(quietHours: v),
@@ -255,7 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               if (_settings.quietHours) ...[
                                 const _Divider(),
                                 _DropdownRow(
-                                  title: 'Начало',
+                                  title: l10n.quietStart,
                                   value: _settings.quietStart,
                                   options: {
                                     for (final t in _timeOptions) t: t,
@@ -266,7 +352,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 const _Divider(),
                                 _DropdownRow(
-                                  title: 'Конец',
+                                  title: l10n.quietEnd,
                                   value: _settings.quietEnd,
                                   options: {
                                     for (final t in _timeOptions) t: t,
@@ -279,54 +365,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ],
                           ),
                           SizedBox(height: 24 * s),
-                          const _SectionLabel(label: 'Приложение'),
+                          _SectionLabel(label: l10n.sectionApp),
                           SizedBox(height: 10 * s),
                           _SettingsCard(
                             children: [
                               _DropdownRow(
-                                title: 'Язык',
+                                title: l10n.language,
                                 value: _settings.language,
-                                options: const {'ru': 'Русский'},
+                                options: const {
+                                  'ru': languageRuNative,
+                                  'en': languageEnNative,
+                                },
                                 displayValue: languageLabel,
-                                onChanged: (v) => _update(
-                                  _settings.copyWith(language: v),
-                                ),
+                                onChanged: _setLanguage,
                               ),
                               const _Divider(),
                               _DropdownRow(
-                                title: 'Тема',
+                                title: l10n.theme,
                                 value: _settings.themeMode,
-                                options: const {
-                                  'light': 'Светлая',
-                                  'system': 'Системная',
+                                options: {
+                                  'light': l10n.themeLight,
+                                  'dark': l10n.themeDark,
+                                  'system': l10n.themeSystem,
                                 },
                                 displayValue: themeLabel,
-                                onChanged: (v) => _update(
-                                  _settings.copyWith(themeMode: v),
-                                ),
+                                onChanged: _setTheme,
                               ),
                             ],
                           ),
                           SizedBox(height: 24 * s),
-                          const _SectionLabel(label: 'О приложении'),
+                          _SectionLabel(label: l10n.sectionAbout),
                           SizedBox(height: 10 * s),
                           _SettingsCard(
                             children: [
-                              const _ValueRow(
-                                title: 'Версия',
+                              _ValueRow(
+                                title: l10n.version,
                                 value: '1.0.0',
                               ),
                               const _Divider(),
                               _ActionRow(
-                                title: 'Политика',
-                                value: 'Открыть',
+                                title: l10n.privacy,
+                                value: l10n.open,
                                 onTap: () => _openUrl(
                                   'https://alfabank.ru/privacy/',
                                 ),
                               ),
                               const _Divider(),
                               _ActionRow(
-                                title: 'Поддержка',
+                                title: l10n.support,
                                 value: _supportEmail,
                                 onTap: () => _openUrl(
                                   'mailto:$_supportEmail',
@@ -354,7 +440,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 surfaceTintColor: Colors.transparent,
                               ),
                               child: Text(
-                                'Удалить аккаунт',
+                                l10n.deleteAccount,
                                 style: AppTypography.bold(
                                   14.06 * s,
                                   color: AppColors.brandRed,
@@ -399,7 +485,7 @@ class _SettingsCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceRaised,
         borderRadius: BorderRadius.circular(16 * s),
         border: Border.all(color: AppColors.border, width: 1),
       ),
@@ -565,7 +651,7 @@ class _DropdownRow extends StatelessWidget {
             color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12 * s),
-              side: const BorderSide(color: AppColors.border),
+              side: BorderSide(color: AppColors.border),
             ),
             itemBuilder: (context) => [
               for (final entry in options.entries)
