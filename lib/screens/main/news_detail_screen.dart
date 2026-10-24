@@ -30,9 +30,8 @@ class NewsDetailData {
     this.heroAsset = 'assets/images/news_detail_hero.jpg',
     this.ctaLabel = 'Обсудить с Аспект',
     this.ctaCaption = 'На чем основан вывод?',
-    this.bankTitle = 'Ключевая ставка ЦБ РФ',
-    this.bankBody =
-        'Место для подтверждённого фрагмента из предоставленного документа. В макете позиция банка не придумана.',
+    this.bankTitle = '',
+    this.bankBody = '',
   });
 
   final ImpactLevel level;
@@ -62,7 +61,7 @@ const chinaExportDetail = NewsDetailData(
       'Китай расширил ограничения на экспорт отдельных категорий электроники и компонентов. Мера затрагивает поставки продукции двойного назначения.\n\nНовые правила могут повлиять на сроки поставок и условия контрактов для зарубежных покупателей. Подробные требования будут опубликованы в ближайшие дни.',
   whatHappened:
       'Ограничения вводятся поэтапно и распространяются на ряд технологических категорий.',
-  concernTitle: 'Почему касается СеверПрома',
+  concernTitle: 'Почему касается вашей компании',
   callout: 'Китай - один из рынков поставок вашей компании',
   risk: 'Задержка поставок критичных компонентов',
   opportunity: 'Заранее пересмотреть пул поставщиков',
@@ -142,25 +141,34 @@ NewsDetailData _detailFromApi({
     final summaryExpl = expl['summary']?.toString() ?? '';
     if (summaryExpl.isNotEmpty) nextAction = summaryExpl;
   }
-  String bankTitle = fallback.bankTitle;
-  String bankBody = fallback.bankBody;
-  final materials = evidence?['materials'] ?? evidence?['items'];
-  if (materials is List && materials.isNotEmpty && materials.first is Map) {
-    final m = Map<String, dynamic>.from(materials.first as Map);
-    bankTitle = (m['title'] ?? bankTitle).toString();
-    bankBody = (m['excerpt'] ?? m['body'] ?? bankBody).toString();
+  // Bank block only from API evidence — never keep static mock bank copy.
+  String bankTitle = '';
+  String bankBody = '';
+  final evidenceItems = evidence?['evidence'];
+  final status = evidence?['status']?.toString() ?? '';
+  if (evidenceItems is List && evidenceItems.isNotEmpty && evidenceItems.first is Map) {
+    final m = Map<String, dynamic>.from(evidenceItems.first as Map);
+    bankTitle = (m['document_title'] ?? m['title'] ?? '').toString();
+    bankBody = (m['text'] ?? m['excerpt'] ?? m['body'] ?? '').toString();
+  } else if (status.isNotEmpty && status != 'available') {
+    bankTitle = l10n.alfaBankAnalytics;
+    bankBody = l10n.bankEvidenceUnavailable;
   }
+  final riskOut = expl is Map && (expl['calculation']?.toString().isNotEmpty ?? false)
+      ? risk
+      : (impact != null || impactCard != null ? risk : '');
+  final opportunityOut = expl is Map ? opportunity : opportunity;
   return NewsDetailData(
     level: feed?.level ?? fallback.level,
     title: (detail['title'] ?? fallback.title).toString(),
     timeLabel: feed?.meta ?? fallback.timeLabel,
-    sourceUrl: sourceUrl,
-    body: summary.isNotEmpty ? summary : fallback.body,
-    whatHappened: reason.isNotEmpty ? reason : fallback.whatHappened,
+    sourceUrl: sourceUrl.isNotEmpty ? sourceUrl : '',
+    body: summary.isNotEmpty ? summary : (detail['summary']?.toString() ?? ''),
+    whatHappened: reason.isNotEmpty ? reason : summary,
     concernTitle: fallback.concernTitle,
-    callout: reason.isNotEmpty ? reason : fallback.callout,
-    risk: risk,
-    opportunity: opportunity,
+    callout: reason.isNotEmpty ? reason : (summary.isNotEmpty ? summary : ''),
+    risk: riskOut.isNotEmpty ? riskOut : (reason.isNotEmpty ? reason : ''),
+    opportunity: opportunityOut,
     nextAction: nextAction,
     bankTitle: bankTitle,
     bankBody: bankBody,
@@ -452,14 +460,18 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                       ),
                     ),
                     SizedBox(height: 20 * s),
-                    _BankCard(
-                      title: data.bankTitle,
-                      body: data.bankBody,
-                      analyticsLabel: l10n.alfaBankAnalytics,
-                      materialLinkLabel: l10n.viewMaterial,
-                      onMaterialTap: () => openBankMaterialScreen(context),
-                    ),
-                    SizedBox(height: 24 * s),
+                    if (data.bankTitle.isNotEmpty || data.bankBody.isNotEmpty) ...[
+                      _BankCard(
+                        title: data.bankTitle.isNotEmpty
+                            ? data.bankTitle
+                            : l10n.alfaBankAnalytics,
+                        body: data.bankBody,
+                        analyticsLabel: l10n.alfaBankAnalytics,
+                        materialLinkLabel: l10n.viewMaterial,
+                        onMaterialTap: () => openBankMaterialScreen(context),
+                      ),
+                      SizedBox(height: 24 * s),
+                    ],
                     Center(
                       child: SizedBox(
                         width: 342 * s,

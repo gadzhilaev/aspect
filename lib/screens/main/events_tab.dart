@@ -10,39 +10,7 @@ import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
 import 'news_detail_screen.dart';
 
-List<FeedEvent> _mockEvents(AppLocalizations l10n) => [
-      FeedEvent(
-        id: 'china_export',
-        level: ImpactLevel.high,
-        meta: l10n.impactMeta(l10n.impactHigh, '08:24'),
-        title: l10n.eventChinaTitle,
-        contextLead: l10n.whyForYou,
-        contextBody: l10n.eventChinaContext,
-        warning: l10n.eventChinaWarning,
-        actionLabel: l10n.openImpact,
-      ),
-      FeedEvent(
-        id: 'cny_rate',
-        level: ImpactLevel.medium,
-        meta: l10n.impactMeta(l10n.impactMedium, l10n.yesterday.toLowerCase()),
-        title: l10n.eventCnyTitle,
-        contextLead: l10n.whyForYou,
-        contextBody: l10n.eventCnyContext,
-        actionLabel: l10n.openAction,
-      ),
-      FeedEvent(
-        id: 'kz_demand',
-        level: ImpactLevel.opportunity,
-        meta: l10n.impactMeta(
-          l10n.impactOpportunity,
-          l10n.yesterday.toLowerCase(),
-        ),
-        title: l10n.eventKzTitle,
-        contextLead: l10n.whyForYou,
-        contextBody: l10n.eventKzContext,
-        actionLabel: l10n.viewScenario,
-      ),
-    ];
+enum _EventsState { loading, noCompany, error, empty, ready }
 
 class EventsTab extends StatefulWidget {
   const EventsTab({super.key});
@@ -54,9 +22,9 @@ class EventsTab extends StatefulWidget {
 class _EventsTabState extends State<EventsTab> {
   int _filter = 0;
   Set<String> _viewedIds = {};
-  bool _loaded = false;
-  bool _fromApi = false;
-  bool _loading = true;
+  bool _viewedLoaded = false;
+  _EventsState _state = _EventsState.loading;
+  String? _errorMessage;
   List<Map<String, dynamic>> _apiCards = const [];
 
   @override
@@ -74,14 +42,23 @@ class _EventsTabState extends State<EventsTab> {
     if (!mounted) return;
     setState(() {
       _viewedIds = viewed;
-      _loaded = true;
+      _viewedLoaded = true;
     });
   }
 
   Future<void> _loadEvents() async {
+    setState(() {
+      _state = _EventsState.loading;
+      _errorMessage = null;
+    });
     final companyId = await AuthStore.companyId();
     if (companyId == null || companyId.isEmpty) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _apiCards = const [];
+          _state = _EventsState.noCompany;
+        });
+      }
       return;
     }
     try {
@@ -94,11 +71,15 @@ class _EventsTabState extends State<EventsTab> {
       if (!mounted) return;
       setState(() {
         _apiCards = cards;
-        _fromApi = cards.isNotEmpty;
-        _loading = false;
+        _state = cards.isEmpty ? _EventsState.empty : _EventsState.ready;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _apiCards = const [];
+        _state = _EventsState.error;
+        _errorMessage = e.toString();
+      });
     }
   }
 
@@ -129,11 +110,10 @@ class _EventsTabState extends State<EventsTab> {
   Widget build(BuildContext context) {
     final s = context.scale;
     final l10n = context.l10n;
-    final all = _fromApi
-        ? [for (final c in _apiCards) FeedEvent.fromCard(c, l10n)]
-        : _mockEvents(l10n);
-    final newCount =
-        _loaded ? all.where((e) => !_viewedIds.contains(e.id)).length : all.length;
+    final all = [for (final c in _apiCards) FeedEvent.fromCard(c, l10n)];
+    final newCount = _viewedLoaded
+        ? all.where((e) => !_viewedIds.contains(e.id)).length
+        : all.length;
     final visible = _visible(all);
     const hPad = AppColors.screenPadding;
 
@@ -165,45 +145,62 @@ class _EventsTabState extends State<EventsTab> {
               ],
             ),
           ),
-          SizedBox(
-            height: 36 * s,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.only(left: hPad * s),
-              children: [
-                _FilterChip(
-                  label: l10n.filterAll,
-                  selected: _filter == 0,
-                  onTap: () => setState(() => _filter = 0),
-                ),
-                SizedBox(width: 8 * s),
-                _FilterChip(
-                  label: l10n.filterNew,
-                  badge: newCount > 0 ? '$newCount' : null,
-                  selected: _filter == 1,
-                  onTap: () => setState(() => _filter = 1),
-                ),
-                SizedBox(width: 8 * s),
-                _FilterChip(
-                  label: l10n.filterHighImpact,
-                  selected: _filter == 2,
-                  onTap: () => setState(() => _filter = 2),
-                ),
-                SizedBox(width: hPad * s),
-              ],
+          if (_state == _EventsState.ready) ...[
+            SizedBox(
+              height: 36 * s,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.only(left: hPad * s),
+                children: [
+                  _FilterChip(
+                    label: l10n.filterAll,
+                    selected: _filter == 0,
+                    onTap: () => setState(() => _filter = 0),
+                  ),
+                  SizedBox(width: 8 * s),
+                  _FilterChip(
+                    label: l10n.filterNew,
+                    badge: newCount > 0 ? '$newCount' : null,
+                    selected: _filter == 1,
+                    onTap: () => setState(() => _filter = 1),
+                  ),
+                  SizedBox(width: 8 * s),
+                  _FilterChip(
+                    label: l10n.filterHighImpact,
+                    selected: _filter == 2,
+                    onTap: () => setState(() => _filter = 2),
+                  ),
+                  SizedBox(width: hPad * s),
+                ],
+              ),
             ),
-          ),
+          ],
           Padding(
             padding: EdgeInsets.symmetric(horizontal: hPad * s),
             child: Column(
               children: [
                 SizedBox(height: 16 * s),
-                if (_loading)
+                if (_state == _EventsState.loading)
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 40 * s),
                     child: const Center(
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
+                  )
+                else if (_state == _EventsState.noCompany)
+                  _HonestBox(
+                    title: l10n.feedNoCompanyTitle,
+                    body: l10n.feedNoCompanyBody,
+                  )
+                else if (_state == _EventsState.error)
+                  _HonestBox(
+                    title: l10n.feedErrorTitle,
+                    body: _errorMessage ?? l10n.feedErrorBody,
+                  )
+                else if (_state == _EventsState.empty)
+                  _HonestBox(
+                    title: l10n.feedEmptyTitle,
+                    body: l10n.feedEmptyBody,
                   )
                 else
                   for (var i = 0; i < visible.length; i++) ...[
@@ -228,7 +225,7 @@ class _EventsTabState extends State<EventsTab> {
                             warning: e.warning,
                           ),
                           backLabel: l10n.navEvents,
-                          eventId: _fromApi ? e.id : null,
+                          eventId: e.id,
                           onOpened: () => _markViewed(e.id),
                         );
                       },
@@ -236,6 +233,41 @@ class _EventsTabState extends State<EventsTab> {
                   ],
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HonestBox extends StatelessWidget {
+  const _HonestBox({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.scale;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16 * s),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(14 * s),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: AppTypography.bold(15 * s, color: AppColors.textInput),
+          ),
+          SizedBox(height: 8 * s),
+          Text(
+            body,
+            style: AppTypography.regular(13 * s, color: AppColors.textMuted),
           ),
         ],
       ),

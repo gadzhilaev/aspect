@@ -90,8 +90,11 @@ class AuthApi {
     );
   }
 
-  Future<void> deleteAccount() async {
-    await _client.deleteJson('/users/me');
+  Future<void> deleteAccount({required String password}) async {
+    await _client.deleteJson(
+      '/users/me',
+      body: {'password': password},
+    );
     await AuthStore.clearAll();
   }
 

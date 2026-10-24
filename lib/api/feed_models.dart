@@ -65,6 +65,7 @@ class FeedEvent {
 }
 
 ImpactLevel _levelFrom(String priority, double? score, String scoreKind) {
+  // null impact_score must never be treated as zero.
   if (scoreKind == 'case_profile_match' || priority == 'low') {
     return ImpactLevel.opportunity;
   }
@@ -73,6 +74,9 @@ ImpactLevel _levelFrom(String priority, double? score, String scoreKind) {
   }
   if (priority == 'medium' || (score != null && score >= 50)) {
     return ImpactLevel.medium;
+  }
+  if (score == null) {
+    return ImpactLevel.opportunity;
   }
   return ImpactLevel.opportunity;
 }

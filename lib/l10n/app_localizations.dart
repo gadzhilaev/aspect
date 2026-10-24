@@ -171,6 +171,32 @@ class AppLocalizations {
   String get viewScenario =>
       _t('Посмотреть сценарий', 'View scenario');
   String get onWatch => _t('На контроле', 'On watch');
+  String get feedNoCompanyTitle =>
+      _t('Компания не выбрана', 'No company selected');
+  String get feedNoCompanyBody => _t(
+        'Завершите онбординг компании, чтобы увидеть персональную ленту.',
+        'Finish company onboarding to see your personal feed.',
+      );
+  String get feedErrorTitle =>
+      _t('Не удалось загрузить ленту', 'Could not load feed');
+  String get feedErrorBody => _t(
+        'Проверьте соединение с API. Demo-события не подставляются.',
+        'Check the API connection. Demo events are not substituted.',
+      );
+  String get feedEmptyTitle =>
+      _t('Пока нет персональных событий', 'No personal events yet');
+  String get feedEmptyBody => _t(
+        'Для вашей компании сейчас нет совпадений в персональной ленте.',
+        'There are no matches in your personal feed right now.',
+      );
+  String get telegramPending => _t(
+        'Откройте бота и подтвердите связь. Статус обновится после подтверждения.',
+        'Open the bot and confirm linking. Status updates after confirmation.',
+      );
+  String get bankEvidenceUnavailable => _t(
+        'Банковские материалы для этого события не подключены или не найдены.',
+        'Bank materials for this event are not configured or not found.',
+      );
   String get countryChina => _t('Китай', 'China');
   String get countryArmenia => _t('Армения', 'Armenia');
   String get countrySouthKorea => _t('Южная Корея', 'South Korea');

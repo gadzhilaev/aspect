@@ -6,6 +6,7 @@ import '../../app/app_controller.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../navigation/app_page_route.dart';
+import '../../api/api_exception.dart';
 import '../../api/auth_api.dart';
 import '../../services/auth_store.dart';
 import '../../services/notification_permission.dart';
@@ -236,10 +237,55 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
     if (ok != true || !mounted) return;
 
+    final password = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text(
+            context.l10n.currentPassword,
+            style: AppTypography.bold(18, color: AppColors.textInk),
+          ),
+          content: TextField(
+            controller: controller,
+            obscureText: true,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: context.l10n.currentPasswordHint,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(context.l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              child: Text(context.l10n.continueAction),
+            ),
+          ],
+        );
+      },
+    );
+    if (password == null || password.isEmpty || !mounted) return;
+
     try {
-      await AuthApi.instance.deleteAccount();
-    } catch (_) {
-      // Даже при ошибке сети чистим локальную сессию.
+      await AuthApi.instance.deleteAccount(password: password);
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e is ApiException ? e.message : e.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            msg,
+            style: AppTypography.regular(13, color: AppColors.surface),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.textInk,
+        ),
+      );
+      return;
     }
     await SessionStore.clear();
     await AuthStore.clearAll();

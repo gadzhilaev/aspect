@@ -124,7 +124,13 @@ class _ChatScreenState extends State<ChatScreen> {
         _chips = chips;
       });
     } catch (_) {
-      // Keep mock transcript when API is unavailable.
+      // Empty history on API failure — do not invent a transcript.
+      if (!mounted) return;
+      setState(() {
+        _apiMode = false;
+        _lines = const [];
+        _chips = const [];
+      });
     }
   }
 

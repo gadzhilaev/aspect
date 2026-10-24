@@ -230,7 +230,7 @@ class _CompanySearchScreenState extends State<CompanySearchScreen>
           Expanded(
             child: ListView.separated(
               itemCount: _candidates.length,
-              separatorBuilder: (_, __) => SizedBox(height: 8 * s),
+              separatorBuilder: (_, _) => SizedBox(height: 8 * s),
               itemBuilder: (context, i) {
                 final c = _candidates[i];
                 final id = c['candidate_id']?.toString() ?? '$i';

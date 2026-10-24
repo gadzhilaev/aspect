@@ -38,7 +38,24 @@ class _CompanyTabState extends State<CompanyTab> {
 
   Future<void> _load() async {
     final profile = await SessionStore.loadProfile();
-    final telegram = await SessionStore.telegramUsername();
+    final companyId = await AuthStore.companyId();
+    String? telegram;
+    if (companyId != null && companyId.isNotEmpty) {
+      try {
+        final settings =
+            await CompaniesApi.instance.notificationSettings(companyId);
+        final private = settings['telegram_private'];
+        if (private is Map && private['linked'] == true) {
+          final title = private['chat_title']?.toString();
+          telegram = (title != null && title.isNotEmpty) ? title : 'telegram';
+          await SessionStore.saveTelegramUsername(telegram);
+        } else {
+          await SessionStore.saveTelegramUsername(null);
+        }
+      } catch (_) {
+        telegram = null;
+      }
+    }
     if (!mounted) return;
     setState(() {
       _profile = profile;
@@ -210,16 +227,6 @@ class _CompanyTabState extends State<CompanyTab> {
     }
   }
 
-  String _suggestedTelegramUsername() {
-    final name = _profile?.fullName.trim() ?? '';
-    final parts = name.split(RegExp(r'\s+'));
-    final base = parts.length >= 2
-        ? '${parts[1]}${parts.first}'.toLowerCase()
-        : (parts.isNotEmpty ? parts.first.toLowerCase() : 'aspect');
-    final clean = base.replaceAll(RegExp(r'[^a-z0-9_]'), '');
-    return clean.isEmpty ? 'aspect_user' : clean;
-  }
-
   Future<void> _onTelegramTap() async {
     final s = context.scale;
     final l10n = context.l10n;
@@ -290,33 +297,59 @@ class _CompanyTabState extends State<CompanyTab> {
     }
 
     final companyId = await AuthStore.companyId();
-    if (companyId != null && companyId.isNotEmpty) {
-      try {
-        final res =
-            await CompaniesApi.instance.telegramLinkToken(companyId);
-        final deepLink = res['deep_link']?.toString();
-        final bot = (deepLink != null && deepLink.contains('t.me/'))
-            ? deepLink.split('t.me/').last.split('?').first
-            : 'KonturDemoBot';
-        if (deepLink != null && deepLink.isNotEmpty) {
-          final uri = Uri.tryParse(deepLink);
-          if (uri != null) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
-        }
-        await SessionStore.saveTelegramUsername(bot);
-        if (!mounted) return;
-        setState(() => _telegramUsername = bot);
-        return;
-      } catch (_) {
-        // Fall through to local mock if API unavailable.
-      }
+    if (companyId == null || companyId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.feedNoCompanyBody)),
+      );
+      return;
     }
+    try {
+      final res = await CompaniesApi.instance.telegramLinkToken(companyId);
+      final deepLink = res['deep_link']?.toString();
+      if (deepLink != null && deepLink.isNotEmpty) {
+        final uri = Uri.tryParse(deepLink);
+        if (uri != null) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      }
+      // Do not mark connected until server confirms via notification-settings.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.telegramPending)),
+      );
+      await _refreshTelegramStatus(companyId);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
 
-    final username = _suggestedTelegramUsername();
-    await SessionStore.saveTelegramUsername(username);
-    if (!mounted) return;
-    setState(() => _telegramUsername = username);
+  Future<void> _refreshTelegramStatus(String companyId) async {
+    try {
+      final settings =
+          await CompaniesApi.instance.notificationSettings(companyId);
+      final private = settings['telegram_private'];
+      final linked = private is Map && private['linked'] == true;
+      final title = private is Map
+          ? private['chat_title']?.toString()
+          : null;
+      if (!mounted) return;
+      if (linked) {
+        final name = (title != null && title.isNotEmpty)
+            ? title
+            : 'telegram';
+        await SessionStore.saveTelegramUsername(name);
+        setState(() => _telegramUsername = name);
+      } else {
+        await SessionStore.saveTelegramUsername(null);
+        setState(() => _telegramUsername = null);
+      }
+    } catch (_) {
+      // Keep previous UI state; do not invent a connected username.
+    }
   }
 
   Future<void> _logout() async {

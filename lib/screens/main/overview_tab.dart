@@ -9,6 +9,8 @@ import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
 import 'news_detail_screen.dart';
 
+enum _FeedState { loading, noCompany, error, empty, ready }
+
 class OverviewTab extends StatefulWidget {
   const OverviewTab({super.key, this.userName = ''});
 
@@ -20,8 +22,9 @@ class OverviewTab extends StatefulWidget {
 
 class _OverviewTabState extends State<OverviewTab> {
   List<Map<String, dynamic>> _cards = const [];
-  bool _loading = true;
-  bool _fromApi = false;
+  _FeedState _state = _FeedState.loading;
+  String? _errorMessage;
+  String? _emptyDetail;
 
   @override
   void initState() {
@@ -30,9 +33,13 @@ class _OverviewTabState extends State<OverviewTab> {
   }
 
   Future<void> _load() async {
+    setState(() {
+      _state = _FeedState.loading;
+      _errorMessage = null;
+    });
     final companyId = await AuthStore.companyId();
     if (companyId == null || companyId.isEmpty) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _state = _FeedState.noCompany);
       return;
     }
     try {
@@ -42,50 +49,29 @@ class _OverviewTabState extends State<OverviewTab> {
         for (final raw in cards)
           if (raw is Map) Map<String, dynamic>.from(raw),
       ];
+      final feedEmpty = dash['feed_empty'];
+      String? emptyDetail;
+      if (feedEmpty is Map) {
+        emptyDetail = [
+          feedEmpty['title']?.toString(),
+          feedEmpty['detail']?.toString(),
+        ].whereType<String>().where((s) => s.isNotEmpty).join('\n');
+      }
       if (!mounted) return;
       setState(() {
         _cards = mapped;
-        _fromApi = mapped.isNotEmpty;
-        _loading = false;
+        _emptyDetail = emptyDetail;
+        _state = mapped.isEmpty ? _FeedState.empty : _FeedState.ready;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _cards = const [];
+        _state = _FeedState.error;
+        _errorMessage = e.toString();
+      });
     }
   }
-
-  List<FeedEvent> _fallback(AppLocalizations l10n) => [
-        FeedEvent(
-          id: 'china_export',
-          level: ImpactLevel.high,
-          meta: l10n.impactMeta(l10n.impactHigh, '08:24'),
-          title: l10n.eventChinaTitle,
-          contextLead: l10n.whyForYou,
-          contextBody: l10n.eventChinaContext,
-          warning: l10n.eventChinaWarning,
-          actionLabel: l10n.openImpact,
-        ),
-        FeedEvent(
-          id: 'cny_rate',
-          level: ImpactLevel.medium,
-          meta: l10n.impactMeta(l10n.impactMedium, l10n.yesterday.toLowerCase()),
-          title: l10n.eventCnyTitle,
-          contextLead: l10n.whyForYou,
-          contextBody: l10n.eventCnyContext,
-          actionLabel: l10n.openAction,
-        ),
-        FeedEvent(
-          id: 'kz_demand',
-          level: ImpactLevel.opportunity,
-          meta: l10n.impactMeta(
-            l10n.impactOpportunity,
-            l10n.yesterday.toLowerCase(),
-          ),
-          title: l10n.eventKzTitle,
-          contextLead: l10n.whyForYou,
-          contextBody: l10n.eventKzContext,
-          actionLabel: l10n.viewScenario,
-        ),
-      ];
 
   @override
   Widget build(BuildContext context) {
@@ -93,18 +79,10 @@ class _OverviewTabState extends State<OverviewTab> {
     final l10n = context.l10n;
     final name =
         widget.userName.trim().isEmpty ? l10n.defaultUserName : widget.userName;
-    final chipH = 70 * s;
     const hPad = AppColors.screenPadding;
-
-    final fallback = _fallback(l10n);
     final apiEvents = [
       for (final c in _cards) FeedEvent.fromCard(c, l10n),
     ];
-    final priority = _fromApi && apiEvents.isNotEmpty
-        ? [apiEvents.first]
-        : [fallback.first];
-    final watch =
-        _fromApi ? apiEvents.skip(1).toList() : fallback.sublist(1);
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -126,51 +104,30 @@ class _OverviewTabState extends State<OverviewTab> {
                   style: pageTitleStyle(context),
                 ),
                 SizedBox(height: 18 * s),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: chipH,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.only(left: hPad),
-              children: [
-                CurrencyChipCard(
-                  code: 'CNY',
-                  country: l10n.countryChina,
-                  rate: '12,75 ₽',
-                ),
-                SizedBox(width: 9 * s),
-                CurrencyChipCard(
-                  code: '10 AMD',
-                  country: l10n.countryArmenia,
-                  rate: '2,36 ₽',
-                ),
-                SizedBox(width: 9 * s),
-                CurrencyChipCard(
-                  code: 'KRW',
-                  country: l10n.countrySouthKorea,
-                  rate: '6,36 ₽',
-                ),
-                const SizedBox(width: hPad),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: hPad),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 20 * s),
-                if (_loading)
+                if (_state == _FeedState.loading)
                   Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24 * s),
+                    padding: EdgeInsets.symmetric(vertical: 40 * s),
                     child: const Center(
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
+                else if (_state == _FeedState.noCompany)
+                  _HonestBox(
+                    title: l10n.feedNoCompanyTitle,
+                    body: l10n.feedNoCompanyBody,
+                  )
+                else if (_state == _FeedState.error)
+                  _HonestBox(
+                    title: l10n.feedErrorTitle,
+                    body: _errorMessage ?? l10n.feedErrorBody,
+                  )
+                else if (_state == _FeedState.empty)
+                  _HonestBox(
+                    title: l10n.feedEmptyTitle,
+                    body: _emptyDetail ?? l10n.feedEmptyBody,
+                  )
                 else ...[
-                  for (final e in priority) ...[
+                  for (final e in apiEvents.take(1)) ...[
                     EventSignalCard(
                       level: e.level,
                       meta: e.meta,
@@ -188,30 +145,67 @@ class _OverviewTabState extends State<OverviewTab> {
                           warning: e.warning,
                         ),
                         backLabel: l10n.navOverview,
-                        eventId: _fromApi ? e.id : null,
+                        eventId: e.id,
                       ),
                     ),
                     SizedBox(height: 30 * s),
                   ],
-                  Text(
-                    l10n.onWatch,
-                    style: AppTypography.bold(
-                      17.09 * s,
-                      color: AppColors.textInput,
+                  if (apiEvents.length > 1) ...[
+                    Text(
+                      l10n.onWatch,
+                      style: AppTypography.bold(
+                        17.09 * s,
+                        color: AppColors.textInput,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 14 * s),
-                  for (var i = 0; i < watch.length; i++) ...[
-                    if (i > 0) SizedBox(height: 9 * s),
-                    MonitorTile(
-                      dotColor: ImpactColors.accent(watch[i].level),
-                      title: watch[i].title,
-                      subtitle: watch[i].contextBody,
-                    ),
+                    SizedBox(height: 14 * s),
+                    for (var i = 1; i < apiEvents.length; i++) ...[
+                      if (i > 1) SizedBox(height: 9 * s),
+                      MonitorTile(
+                        dotColor: ImpactColors.accent(apiEvents[i].level),
+                        title: apiEvents[i].title,
+                        subtitle: apiEvents[i].contextBody,
+                      ),
+                    ],
                   ],
                 ],
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HonestBox extends StatelessWidget {
+  const _HonestBox({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = designScale(context);
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16 * s),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(14 * s),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: AppTypography.bold(15 * s, color: AppColors.textInput),
+          ),
+          SizedBox(height: 8 * s),
+          Text(
+            body,
+            style: AppTypography.regular(13 * s, color: AppColors.textMuted),
           ),
         ],
       ),

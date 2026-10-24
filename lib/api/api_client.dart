@@ -68,11 +68,16 @@ class ApiClient {
     return _decodeMap(res);
   }
 
-  Future<JsonMap?> deleteJson(String path, {bool auth = true}) async {
+  Future<JsonMap?> deleteJson(
+    String path, {
+    Object? body,
+    bool auth = true,
+  }) async {
     final res = await _send(
       () async => _http.delete(
         _uri(path),
-        headers: await _headers(auth: auth),
+        headers: await _headers(auth: auth, json: body != null),
+        body: body == null ? null : jsonEncode(body),
       ),
       auth: auth,
     );
