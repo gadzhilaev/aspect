@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../api/api_exception.dart';
+import '../../api/auth_api.dart';
 import '../../l10n/app_localizations.dart';
-import '../../models/onboarding_data.dart';
 import '../../navigation/app_page_route.dart';
-import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
 import '../../widgets/auth_widgets.dart';
-import '../code_confirm_screen.dart';
 
 Future<bool> openChangePasswordScreen(BuildContext context) async {
   final result = await Navigator.of(context).push<bool>(
@@ -45,7 +44,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool get _canSubmit {
     return !_submitting &&
         _currentController.text.isNotEmpty &&
-        _newController.text.length >= 6 &&
+        _newController.text.length >= 8 &&
         _newController.text == _confirmController.text;
   }
 
@@ -54,41 +53,26 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       _error = null;
       _submitting = true;
     });
-
-    final profile = await SessionStore.loadProfile() ?? OnboardingData();
-    final stored = profile.password;
-    final current = _currentController.text;
-    if (stored.isNotEmpty && stored != current) {
+    try {
+      await AuthApi.instance.changePassword(
+        currentPassword: _currentController.text,
+        newPassword: _newController.text,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = context.l10n.wrongCurrentPassword;
+        _error = e.message;
         _submitting = false;
       });
-      return;
-    }
-
-    final email = profile.email.trim();
-    if (email.isNotEmpty) {
+    } catch (e) {
       if (!mounted) return;
-      final ok = await Navigator.of(context).push<bool>(
-        AppPageRoute(
-          builder: (_) => CodeConfirmScreen(
-            data: OnboardingData(email: email),
-            verifyOnly: true,
-            verifyHint: context.l10n.verifyHintEmail(email),
-          ),
-        ),
-      );
-      if (ok != true) {
-        if (mounted) setState(() => _submitting = false);
-        return;
-      }
+      setState(() {
+        _error = e.toString();
+        _submitting = false;
+      });
     }
-
-    profile.password = _newController.text;
-    await SessionStore.saveProfile(profile);
-    if (!mounted) return;
-    Navigator.of(context).pop(true);
   }
 
   @override

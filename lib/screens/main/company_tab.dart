@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../api/companies_api.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
+import '../../services/auth_store.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -284,6 +287,30 @@ class _CompanyTabState extends State<CompanyTab> {
         setState(() => _telegramUsername = null);
       }
       return;
+    }
+
+    final companyId = await AuthStore.companyId();
+    if (companyId != null && companyId.isNotEmpty) {
+      try {
+        final res =
+            await CompaniesApi.instance.telegramLinkToken(companyId);
+        final deepLink = res['deep_link']?.toString();
+        final bot = (deepLink != null && deepLink.contains('t.me/'))
+            ? deepLink.split('t.me/').last.split('?').first
+            : 'KonturDemoBot';
+        if (deepLink != null && deepLink.isNotEmpty) {
+          final uri = Uri.tryParse(deepLink);
+          if (uri != null) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        }
+        await SessionStore.saveTelegramUsername(bot);
+        if (!mounted) return;
+        setState(() => _telegramUsername = bot);
+        return;
+      } catch (_) {
+        // Fall through to local mock if API unavailable.
+      }
     }
 
     final username = _suggestedTelegramUsername();

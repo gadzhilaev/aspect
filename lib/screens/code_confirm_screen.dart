@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../api/api_exception.dart';
+import '../api/auth_api.dart';
 import '../l10n/app_localizations.dart';
 import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
@@ -20,6 +22,7 @@ class CodeConfirmScreen extends StatefulWidget {
     required this.data,
     this.verifyOnly = false,
     this.verifyHint,
+    this.demoCodeHint,
   });
 
   final OnboardingData data;
@@ -30,6 +33,9 @@ class CodeConfirmScreen extends StatefulWidget {
   /// Доп. подсказка над кодом (например, «на текущую почту»).
   final String? verifyHint;
 
+  /// Dev: код из ответа register (DEBUG).
+  final String? demoCodeHint;
+
   @override
   State<CodeConfirmScreen> createState() => _CodeConfirmScreenState();
 }
@@ -38,8 +44,6 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
   /// Keeps each cell "non-empty" so iOS soft-keyboard backspace fires onChanged.
   static const _mark = '\u200B';
   static const _resendCooldown = 60;
-  static const _validCode = '123456';
-
   final List<TextEditingController> _digits =
       List.generate(6, (_) => TextEditingController(text: _mark));
   final List<FocusNode> _nodes = List.generate(6, (_) => FocusNode());
@@ -50,6 +54,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
   bool _navigating = false;
   bool _syncing = false;
   bool _hasError = false;
+  String? _apiError;
 
   String _digitOf(int index) => _values[index];
 
@@ -208,32 +213,60 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
   Future<void> _submitCode() async {
     if (_navigating) return;
     final code = _values.join();
-    if (code != _validCode) {
-      setState(() => _hasError = true);
-      _clearDigits();
-      _nodes.first.requestFocus();
-      return;
-    }
-
     _navigating = true;
     _keepKeyboard = false;
     FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _hasError = false;
+      _apiError = null;
+    });
 
-    if (widget.verifyOnly) {
+    try {
+      await AuthApi.instance.verifyEmail(
+        email: widget.data.email,
+        code: code,
+      );
+
+      if (widget.verifyOnly) {
+        if (!mounted) return;
+        Navigator.of(context).pop(true);
+        return;
+      }
+
+      // После verify сразу логинимся и идём в онбординг компании.
+      if (widget.data.password.isNotEmpty) {
+        await AuthApi.instance.login(
+          email: widget.data.email,
+          password: widget.data.password,
+        );
+      }
+      await SessionStore.saveProfile(widget.data);
+      await SessionStore.markAuthPendingOnboarding();
       if (!mounted) return;
-      Navigator.of(context).pop(true);
-      return;
+      Navigator.of(context).pushReplacement(
+        AppPageRoute<void>(
+          builder: (_) => OnboardingFlow(data: widget.data),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _navigating = false;
+        _hasError = true;
+        _apiError = e.message;
+      });
+      _clearDigits();
+      _nodes.first.requestFocus();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _navigating = false;
+        _hasError = true;
+        _apiError = e.toString();
+      });
+      _clearDigits();
+      _nodes.first.requestFocus();
     }
-
-    // Persist email / FIO / password early; onboarding will overwrite with full profile.
-    await SessionStore.saveProfile(widget.data);
-    if (!mounted) return;
-    // Replace this screen so Back from onboarding returns to registration.
-    Navigator.of(context).pushReplacement(
-      AppPageRoute<void>(
-        builder: (_) => OnboardingFlow(data: widget.data),
-      ),
-    );
   }
 
   void _resend() {
@@ -292,6 +325,26 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                         Text(
                           widget.verifyHint!,
                           style: AppTypography.medium(
+                            13 * s,
+                            color: AppColors.brandRed,
+                          ),
+                        ),
+                      ],
+                      if (widget.demoCodeHint != null) ...[
+                        SizedBox(height: 8 * s),
+                        Text(
+                          'Demo-код: ${widget.demoCodeHint}',
+                          style: AppTypography.medium(
+                            13 * s,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                      if (_apiError != null) ...[
+                        SizedBox(height: 8 * s),
+                        Text(
+                          _apiError!,
+                          style: AppTypography.regular(
                             13 * s,
                             color: AppColors.brandRed,
                           ),

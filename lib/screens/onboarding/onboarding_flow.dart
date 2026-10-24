@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
+import '../../api/api_client.dart';
+import '../../api/companies_api.dart';
 import '../../navigation/enter_main.dart';
+import '../../services/auth_store.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -110,6 +113,56 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   Future<void> _finish() async {
     final fullName = widget.data.fullName.trim();
+    // Дозаполняем профиль компании на бэке, если есть company_id.
+    try {
+      final companyId = await AuthStore.companyId();
+      if (companyId != null && companyId.isNotEmpty) {
+        await CompaniesApi.instance.patchCompany(companyId, {
+          if (widget.data.companyIndustry.isNotEmpty)
+            'industry': widget.data.companyIndustry,
+          if (widget.data.companySize.isNotEmpty)
+            'size_band': widget.data.companySize,
+          if (widget.data.companyCity.isNotEmpty)
+            'hq_region': widget.data.companyCity,
+        });
+        for (final p in widget.data.products) {
+          if (p.trim().isEmpty) continue;
+          await ApiClient.instance.postJson(
+            '/companies/$companyId/nodes',
+            body: {
+              'node_type': 'product',
+              'name': p.trim(),
+            },
+          );
+        }
+        for (final m in widget.data.countries) {
+          if (m.trim().isEmpty) continue;
+          await ApiClient.instance.postJson(
+            '/companies/$companyId/nodes',
+            body: {
+              'node_type': 'market',
+              'name': m.trim(),
+              'country': m.trim(),
+            },
+          );
+        }
+        for (final c in widget.data.counterparties) {
+          if (c.trim().isEmpty) continue;
+          await ApiClient.instance.postJson(
+            '/companies/$companyId/nodes',
+            body: {
+              'node_type': 'supplier',
+              'name': c.trim(),
+            },
+          );
+        }
+        try {
+          await CompaniesApi.instance.completeProfile(companyId);
+        } catch (_) {}
+      }
+    } catch (_) {
+      // Онбординг не блокируем при ошибках графа — данные уже в локальном профиле.
+    }
     await SessionStore.finishRegistration(widget.data);
     final name = firstNameFromFullName(fullName);
     if (!mounted) return;

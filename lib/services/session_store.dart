@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/onboarding_data.dart';
+import 'auth_store.dart';
 
 /// Extracts given name from Russian FIO: «Фамилия Имя [Отчество]».
 String firstNameFromFullName(String fullName) {
@@ -47,13 +48,27 @@ class SessionStore {
         data.businessType.trim().isNotEmpty;
   }
 
-  /// True only after registration / onboarding is fully finished (or login).
+  /// True after API session exists and onboarding completed (or legacy local login).
   static Future<bool> isLoggedIn() async {
     final prefs = await _prefs();
     if (prefs == null) return false;
-    if (prefs.getBool(_loggedInKey) != true) return false;
+
+    final hasApi = await AuthStore.hasSession();
+    final flagged = prefs.getBool(_loggedInKey) == true;
+    if (!hasApi && !flagged) return false;
 
     if (prefs.getBool(_onboardingDoneKey) == true) return true;
+
+    // API session without company → still "in app" only after onboarding.
+    if (hasApi) {
+      final companyId = await AuthStore.companyId();
+      if (companyId != null && companyId.isNotEmpty) {
+        await prefs.setBool(_loggedInKey, true);
+        await prefs.setBool(_onboardingDoneKey, true);
+        return true;
+      }
+      return false;
+    }
 
     // Legacy: marked logged-in before onboarding finished.
     final profile = await loadProfile();
@@ -64,6 +79,13 @@ class SessionStore {
 
     await prefs.setBool(_loggedInKey, false);
     return false;
+  }
+
+  /// Есть JWT, но онбординг компании ещё не завершён.
+  static Future<void> markAuthPendingOnboarding() async {
+    final prefs = await _prefs();
+    await prefs?.setBool(_loggedInKey, true);
+    await prefs?.setBool(_onboardingDoneKey, false);
   }
 
   /// Full FIO as stored at login / onboarding.
@@ -221,6 +243,7 @@ class SessionStore {
     await prefs.remove(_quietEndKey);
     await prefs.remove(_languageKey);
     await prefs.remove(_themeModeKey);
+    await AuthStore.clearAll();
   }
 }
 

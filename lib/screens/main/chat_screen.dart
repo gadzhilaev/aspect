@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../api/events_api.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/auth_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
@@ -11,18 +13,26 @@ import 'bank_material_screen.dart';
 import 'confirm_plan_screen.dart';
 import 'saved_plan_screen.dart';
 
+class _ChatLine {
+  const _ChatLine({required this.role, required this.text});
+  final String role; // user | assistant
+  final String text;
+}
+
 class ChatScreenData {
   const ChatScreenData({
     required this.title,
     required this.meta,
     required this.level,
     this.backLabel,
+    this.eventId,
   });
 
   final String title;
   final String meta;
   final ImpactLevel level;
   final String? backLabel;
+  final String? eventId;
 }
 
 const chinaExportChat = ChatScreenData(
@@ -53,6 +63,118 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   ConfirmPlanData? _savedPlan;
+  final _input = TextEditingController();
+  final _scroll = ScrollController();
+  String? _conversationId;
+  bool _busy = false;
+  bool _apiMode = false;
+  List<_ChatLine> _lines = const [];
+  List<String> _chips = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _input.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  Future<void> _bootstrap() async {
+    final eventId = widget.data.eventId;
+    final companyId = await AuthStore.companyId();
+    if (eventId == null ||
+        eventId.isEmpty ||
+        companyId == null ||
+        companyId.isEmpty) {
+      return;
+    }
+    try {
+      final conv = await EventsApi.instance.createAssistantConversation(
+        eventId: eventId,
+        companyId: companyId,
+      );
+      final id = conv['id']?.toString();
+      if (id == null || id.isEmpty) return;
+      final msgs = await EventsApi.instance.listMessages(id);
+      final items = (msgs['items'] as List?) ??
+          (msgs['messages'] as List?) ??
+          const [];
+      final lines = <_ChatLine>[];
+      for (final raw in items) {
+        if (raw is! Map) continue;
+        final role = (raw['role'] ?? '').toString();
+        final content = (raw['content'] ?? '').toString();
+        if (content.isEmpty) continue;
+        lines.add(_ChatLine(role: role, text: content));
+      }
+      final chips = [
+        for (final c in (conv['suggestion_chips'] as List?) ?? const [])
+          if (c != null && c.toString().trim().isNotEmpty) c.toString(),
+      ];
+      if (!mounted) return;
+      setState(() {
+        _conversationId = id;
+        _apiMode = true;
+        _lines = lines;
+        _chips = chips;
+      });
+    } catch (_) {
+      // Keep mock transcript when API is unavailable.
+    }
+  }
+
+  Future<void> _send(String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty || _busy) return;
+    _input.clear();
+    setState(() {
+      _lines = [..._lines, _ChatLine(role: 'user', text: trimmed)];
+      _busy = true;
+    });
+    final convId = _conversationId;
+    if (!_apiMode || convId == null) {
+      setState(() => _busy = false);
+      return;
+    }
+    try {
+      final res = await EventsApi.instance.postMessage(
+        conversationId: convId,
+        content: trimmed,
+        clientMessageId: 'c_${DateTime.now().microsecondsSinceEpoch}',
+      );
+      final assistant = res['assistant_message'] ?? res['message'] ?? res;
+      String reply = '';
+      if (assistant is Map) {
+        reply = (assistant['content'] ?? '').toString();
+      }
+      if (reply.isEmpty && res['content'] != null) {
+        reply = res['content'].toString();
+      }
+      if (!mounted) return;
+      setState(() {
+        if (reply.isNotEmpty) {
+          _lines = [..._lines, _ChatLine(role: 'assistant', text: reply)];
+        }
+        _busy = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scroll.hasClients) {
+          _scroll.animateTo(
+            _scroll.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   Future<void> _openScenarios() async {
     final plan = await openActionPlanScreen(
@@ -165,6 +287,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               Expanded(
                 child: ListView(
+                  controller: _scroll,
                   padding: EdgeInsets.fromLTRB(
                     hPad * s,
                     16 * s,
@@ -172,25 +295,55 @@ class _ChatScreenState extends State<ChatScreen> {
                     16 * s,
                   ),
                   children: [
-                    _AspectBubble(
-                      text:
-                          'Я подготовил варианты действий по этой новости. Начнём с влияния на ваши поставки из Китая?',
-                      showBankLink: true,
-                      senderLabel: l10n.appName,
-                      bankLinkLabel: l10n.showBankMaterial,
-                      onBankLinkTap: () => openBankMaterialScreen(
-                        context,
-                        data: BankMaterialData(backLabel: l10n.backEvent),
+                    if (_apiMode) ...[
+                      for (var i = 0; i < _lines.length; i++) ...[
+                        if (i > 0) SizedBox(height: 12 * s),
+                        if (_lines[i].role == 'user')
+                          _UserBubble(text: _lines[i].text)
+                        else
+                          _AspectBubble(
+                            text: _lines[i].text,
+                            senderLabel: l10n.appName,
+                            showBankLink: i == 0,
+                            bankLinkLabel: l10n.showBankMaterial,
+                            onBankLinkTap: i == 0
+                                ? () => openBankMaterialScreen(
+                                      context,
+                                      data: BankMaterialData(
+                                        backLabel: l10n.backEvent,
+                                      ),
+                                    )
+                                : null,
+                          ),
+                      ],
+                      if (_busy) ...[
+                        SizedBox(height: 12 * s),
+                        _AspectBubble(
+                          text: '…',
+                          senderLabel: l10n.appName,
+                        ),
+                      ],
+                    ] else ...[
+                      _AspectBubble(
+                        text:
+                            'Я подготовил варианты действий по этой новости. Начнём с влияния на ваши поставки из Китая?',
+                        showBankLink: true,
+                        senderLabel: l10n.appName,
+                        bankLinkLabel: l10n.showBankMaterial,
+                        onBankLinkTap: () => openBankMaterialScreen(
+                          context,
+                          data: BankMaterialData(backLabel: l10n.backEvent),
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 12 * s),
-                    const _UserBubble(text: 'Какие контракты под риском?'),
-                    SizedBox(height: 12 * s),
-                    _AspectBubble(
-                      text:
-                          'В первую очередь — контракты с поставкой критичных компонентов в ближайшие 60 дней. Риск выше по договорам без альтернативного поставщика и запаса по срокам.\n\nМогу сравнить три сценария: ждать разъяснений, искать замену или пересогласовать сроки поставки.',
-                      senderLabel: l10n.appName,
-                    ),
+                      SizedBox(height: 12 * s),
+                      const _UserBubble(text: 'Какие контракты под риском?'),
+                      SizedBox(height: 12 * s),
+                      _AspectBubble(
+                        text:
+                            'В первую очередь — контракты с поставкой критичных компонентов в ближайшие 60 дней. Риск выше по договорам без альтернативного поставщика и запаса по срокам.\n\nМогу сравнить три сценария: ждать разъяснений, искать замену или пересогласовать сроки поставки.',
+                        senderLabel: l10n.appName,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -221,6 +374,13 @@ class _ChatScreenState extends State<ChatScreen> {
                                 filled: true,
                                 onTap: _openSavedPlan,
                               ),
+                            for (final chip in _chips) ...[
+                              SizedBox(width: 8 * s),
+                              _QuickChip(
+                                label: chip,
+                                onTap: () => _send(chip),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -240,8 +400,11 @@ class _ChatScreenState extends State<ChatScreen> {
                           children: [
                             Expanded(
                               child: TextField(
+                                controller: _input,
                                 textCapitalization:
                                     TextCapitalization.sentences,
+                                textInputAction: TextInputAction.send,
+                                onSubmitted: _send,
                                 style: AppTypography.regular(
                                   15.9 * s,
                                   color: AppColors.textPrimary,
@@ -261,7 +424,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               ),
                             ),
                             GestureDetector(
-                              onTap: () {},
+                              onTap: () => _send(_input.text),
                               behavior: HitTestBehavior.opaque,
                               child: SvgPicture.asset(
                                 'assets/images/icon_send.svg',

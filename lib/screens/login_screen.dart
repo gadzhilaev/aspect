@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../api/api_exception.dart';
+import '../api/auth_api.dart';
 import '../l10n/app_localizations.dart';
-import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
 import '../navigation/enter_main.dart';
 import '../services/session_store.dart';
@@ -12,7 +13,9 @@ import '../theme/design_scale.dart';
 import '../widgets/alfa_business_mark.dart';
 import '../widgets/auth_widgets.dart';
 import 'alfa_business_demo_screen.dart';
+import 'onboarding/onboarding_flow.dart';
 import 'register_screen.dart';
+import '../models/onboarding_data.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
@@ -32,6 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _scrollController = ScrollController();
   bool _keyboardWasOpen = false;
+  bool _busy = false;
+  String? _error;
 
   @override
   void initState() {
@@ -59,21 +64,56 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     _dismissKeyboard();
-    final defaultUserName = context.l10n.defaultUserName;
-    final existing = await SessionStore.loadProfile();
-    final data = existing ?? OnboardingData();
-    data.email = _emailController.text.trim();
-    data.password = _passwordController.text;
-    if (data.fullName.trim().isEmpty) {
-      final local = data.email.split('@').first.trim();
-      data.fullName = local.isEmpty ? defaultUserName : local;
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    try {
+      await AuthApi.instance.login(email: email, password: password);
+      final me = await AuthApi.instance.refreshMe();
+      final display = me['display_name']?.toString() ?? email;
+      final companies = (me['companies'] as List?) ?? const [];
+      // Локальный профиль для экранов, ещё не переведённых на API.
+      final data = (await SessionStore.loadProfile()) ?? OnboardingData();
+      data.email = email;
+      data.fullName = display;
+      data.password = '';
+      if (companies.isNotEmpty) {
+        final c = Map<String, dynamic>.from(companies.first as Map);
+        data.companyName = c['name']?.toString() ?? data.companyName;
+        await SessionStore.finishRegistration(data);
+        if (!mounted) return;
+        await enterMainApp(
+          context,
+          userName: firstNameFromFullName(display),
+        );
+      } else {
+        await SessionStore.saveProfile(data);
+        await SessionStore.markAuthPendingOnboarding();
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) => OnboardingFlow(data: data),
+          ),
+          (_) => false,
+        );
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _busy = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _busy = false;
+      });
     }
-    await SessionStore.finishRegistration(data);
-    if (!mounted) return;
-    await enterMainApp(
-      context,
-      userName: firstNameFromFullName(data.fullName),
-    );
   }
 
   @override
@@ -196,10 +236,20 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+                      if (_error != null) ...[
+                        SizedBox(height: 8 * s),
+                        Text(
+                          _error!,
+                          style: AppTypography.regular(
+                            13 * s,
+                            color: AppColors.brandRed,
+                          ),
+                        ),
+                      ],
                       SizedBox(height: 12 * s),
                       AuthPrimaryButton(
                         label: l10n.signIn,
-                        onPressed: _login,
+                        onPressed: _busy ? null : _login,
                       ),
                       SizedBox(height: 12 * s),
                       SizedBox(

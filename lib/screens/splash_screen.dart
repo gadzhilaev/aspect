@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../api/auth_api.dart';
 import '../app/app_controller.dart';
 import '../l10n/app_localizations.dart';
+import '../services/auth_store.dart';
+import '../services/notification_permission.dart';
 import '../services/session_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/design_scale.dart';
-import '../services/notification_permission.dart';
 import 'login_screen.dart';
 import 'main/main_shell.dart';
 import 'notification_permission_screen.dart';
@@ -60,17 +62,33 @@ class _SplashScreenState extends State<SplashScreen> {
     final delayMs = widget.openSettingsAfter ? 1100 : 1600;
     final delay = Future<void>.delayed(Duration(milliseconds: delayMs));
     var loggedIn = await SessionStore.isLoggedIn();
+    if (await AuthStore.hasSession()) {
+      try {
+        await AuthApi.instance.refreshMe();
+        loggedIn = await SessionStore.isLoggedIn();
+      } catch (_) {
+        // Токен протух — остаёмся на логине.
+        await AuthStore.clearAll();
+        loggedIn = false;
+      }
+    }
     // Legacy sessions stored only the surname (first FIO token). Drop them so
     // the user signs in again with the full name and greeting uses given name.
     if (loggedIn) {
       final full = await SessionStore.fullName();
       final parts = full.split(RegExp(r'\s+'));
-      if (parts.length < 2) {
+      if (parts.length < 2 && !(await AuthStore.hasSession())) {
         await SessionStore.clear();
         loggedIn = false;
       }
     }
-    final userName = loggedIn ? await SessionStore.userName() : null;
+    final userName = loggedIn
+        ? firstNameFromFullName(
+            (await AuthStore.displayName())?.trim().isNotEmpty == true
+                ? (await AuthStore.displayName())!
+                : await SessionStore.fullName(),
+          )
+        : null;
     final notifOk =
         loggedIn ? await NotificationPermission.isGranted() : true;
     await delay;

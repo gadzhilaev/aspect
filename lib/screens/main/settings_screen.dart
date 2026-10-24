@@ -6,6 +6,8 @@ import '../../app/app_controller.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../navigation/app_page_route.dart';
+import '../../api/auth_api.dart';
+import '../../services/auth_store.dart';
 import '../../services/notification_permission.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
@@ -130,6 +132,9 @@ class _SettingsScreenState extends State<SettingsScreen>
   Future<void> _setLanguage(String code) async {
     if (_settings.language == code) return;
     await AppController.instance.setLanguage(code);
+    try {
+      await AuthApi.instance.patchPreferences(language: code);
+    } catch (_) {}
     if (!mounted) return;
     await relaunchThroughSplashToSettings(context);
   }
@@ -142,6 +147,9 @@ class _SettingsScreenState extends State<SettingsScreen>
       _ => ThemeMode.light,
     };
     await AppController.instance.setThemeMode(themeMode);
+    try {
+      await AuthApi.instance.patchPreferences(themeMode: mode);
+    } catch (_) {}
     if (!mounted) return;
     await relaunchThroughSplashToSettings(context);
   }
@@ -228,7 +236,13 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
     if (ok != true || !mounted) return;
 
+    try {
+      await AuthApi.instance.deleteAccount();
+    } catch (_) {
+      // Даже при ошибке сети чистим локальную сессию.
+    }
     await SessionStore.clear();
+    await AuthStore.clearAll();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder<void>(

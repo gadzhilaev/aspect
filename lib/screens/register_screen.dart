@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../api/api_exception.dart';
+import '../api/auth_api.dart';
 import '../l10n/app_localizations.dart';
 import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
@@ -24,12 +26,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _acceptedTerms = false;
+  bool _busy = false;
+  String? _error;
 
   bool get _canContinue =>
+      !_busy &&
       _nameController.text.trim().isNotEmpty &&
       _emailController.text.trim().isNotEmpty &&
-      _passwordController.text.isNotEmpty &&
-      _confirmPasswordController.text.isNotEmpty &&
+      _passwordController.text.length >= 8 &&
+      _confirmPasswordController.text == _passwordController.text &&
       _acceptedTerms;
 
   @override
@@ -68,17 +73,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  void _continue() {
+  Future<void> _continue() async {
+    if (!_canContinue) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     final data = OnboardingData(
       email: _emailController.text.trim(),
       fullName: _nameController.text.trim(),
       password: _passwordController.text,
     );
-    Navigator.of(context).push(
-      AppPageRoute<void>(
-        builder: (_) => CodeConfirmScreen(data: data),
-      ),
-    );
+    try {
+      final res = await AuthApi.instance.register(
+        email: data.email,
+        password: data.password,
+        displayName: data.fullName,
+      );
+      final details = res['details'];
+      String? demoCode;
+      if (details is Map) {
+        demoCode = details['demo_code']?.toString();
+      }
+      if (!mounted) return;
+      Navigator.of(context).push(
+        AppPageRoute<void>(
+          builder: (_) => CodeConfirmScreen(
+            data: data,
+            demoCodeHint: demoCode,
+          ),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -213,6 +247,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ],
                       ),
+                      if (_error != null) ...[
+                        SizedBox(height: 12 * s),
+                        Text(
+                          _error!,
+                          style: AppTypography.regular(
+                            12 * s,
+                            color: AppColors.brandRed,
+                          ),
+                        ),
+                      ],
                       SizedBox(height: 16 * s),
                       Column(
                         children: [

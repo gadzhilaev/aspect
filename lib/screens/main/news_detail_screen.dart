@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../api/events_api.dart';
+import '../../api/feed_models.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/auth_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
@@ -97,10 +100,78 @@ NewsDetailData newsDetailFor({
   );
 }
 
+NewsDetailData _detailFromApi({
+  required Map<String, dynamic> detail,
+  Map<String, dynamic>? impact,
+  Map<String, dynamic>? evidence,
+  required NewsDetailData fallback,
+  required AppLocalizations l10n,
+}) {
+  final impactCard = detail['impact'] is Map
+      ? Map<String, dynamic>.from(detail['impact'] as Map)
+      : impact;
+  final feed = impactCard != null
+      ? FeedEvent.fromCard({
+          ...impactCard,
+          'id': detail['id'] ?? impactCard['id'],
+          'title': detail['title'] ?? impactCard['title'],
+        }, l10n)
+      : null;
+  final sources = (detail['sources'] as List?) ?? const [];
+  String sourceUrl = fallback.sourceUrl;
+  for (final s in sources) {
+    if (s is Map && s['url'] != null && s['url'].toString().isNotEmpty) {
+      sourceUrl = s['url'].toString();
+      break;
+    }
+  }
+  final summary = (detail['summary'] ?? '').toString();
+  final reason = (impact?['reason_summary'] ??
+          impactCard?['reason_summary'] ??
+          '')
+      .toString();
+  final expl = impact?['assessment_explanation'];
+  String risk = fallback.risk;
+  String opportunity = fallback.opportunity;
+  String nextAction = fallback.nextAction;
+  if (expl is Map) {
+    final missing = (expl['missing_data'] as List?)?.join('; ') ?? '';
+    final calc = expl['calculation']?.toString() ?? '';
+    if (calc.isNotEmpty) risk = calc;
+    if (missing.isNotEmpty) opportunity = missing;
+    final summaryExpl = expl['summary']?.toString() ?? '';
+    if (summaryExpl.isNotEmpty) nextAction = summaryExpl;
+  }
+  String bankTitle = fallback.bankTitle;
+  String bankBody = fallback.bankBody;
+  final materials = evidence?['materials'] ?? evidence?['items'];
+  if (materials is List && materials.isNotEmpty && materials.first is Map) {
+    final m = Map<String, dynamic>.from(materials.first as Map);
+    bankTitle = (m['title'] ?? bankTitle).toString();
+    bankBody = (m['excerpt'] ?? m['body'] ?? bankBody).toString();
+  }
+  return NewsDetailData(
+    level: feed?.level ?? fallback.level,
+    title: (detail['title'] ?? fallback.title).toString(),
+    timeLabel: feed?.meta ?? fallback.timeLabel,
+    sourceUrl: sourceUrl,
+    body: summary.isNotEmpty ? summary : fallback.body,
+    whatHappened: reason.isNotEmpty ? reason : fallback.whatHappened,
+    concernTitle: fallback.concernTitle,
+    callout: reason.isNotEmpty ? reason : fallback.callout,
+    risk: risk,
+    opportunity: opportunity,
+    nextAction: nextAction,
+    bankTitle: bankTitle,
+    bankBody: bankBody,
+  );
+}
+
 Future<void> openNewsDetail(
   BuildContext context,
   NewsDetailData data, {
   required String backLabel,
+  String? eventId,
   VoidCallback? onOpened,
 }) {
   onOpened?.call();
@@ -109,20 +180,78 @@ Future<void> openNewsDetail(
       builder: (_) => NewsDetailScreen(
         data: data,
         backLabel: backLabel,
+        eventId: eventId,
       ),
     ),
   );
 }
 
-class NewsDetailScreen extends StatelessWidget {
+class NewsDetailScreen extends StatefulWidget {
   const NewsDetailScreen({
     super.key,
     required this.data,
     required this.backLabel,
+    this.eventId,
   });
 
   final NewsDetailData data;
   final String backLabel;
+  final String? eventId;
+
+  @override
+  State<NewsDetailScreen> createState() => _NewsDetailScreenState();
+}
+
+class _NewsDetailScreenState extends State<NewsDetailScreen> {
+  late NewsDetailData data;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    data = widget.data;
+    final id = widget.eventId;
+    if (id != null && id.isNotEmpty) {
+      _loadFromApi(id);
+    }
+  }
+
+  Future<void> _loadFromApi(String eventId) async {
+    setState(() => _loading = true);
+    try {
+      final companyId = await AuthStore.companyId();
+      final detail = await EventsApi.instance.getEvent(
+        eventId,
+        companyId: companyId,
+      );
+      final impact = companyId == null || companyId.isEmpty
+          ? null
+          : await EventsApi.instance.getImpact(
+              eventId,
+              companyId: companyId,
+            );
+      Map<String, dynamic>? evidence;
+      try {
+        evidence = await EventsApi.instance.bankEvidence(
+          eventId,
+          companyId: companyId,
+        );
+      } catch (_) {}
+      if (!mounted) return;
+      setState(() {
+        data = _detailFromApi(
+          detail: detail,
+          impact: impact,
+          evidence: evidence,
+          fallback: widget.data,
+          l10n: context.l10n,
+        );
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   static const _bodySize = 15.13;
 
@@ -154,6 +283,8 @@ class NewsDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (_loading)
+                const LinearProgressIndicator(minHeight: 2),
               Material(
                 color: AppColors.surface,
                 child: Padding(
@@ -164,7 +295,7 @@ class NewsDetailScreen extends StatelessWidget {
                       onTap: () => Navigator.of(context).maybePop(),
                       behavior: HitTestBehavior.opaque,
                       child: Text(
-                        '‹ $backLabel',
+                        '‹ ${widget.backLabel}',
                         style: AppTypography.regular(
                           15 * s,
                           color: AppColors.brandRed,
@@ -346,7 +477,8 @@ class NewsDetailScreen extends StatelessWidget {
                                 title: data.title,
                                 meta: '$impact · ${data.timeLabel}',
                                 level: data.level,
-                                backLabel: backLabel,
+                                backLabel: widget.backLabel,
+                                eventId: widget.eventId,
                               ),
                             );
                           },
