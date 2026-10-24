@@ -56,6 +56,7 @@ class AuthTextField extends StatefulWidget {
     this.onSubmitted,
     this.focusNode,
     this.autofocus = false,
+    this.autoScrollOnFocus = true,
   });
 
   final String label;
@@ -72,6 +73,8 @@ class AuthTextField extends StatefulWidget {
   final ValueChanged<String>? onSubmitted;
   final FocusNode? focusNode;
   final bool autofocus;
+  /// When false, parent handles scroll (e.g. login form + button).
+  final bool autoScrollOnFocus;
 
   @override
   State<AuthTextField> createState() => _AuthTextFieldState();
@@ -127,7 +130,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
   void _onFocus() {
     if (!mounted) return;
     setState(() {});
-    if (!_focusNode.hasFocus) return;
+    if (!_focusNode.hasFocus || !widget.autoScrollOnFocus) return;
     // Scroll only when the field is under / clipped by the keyboard.
     void ensureIfObscured() {
       if (!mounted || !_focusNode.hasFocus) return;

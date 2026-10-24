@@ -39,7 +39,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   void _openLogin() {
     Navigator.of(context).push(
-      AppPageRoute<void>(builder: (_) => const LoginScreen()),
+      AppPageRoute<void>(
+        builder: (_) => const LoginScreen(showBackButton: true),
+      ),
     );
   }
 

@@ -4,8 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../services/session_store.dart';
 import '../theme/app_colors.dart';
+import 'login_screen.dart';
 import 'main/main_shell.dart';
-import 'welcome_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -49,7 +49,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final Widget next = loggedIn
         ? MainShell(userName: userName ?? 'Пользователь')
-        : const WelcomeScreen();
+        : const LoginScreen();
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
