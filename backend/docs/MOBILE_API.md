@@ -50,13 +50,14 @@ Refresh **есть** в API: body `{ "refresh_token": "<jwt>" }` → новая 
 Authorization: Bearer <access_token>
 ```
 
-`GET /users/me` возвращает компании пользователя:
+`GET /users/me` возвращает компании пользователя и `preferences`:
 
 ```json
 {
   "id": "usr_demo_owner",
   "email": "demo@kontur.app",
   "display_name": "Демо Владелец",
+  "preferences": { "language": "ru", "theme_mode": "system" },
   "companies": [
     {
       "company_id": "cmp_severprom",
@@ -69,6 +70,14 @@ Authorization: Bearer <access_token>
 ```
 
 `profile_status`: `draft` | `ready` (и др.). При `draft` ведите в company setup.
+
+### Mobile account endpoints
+
+| Метод | Путь | Auth | Примечание |
+|---|---|---|---|
+| PATCH | `/users/me/preferences` | Bearer | Частичный patch: `language`=`ru\|en`, `theme_mode`=`light\|dark\|system`. Остальные ключи prefs сохраняются. |
+| POST | `/users/me/change-password` | Bearer | `current_password`, `new_password` (min 8). JWT не revoke’ятся сервером до expiry — клиент чистит токены. |
+| DELETE | `/users/me` | Bearer | Body `{ "password": "..." }`. **409** `SOLE_OWNER` если единственный owner компании. **409** `HAS_AUDIT_RECORDS` если есть decisions/scenarios created_by. Компании других участников не удаляются. |
 
 ## ACL
 

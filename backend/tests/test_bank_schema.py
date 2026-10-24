@@ -250,7 +250,7 @@ def test_downgrade_007_then_reupgrade_sqlite():
                 command.upgrade(cfg, "head")
                 assert BANK_TABLES.issubset(set(inspect(engine).get_table_names()))
                 assert_head_schema(engine)
-                assert ALEMBIC_HEAD == "011"
+                assert ALEMBIC_HEAD == "012"
         finally:
             engine.dispose()
 

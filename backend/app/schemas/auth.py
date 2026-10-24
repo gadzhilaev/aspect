@@ -34,6 +34,12 @@ class UserPreferencesIn(BaseModel):
     theme_mode: str | None = Field(default=None, pattern=r"^(light|dark|system)$")
 
 
+class DeleteAccountIn(BaseModel):
+    """Подтверждение личности паролем. Компании не удаляются автоматически."""
+
+    password: str = Field(min_length=1, max_length=128)
+
+
 class UserOut(BaseModel):
     id: str
     email: str

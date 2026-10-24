@@ -3,6 +3,9 @@
 Safe to re-run: upserts demo user/company/events/solutions only.
 Does not delete unrelated companies, decisions, or conversations.
 
+Requires schema at Alembic head (incl. 012 preferences_json). Run first:
+  alembic upgrade head
+
 Usage:
   python -m scripts.ensure_demo
 """
@@ -16,9 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from sqlalchemy import text
+from sqlalchemy import inspect
 
-from app.core.config import get_settings
 from app.db.session import SessionLocal, engine
 from app.models import Event, EventImpact
 from app.services.impact import assessment_state_for_impact
@@ -31,22 +33,20 @@ from scripts.seed_demo import (
 )
 
 
-def _ensure_sqlite_mobile_columns() -> None:
-    """Additive DX migration for existing kontur.db (prefs for mobile settings)."""
-    settings = get_settings()
-    if not settings.database_url.startswith("sqlite"):
-        return
-    with engine.begin() as conn:
-        cols = {
-            row[1] for row in conn.execute(text("PRAGMA table_info(users)")).fetchall()
-        }
-        if "preferences_json" not in cols:
-            conn.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN preferences_json "
-                    "JSON NOT NULL DEFAULT '{}'"
-                )
-            )
+def _require_preferences_column() -> None:
+    """Fail fast if mobile migration 012 was not applied (no silent ALTER)."""
+    insp = inspect(engine)
+    if "users" not in insp.get_table_names():
+        raise SystemExit(
+            "FAIL: table users missing — run `alembic upgrade head` (or start API once "
+            "on empty SQLite so metadata create_all runs, then alembic stamp/upgrade)."
+        )
+    cols = {c["name"] for c in insp.get_columns("users")}
+    if "preferences_json" not in cols:
+        raise SystemExit(
+            "FAIL: users.preferences_json missing — apply Alembic revision 012:\n"
+            "  alembic upgrade head"
+        )
 
 
 def _verify() -> None:
@@ -81,7 +81,7 @@ def _verify() -> None:
 
 
 def main() -> None:
-    _ensure_sqlite_mobile_columns()
+    _require_preferences_column()
     seed_main()
     _verify()
 

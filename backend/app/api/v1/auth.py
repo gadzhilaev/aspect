@@ -16,8 +16,18 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models import Company, CompanyMembership, EmailVerification, User
+from app.models.assistant import AssistantConversation
+from app.models.company_registry import CompanyRegistryLookup
+from app.models.decision import ActionItem, Decision
+from app.models.notification import (
+    NotificationOutbox,
+    NotificationSubscription,
+    TelegramLinkToken,
+)
+from app.models.solution import Scenario
 from app.schemas.auth import (
     ChangePasswordIn,
+    DeleteAccountIn,
     LoginIn,
     RefreshIn,
     RegisterIn,
@@ -177,36 +187,174 @@ def patch_preferences(
     )
 
 
+def _sole_owned_companies(db: Session, user_id: str) -> list[dict]:
+    """Companies where this user is an owner and no other owner remains."""
+    owned = (
+        db.query(CompanyMembership)
+        .filter(
+            CompanyMembership.user_id == user_id,
+            CompanyMembership.role == "owner",
+        )
+        .all()
+    )
+    blocked: list[dict] = []
+    for m in owned:
+        other_owners = (
+            db.query(CompanyMembership)
+            .filter(
+                CompanyMembership.company_id == m.company_id,
+                CompanyMembership.role == "owner",
+                CompanyMembership.user_id != user_id,
+            )
+            .count()
+        )
+        if other_owners == 0:
+            company = db.get(Company, m.company_id)
+            blocked.append(
+                {
+                    "company_id": m.company_id,
+                    "name": company.name if company else None,
+                }
+            )
+    return blocked
+
+
 @users_router.post("/me/change-password", response_model=MessageOut)
 def change_password(
     body: ChangePasswordIn,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MessageOut:
+    # Passwords are never logged (body fields not passed to logger).
     if not verify_password(body.current_password, user.password_hash):
         raise AppError("INVALID_CREDENTIALS", "Неверный текущий пароль", 401)
     if body.current_password == body.new_password:
         raise AppError("VALIDATION_ERROR", "Новый пароль совпадает с текущим", 422)
+    if len(body.new_password) < 8:
+        raise AppError("VALIDATION_ERROR", "Новый пароль слишком короткий", 422)
     user.password_hash = hash_password(body.new_password)
     db.add(user)
     db.commit()
-    return MessageOut(message="Пароль обновлён")
+    # JWT is stateless: previously issued access/refresh tokens remain valid until
+    # natural expiry. Clients must discard local tokens after this call.
+    return MessageOut(
+        message="Пароль обновлён",
+        details={
+            "token_policy": (
+                "Existing access/refresh JWTs stay valid until expiry; "
+                "client must clear stored tokens and re-login."
+            )
+        },
+    )
 
 
 @users_router.delete("/me", response_model=MessageOut)
 def delete_account(
+    body: DeleteAccountIn,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> MessageOut:
-    """Удаляет аккаунт пользователя и его memberships (компании владельца не удаляются массово)."""
+    """Delete the authenticated user only.
+
+    Does **not** delete companies. If the user is the sole owner of any company,
+    deletion is refused (product decision required: transfer ownership / archive).
+    """
+    if not verify_password(body.password, user.password_hash):
+        raise AppError("INVALID_CREDENTIALS", "Неверный пароль", 401)
+
+    blocked = _sole_owned_companies(db, user.id)
+    if blocked:
+        raise AppError(
+            "SOLE_OWNER",
+            "Нельзя удалить аккаунт: вы единственный владелец компании. "
+            "Сначала передайте владение другому участнику или запросите "
+            "архивацию компании у оператора стенда.",
+            409,
+            details=blocked,
+        )
+
+    user_id = user.id
+    email = user.email
+
+    # Audit rows with NOT NULL created_by — do not destroy company history silently.
+    decision_n = (
+        db.query(Decision).filter(Decision.created_by == user_id).count()
+    )
+    scenario_n = (
+        db.query(Scenario).filter(Scenario.created_by == user_id).count()
+    )
+    if decision_n or scenario_n:
+        raise AppError(
+            "HAS_AUDIT_RECORDS",
+            "Нельзя удалить аккаунт: есть решения или сценарии, созданные вами. "
+            "Нужно продуктовое решение по передаче/анонимизации аудита "
+            "(компании и записи других пользователей не трогаем).",
+            409,
+            details=[
+                {"decisions_created": decision_n, "scenarios_created": scenario_n}
+            ],
+        )
+
+    # Telegram: unlink subscriptions, drop pending tokens/outbox rows for this user.
+    subs = (
+        db.query(NotificationSubscription)
+        .filter(NotificationSubscription.user_id == user_id)
+        .all()
+    )
+    sub_ids = [s.id for s in subs]
+    if sub_ids:
+        db.query(NotificationOutbox).filter(
+            NotificationOutbox.subscription_id.in_(sub_ids),
+            NotificationOutbox.status.in_(("pending", "retry")),
+        ).delete(synchronize_session=False)
+    for s in subs:
+        db.delete(s)
+    db.query(TelegramLinkToken).filter(TelegramLinkToken.user_id == user_id).delete(
+        synchronize_session=False
+    )
+
+    # Nullable FKs — clear, do not delete shared company rows.
+    db.query(Company).filter(Company.created_by == user_id).update(
+        {Company.created_by: None}, synchronize_session=False
+    )
+    db.query(Decision).filter(Decision.cancelled_by_user_id == user_id).update(
+        {Decision.cancelled_by_user_id: None}, synchronize_session=False
+    )
+    db.query(ActionItem).filter(ActionItem.assignee_user_id == user_id).update(
+        {ActionItem.assignee_user_id: None}, synchronize_session=False
+    )
+
+    db.query(CompanyRegistryLookup).filter(
+        CompanyRegistryLookup.user_id == user_id
+    ).delete(synchronize_session=False)
+    # ORM delete so assistant message/tool cascades apply.
+    for conv in (
+        db.query(AssistantConversation)
+        .filter(AssistantConversation.user_id == user_id)
+        .all()
+    ):
+        db.delete(conv)
+
     memberships = (
-        db.query(CompanyMembership).filter(CompanyMembership.user_id == user.id).all()
+        db.query(CompanyMembership).filter(CompanyMembership.user_id == user_id).all()
     )
     for m in memberships:
         db.delete(m)
-    db.query(EmailVerification).filter(EmailVerification.email == user.email).delete(
+
+    db.query(EmailVerification).filter(EmailVerification.email == email).delete(
         synchronize_session=False
     )
     db.delete(user)
     db.commit()
-    return MessageOut(message="Аккаунт удалён")
+    # After delete, Bearer tokens still decode until expiry but /users/me → 401
+    # (user missing). No server-side denylist in this MVP.
+    return MessageOut(
+        message="Аккаунт удалён",
+        details={
+            "token_policy": (
+                "JWTs are not revoked server-side; subsequent authenticated "
+                "calls fail because the user no longer exists."
+            ),
+            "companies_policy": "Shared companies and other members were preserved.",
+        },
+    )

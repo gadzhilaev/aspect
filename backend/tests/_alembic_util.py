@@ -18,7 +18,7 @@ from app.core.config import get_settings
 ROOT = Path(__file__).resolve().parents[1]
 
 # Current migration head (keep in sync with alembic/versions).
-ALEMBIC_HEAD = "011"
+ALEMBIC_HEAD = "012"
 
 HEAD_TABLES = {
     "users",
@@ -106,6 +106,9 @@ def assert_head_schema(engine) -> str:
 
     sub_cols = {c["name"] for c in inspector.get_columns("notification_subscriptions")}
     assert "auto_notify_since" in sub_cols  # 010
+
+    user_cols = {c["name"] for c in inspector.get_columns("users")}
+    assert "preferences_json" in user_cols  # 012 mobile prefs
 
     decision_cols = {c["name"] for c in inspector.get_columns("decisions")}
     assert "cancelled_at" in decision_cols

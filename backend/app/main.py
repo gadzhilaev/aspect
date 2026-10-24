@@ -16,23 +16,11 @@ import app.models  # noqa: F401 — register models
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Local SQLite DX only. Production/PostgreSQL must use Alembic (`alembic upgrade head`).
+    # Local SQLite DX only. Schema changes must go through Alembic
+    # (`alembic upgrade head`). Do not silently ALTER columns here.
     settings = get_settings()
     if settings.database_url.startswith("sqlite"):
         Base.metadata.create_all(bind=engine)
-        # Additive column for mobile prefs on existing demo DB.
-        try:
-            with engine.begin() as conn:
-                cols = {
-                    row[1]
-                    for row in conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()
-                }
-                if "preferences_json" not in cols:
-                    conn.exec_driver_sql(
-                        "ALTER TABLE users ADD COLUMN preferences_json JSON NOT NULL DEFAULT '{}'"
-                    )
-        except Exception:
-            pass
     yield
 
 
