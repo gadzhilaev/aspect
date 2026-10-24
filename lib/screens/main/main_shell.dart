@@ -74,8 +74,8 @@ class _MainShellState extends State<MainShell> {
     final pages = [
       OverviewTab(userName: _userName),
       const EventsTab(),
-      const CompanyTab(),
       const ScenariosTab(),
+      const CompanyTab(),
     ];
 
     return Scaffold(
@@ -145,17 +145,17 @@ class _MainShellState extends State<MainShell> {
                   onTap: () => _selectTab(1),
                 ),
                 _NavItem(
-                  asset: 'assets/images/nav/company.svg',
-                  label: 'Компания',
-                  selected: _index == 2,
-                  onTap: () => _selectTab(2),
-                ),
-                _NavItem(
                   asset: 'assets/images/nav/scenarios.svg',
                   label: 'Сценарии',
+                  selected: _index == 2,
+                  onTap: () => _selectTab(2),
+                  keepWhiteFills: true,
+                ),
+                _NavItem(
+                  asset: 'assets/images/nav/company.svg',
+                  label: 'Компания',
                   selected: _index == 3,
                   onTap: () => _selectTab(3),
-                  keepWhiteFills: true,
                 ),
               ],
             ),
