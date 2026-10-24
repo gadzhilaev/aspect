@@ -7,6 +7,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
 import '../../widgets/auth_widgets.dart';
+import 'change_password_screen.dart';
+import 'profile_field_edit_screen.dart';
 
 enum ContextSection {
   products,
@@ -85,6 +87,8 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
   final _addFocus = FocusNode();
   bool _adding = false;
   bool _saving = false;
+  bool _dirty = false;
+  late String _confirmedEmail;
 
   _SectionCopy get _copy {
     switch (widget.section) {
@@ -116,7 +120,7 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
       case ContextSection.myData:
         return const _SectionCopy(
           title: 'Мои данные',
-          accent: 'Роль и контакты',
+          accent: 'Аккаунт и роль в компании',
           listLabel: '',
           addLabel: '',
           addHint: '',
@@ -169,6 +173,7 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
     _role = _roles.contains(d.role) ? d.role : '';
     _fullNameController = TextEditingController(text: d.fullName);
     _emailController = TextEditingController(text: d.email);
+    _confirmedEmail = d.email.trim();
   }
 
   @override
@@ -230,7 +235,7 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
       case ContextSection.myData:
         d.role = _role;
         d.fullName = _fullNameController.text.trim();
-        d.email = _emailController.text.trim();
+        d.email = _confirmedEmail;
     }
     await SessionStore.saveProfile(d);
     if (!mounted) return;
@@ -408,35 +413,240 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
     );
   }
 
+  String get _displayName {
+    final name = _fullNameController.text.trim();
+    return name.isEmpty ? 'Имя не указано' : name;
+  }
+
+  String get _avatarInitials {
+    final parts = _fullNameController.text.trim().split(RegExp(r'\s+'));
+    final letters = [
+      for (final part in parts.take(3))
+        if (part.isNotEmpty) part[0].toUpperCase(),
+    ];
+    if (letters.isEmpty) return '?';
+    return letters.join();
+  }
+
+  Future<void> _persistMyData() async {
+    final d = widget.profile;
+    d.role = _role;
+    d.fullName = _fullNameController.text.trim();
+    d.email = _confirmedEmail;
+    await SessionStore.saveProfile(d);
+    _dirty = true;
+  }
+
+  Future<void> _editField(ProfileEditField field) async {
+    final initial = switch (field) {
+      ProfileEditField.fullName => _fullNameController.text.trim(),
+      ProfileEditField.email => _confirmedEmail,
+      ProfileEditField.role => _role,
+    };
+    final result = await openProfileFieldEdit(
+      context,
+      field: field,
+      initialValue: initial,
+      currentEmail: _confirmedEmail,
+      roleOptions: _roles,
+    );
+    if (!mounted || result == null) return;
+    setState(() {
+      switch (field) {
+        case ProfileEditField.fullName:
+          _fullNameController.text = result;
+        case ProfileEditField.email:
+          _confirmedEmail = result;
+          _emailController.text = result;
+        case ProfileEditField.role:
+          _role = result;
+      }
+    });
+    await _persistMyData();
+  }
+
   Widget _myDataBody() {
     final s = context.scale;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AuthDropdown(
-          label: 'Ваша роль',
-          value: _role,
-          items: _roles,
-          onChanged: (value) => setState(() => _role = value),
+        Container(
+          padding: EdgeInsets.all(16 * s),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16 * s),
+            border: Border.all(color: AppColors.border, width: 1),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48 * s,
+                height: 48 * s,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppColors.brandRed,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  _avatarInitials,
+                  style: AppTypography.bold(
+                    _avatarInitials.length >= 3 ? 13 * s : 18 * s,
+                    color: AppColors.surface,
+                  ),
+                ),
+              ),
+              SizedBox(width: 14 * s),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _displayName,
+                      style: AppTypography.bold(
+                        16 * s,
+                        color: AppColors.textInk,
+                      ),
+                    ),
+                    SizedBox(height: 4 * s),
+                    Text(
+                      'Рабочий аккаунт',
+                      style: AppTypography.regular(
+                        12 * s,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        SizedBox(height: 20 * s),
-        AuthTextField(
-          label: 'ФИО',
-          controller: _fullNameController,
-          hint: 'Фамилия Имя Отчество',
-          textCapitalization: TextCapitalization.words,
-          textInputAction: TextInputAction.next,
+        SizedBox(height: 24 * s),
+        Text(
+          'Контактные данные',
+          style: AppTypography.bold(12 * s, color: AppColors.textMuted),
         ),
-        SizedBox(height: 20 * s),
-        AuthTextField(
-          label: 'Почта',
-          controller: _emailController,
-          hint: 'name@company.com',
-          keyboardType: TextInputType.emailAddress,
-          textCapitalization: TextCapitalization.none,
-          textInputAction: TextInputAction.done,
+        SizedBox(height: 10 * s),
+        _dataRow(
+          title: 'ФИО',
+          value: _displayName,
+          onEdit: () => _editField(ProfileEditField.fullName),
+        ),
+        SizedBox(height: 12 * s),
+        _dataRow(
+          title: 'Рабочая почта',
+          value: _confirmedEmail.isEmpty ? 'Не указана' : _confirmedEmail,
+          onEdit: () => _editField(ProfileEditField.email),
+        ),
+        SizedBox(height: 24 * s),
+        Text(
+          'Роль и доступ',
+          style: AppTypography.bold(12 * s, color: AppColors.textMuted),
+        ),
+        SizedBox(height: 10 * s),
+        _dataRow(
+          title: 'Должность',
+          value: _role.isEmpty ? 'Не указана' : _role,
+          onEdit: () => _editField(ProfileEditField.role),
+        ),
+        SizedBox(height: 12 * s),
+        _dataRow(
+          title: 'Пароль',
+          value: '••••••••',
+          onEdit: () async {
+            final changed = await openChangePasswordScreen(context);
+            if (!mounted || !changed) return;
+            setState(() => _dirty = true);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Пароль обновлён',
+                  style: AppTypography.regular(13, color: AppColors.surface),
+                ),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: AppColors.textInk,
+              ),
+            );
+          },
+        ),
+        SizedBox(height: 12 * s),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(16 * s, 14 * s, 16 * s, 14 * s),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16 * s),
+            border: Border.all(color: AppColors.border, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Права доступа',
+                style: AppTypography.bold(13 * s, color: AppColors.textInput),
+              ),
+              SizedBox(height: 6 * s),
+              Text(
+                'Участник компании. Должность не определяет права доступа.',
+                style: AppTypography.regular(
+                  12 * s,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _dataRow({
+    required String title,
+    required String value,
+    required VoidCallback onEdit,
+  }) {
+    final s = context.scale;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(16 * s, 14 * s, 16 * s, 14 * s),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16 * s),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTypography.bold(13 * s, color: AppColors.textInput),
+                ),
+                SizedBox(height: 6 * s),
+                Text(
+                  value,
+                  style: AppTypography.regular(
+                    12 * s,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 12 * s),
+          GestureDetector(
+            onTap: onEdit,
+            behavior: HitTestBehavior.opaque,
+            child: Text(
+              'Изменить',
+              style: AppTypography.bold(13 * s, color: AppColors.brandRed),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -446,8 +656,15 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
     final hPad = AppColors.screenPadding * s;
     final copy = _copy;
     final bottom = MediaQuery.paddingOf(context).bottom;
+    const titleSize = 24.83;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.of(context).pop(_dirty);
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
@@ -465,7 +682,7 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: GestureDetector(
-                    onTap: () => Navigator.of(context).maybePop(),
+                    onTap: () => Navigator.of(context).pop(_dirty),
                     behavior: HitTestBehavior.opaque,
                     child: Text(
                       '‹ Компания',
@@ -482,27 +699,19 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
                   padding: EdgeInsets.fromLTRB(hPad, 10 * s, hPad, 24 * s),
                   children: [
                     Text(
-                      'Контекст компании',
-                      style: AppTypography.medium(
-                        13 * s,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                    SizedBox(height: 10 * s),
-                    Text(
                       copy.title,
-                      style: AppTypography.bold(
-                        28 * s,
-                        color: AppColors.textPrimary,
+                      style: AppTypography.medium(
+                        titleSize * s,
+                        color: AppColors.textInput,
                       ),
                     ),
                     SizedBox(height: 4 * s),
                     Text(
                       copy.accent,
-                      style: AppTypography.bold(
-                        22 * s,
+                      style: AppTypography.medium(
+                        titleSize * s,
                         color: AppColors.brandRed,
-                      ).copyWith(height: 1.2),
+                      ),
                     ),
                     SizedBox(height: 28 * s),
                     if (widget.section == ContextSection.myData)
@@ -527,6 +736,7 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

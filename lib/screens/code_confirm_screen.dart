@@ -14,9 +14,20 @@ import '../widgets/auth_widgets.dart';
 import 'onboarding/onboarding_flow.dart';
 
 class CodeConfirmScreen extends StatefulWidget {
-  const CodeConfirmScreen({super.key, required this.data});
+  const CodeConfirmScreen({
+    super.key,
+    required this.data,
+    this.verifyOnly = false,
+    this.verifyHint,
+  });
 
   final OnboardingData data;
+
+  /// If true — только подтверждение кода, без перехода в онбординг.
+  final bool verifyOnly;
+
+  /// Доп. подсказка над кодом (например, «на текущую почту»).
+  final String? verifyHint;
 
   @override
   State<CodeConfirmScreen> createState() => _CodeConfirmScreenState();
@@ -214,6 +225,13 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
     _navigating = true;
     _keepKeyboard = false;
     FocusManager.instance.primaryFocus?.unfocus();
+
+    if (widget.verifyOnly) {
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+      return;
+    }
+
     // Persist email / FIO / password early; onboarding will overwrite with full profile.
     await SessionStore.saveProfile(widget.data);
     if (!mounted) return;
@@ -275,6 +293,16 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                           color: AppColors.textMuted,
                         ),
                       ),
+                      if (widget.verifyHint != null) ...[
+                        SizedBox(height: 8 * s),
+                        Text(
+                          widget.verifyHint!,
+                          style: AppTypography.medium(
+                            13 * s,
+                            color: AppColors.brandRed,
+                          ),
+                        ),
+                      ],
                       SizedBox(height: 32 * s),
                       Text(
                         'КОД ИЗ ПИСЬМА',
