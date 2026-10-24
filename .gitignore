@@ -45,3 +45,10 @@ backend/.venv/
 backend/*.db
 backend/**/*.db
 migrate_working_dir/
+_patch_backup/
+_patch_extract/
+_competition_stand/
+_patch_backup/
+_patch_extract/
+**/demo_password.local
+**/.env.stand.local
