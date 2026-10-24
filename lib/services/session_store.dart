@@ -21,6 +21,14 @@ class SessionStore {
   static const _userNameKey = 'user_name';
   static const _profileKey = 'user_profile';
   static const _viewedEventsKey = 'viewed_event_ids';
+  static const _telegramUsernameKey = 'telegram_username';
+  static const _pushNotificationsKey = 'settings_push';
+  static const _telegramAlertsKey = 'settings_tg_alerts';
+  static const _quietHoursKey = 'settings_quiet_hours';
+  static const _quietStartKey = 'settings_quiet_start';
+  static const _quietEndKey = 'settings_quiet_end';
+  static const _languageKey = 'settings_language';
+  static const _themeModeKey = 'settings_theme';
 
   static Future<SharedPreferences?> _prefs() async {
     try {
@@ -135,6 +143,51 @@ class SessionStore {
     await prefs.setStringList(_viewedEventsKey, next);
   }
 
+  /// Telegram @username without leading @, or null if not connected.
+  static Future<String?> telegramUsername() async {
+    final prefs = await _prefs();
+    final raw = prefs?.getString(_telegramUsernameKey)?.trim() ?? '';
+    if (raw.isEmpty) return null;
+    return raw.startsWith('@') ? raw.substring(1) : raw;
+  }
+
+  static Future<void> saveTelegramUsername(String? username) async {
+    final prefs = await _prefs();
+    if (prefs == null) return;
+    final trimmed = username?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      await prefs.remove(_telegramUsernameKey);
+      return;
+    }
+    final clean = trimmed.startsWith('@') ? trimmed.substring(1) : trimmed;
+    await prefs.setString(_telegramUsernameKey, clean);
+  }
+
+  static Future<AppSettings> loadSettings() async {
+    final prefs = await _prefs();
+    return AppSettings(
+      pushNotifications: prefs?.getBool(_pushNotificationsKey) ?? true,
+      telegramAlerts: prefs?.getBool(_telegramAlertsKey) ?? true,
+      quietHours: prefs?.getBool(_quietHoursKey) ?? false,
+      quietStart: prefs?.getString(_quietStartKey) ?? '22:00',
+      quietEnd: prefs?.getString(_quietEndKey) ?? '08:00',
+      language: prefs?.getString(_languageKey) ?? 'ru',
+      themeMode: prefs?.getString(_themeModeKey) ?? 'light',
+    );
+  }
+
+  static Future<void> saveSettings(AppSettings settings) async {
+    final prefs = await _prefs();
+    if (prefs == null) return;
+    await prefs.setBool(_pushNotificationsKey, settings.pushNotifications);
+    await prefs.setBool(_telegramAlertsKey, settings.telegramAlerts);
+    await prefs.setBool(_quietHoursKey, settings.quietHours);
+    await prefs.setString(_quietStartKey, settings.quietStart);
+    await prefs.setString(_quietEndKey, settings.quietEnd);
+    await prefs.setString(_languageKey, settings.language);
+    await prefs.setString(_themeModeKey, settings.themeMode);
+  }
+
   static Future<void> clear() async {
     final prefs = await _prefs();
     if (prefs == null) return;
@@ -143,5 +196,53 @@ class SessionStore {
     await prefs.remove(_userNameKey);
     await prefs.remove(_profileKey);
     await prefs.remove(_viewedEventsKey);
+    await prefs.remove(_telegramUsernameKey);
+    await prefs.remove(_pushNotificationsKey);
+    await prefs.remove(_telegramAlertsKey);
+    await prefs.remove(_quietHoursKey);
+    await prefs.remove(_quietStartKey);
+    await prefs.remove(_quietEndKey);
+    await prefs.remove(_languageKey);
+    await prefs.remove(_themeModeKey);
+  }
+}
+
+class AppSettings {
+  const AppSettings({
+    this.pushNotifications = true,
+    this.telegramAlerts = true,
+    this.quietHours = false,
+    this.quietStart = '22:00',
+    this.quietEnd = '08:00',
+    this.language = 'ru',
+    this.themeMode = 'light',
+  });
+
+  final bool pushNotifications;
+  final bool telegramAlerts;
+  final bool quietHours;
+  final String quietStart;
+  final String quietEnd;
+  final String language;
+  final String themeMode;
+
+  AppSettings copyWith({
+    bool? pushNotifications,
+    bool? telegramAlerts,
+    bool? quietHours,
+    String? quietStart,
+    String? quietEnd,
+    String? language,
+    String? themeMode,
+  }) {
+    return AppSettings(
+      pushNotifications: pushNotifications ?? this.pushNotifications,
+      telegramAlerts: telegramAlerts ?? this.telegramAlerts,
+      quietHours: quietHours ?? this.quietHours,
+      quietStart: quietStart ?? this.quietStart,
+      quietEnd: quietEnd ?? this.quietEnd,
+      language: language ?? this.language,
+      themeMode: themeMode ?? this.themeMode,
+    );
   }
 }
