@@ -269,11 +269,43 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
     }
   }
 
-  void _resend() {
+  Future<void> _resend() async {
     if (_secondsLeft > 0) return;
+    setState(() {
+      _hasError = false;
+      _apiError = null;
+    });
+    try {
+      final res = await AuthApi.instance.register(
+        email: widget.data.email,
+        password: widget.data.password,
+        displayName: widget.data.fullName,
+      );
+      final details = res['details'];
+      if (details is Map && details['demo_code'] != null && mounted) {
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Код: ${details['demo_code']}')),
+        );
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
+        _apiError = e.message;
+      });
+      return;
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
+        _apiError = e.toString();
+      });
+      return;
+    }
+    if (!mounted) return;
     _startTimer();
     _clearDigits();
-    setState(() => _hasError = false);
     _nodes.first.requestFocus();
   }
 

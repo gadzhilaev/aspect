@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../demo/alfa_demo_data.dart';
 import '../l10n/app_localizations.dart';
 import '../models/onboarding_data.dart';
+import '../navigation/app_page_route.dart';
 import '../navigation/enter_main.dart';
+import '../services/auth_store.dart';
 import '../services/session_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -48,7 +51,7 @@ const _demoCompanies = [
 
 Future<void> openAlfaBusinessDemo(BuildContext context) {
   return Navigator.of(context).push(
-    MaterialPageRoute<void>(
+    AppPageRoute<void>(
       builder: (_) => const AlfaBusinessGateScreen(),
     ),
   );
@@ -61,7 +64,7 @@ Future<_DemoCompany?> _openCompanyPicker(
   bool requireSelection = false,
 }) {
   return Navigator.of(context).push<_DemoCompany>(
-    MaterialPageRoute(
+    AppPageRoute(
       builder: (_) => _AlfaCompanyPickerPage(
         title: title,
         companies: _demoCompanies,
@@ -84,7 +87,7 @@ class _AlfaBusinessGateScreenState extends State<AlfaBusinessGateScreen> {
 
   void _openAspect() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => const AlfaCompanyPickScreen(),
       ),
     );
@@ -103,7 +106,7 @@ class _AlfaBusinessGateScreenState extends State<AlfaBusinessGateScreen> {
 
   void _openProfile() {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      AppPageRoute<void>(
         builder: (_) => AlfaBusinessProfileScreen(
           onEnterAspect: _openAspect,
         ),
@@ -1316,12 +1319,17 @@ class _AlfaCompanyPickScreenState extends State<AlfaCompanyPickScreen> {
     final data = existing ?? OnboardingData();
     data.companyName = company.name;
     data.companyIndustry = company.industry;
-    if (data.fullName.trim().isEmpty) {
-      data.fullName = 'Владимир Бородин';
-    }
-    if (data.email.trim().isEmpty) {
-      data.email = 'demo@mlechny-put.ru';
-    }
+    AlfaDemoData.enrichProfile(data, industry: company.industry);
+    // Локальный демо-вход: без JWT, с локальной лентой/профилем.
+    await AuthStore.clearTokens();
+    await AuthStore.saveProfile(
+      userId: 'alfa-demo-user',
+      email: data.email,
+      displayName: data.fullName,
+      companyId: '',
+      companyName: company.name,
+    );
+    await SessionStore.markAlfaDemo(enabled: true);
     await SessionStore.finishRegistration(data);
     if (!mounted) return;
     await enterMainApp(

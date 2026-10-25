@@ -7,6 +7,50 @@ import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/design_scale.dart';
 
+/// iOS часто не поднимает Shift для words/sentences — капитализируем ввод сами.
+class _CapitalizeWordsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+    final buffer = StringBuffer();
+    var capitalizeNext = true;
+    for (final unit in text.runes) {
+      final ch = String.fromCharCode(unit);
+      if (capitalizeNext && _isLowerLetter(ch)) {
+        buffer.write(ch.toUpperCase());
+        capitalizeNext = false;
+      } else {
+        buffer.write(ch);
+        if (ch == ' ' || ch == '-' || ch == '\n') {
+          capitalizeNext = true;
+        } else if (ch.trim().isNotEmpty) {
+          capitalizeNext = false;
+        }
+      }
+    }
+    final next = buffer.toString();
+    if (next == text) return newValue;
+    return TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(
+        offset: newValue.selection.baseOffset.clamp(0, next.length),
+      ),
+      composing: TextRange.empty,
+    );
+  }
+}
+
+bool _isLowerLetter(String ch) {
+  if (ch.length != 1) return false;
+  final lower = ch.toLowerCase();
+  final upper = ch.toUpperCase();
+  return lower != upper && ch == lower;
+}
+
 class AuthBackButton extends StatelessWidget {
   const AuthBackButton({super.key, this.onPressed});
 
@@ -51,6 +95,9 @@ class AuthTextField extends StatefulWidget {
     this.keyboardType,
     this.textInputAction,
     this.textCapitalization,
+    this.autofillHints,
+    this.autocorrect,
+    this.enableSuggestions,
     this.inputFormatters,
     this.suffix,
     this.onChanged,
@@ -58,6 +105,7 @@ class AuthTextField extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.autoScrollOnFocus = true,
+    this.hasError = false,
   });
 
   final String label;
@@ -66,8 +114,13 @@ class AuthTextField extends StatefulWidget {
   final bool obscureText;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
-  /// Defaults to sentences (first letter only). Email / password → none.
+  /// Defaults to sentences (только начало поля). ФИО — words.
+  /// Email / password → none.
   final TextCapitalization? textCapitalization;
+  final Iterable<String>? autofillHints;
+  /// Null → Flutter default (true), except email/password → false.
+  final bool? autocorrect;
+  final bool? enableSuggestions;
   final List<TextInputFormatter>? inputFormatters;
   final Widget? suffix;
   final ValueChanged<String>? onChanged;
@@ -76,6 +129,8 @@ class AuthTextField extends StatefulWidget {
   final bool autofocus;
   /// When false, parent handles scroll (e.g. login form + button).
   final bool autoScrollOnFocus;
+  /// Красная обводка при ошибке валидации / API.
+  final bool hasError;
 
   @override
   State<AuthTextField> createState() => _AuthTextFieldState();
@@ -153,14 +208,44 @@ class _AuthTextFieldState extends State<AuthTextField> {
     Future<void>.delayed(const Duration(milliseconds: 320), ensureIfObscured);
   }
 
+  bool get _isEmail => widget.keyboardType == TextInputType.emailAddress;
+
+  /// iOS: явный text, иначе sentences/words часто не поднимают Shift.
+  TextInputType? get _keyboardType {
+    if (widget.keyboardType != null) return widget.keyboardType;
+    if (widget.obscureText) return TextInputType.visiblePassword;
+    return TextInputType.text;
+  }
+
   TextCapitalization get _capitalization {
     if (widget.textCapitalization != null) return widget.textCapitalization!;
-    if (widget.obscureText) return TextCapitalization.none;
-    if (widget.keyboardType == TextInputType.emailAddress) {
-      return TextCapitalization.none;
-    }
-    // First letter of the field / sentence — not after every space.
+    if (widget.obscureText || _isEmail) return TextCapitalization.none;
+    // Только первая буква поля; после пробела — как есть (не как ФИО).
     return TextCapitalization.sentences;
+  }
+
+  bool get _autocorrect {
+    if (widget.autocorrect != null) return widget.autocorrect!;
+    if (widget.obscureText || _isEmail) return false;
+    return true;
+  }
+
+  bool get _enableSuggestions {
+    if (widget.enableSuggestions != null) return widget.enableSuggestions!;
+    if (widget.obscureText || _isEmail) return false;
+    return true;
+  }
+
+  /// Принудительная капитализация слов — только для явного words (ФИО).
+  bool get _forceWordCaps =>
+      !widget.obscureText &&
+      !_isEmail &&
+      widget.textCapitalization == TextCapitalization.words;
+
+  List<TextInputFormatter> get _formatters {
+    final base = widget.inputFormatters ?? const <TextInputFormatter>[];
+    if (!_forceWordCaps) return base;
+    return [...base, _CapitalizeWordsFormatter()];
   }
 
   @override
@@ -206,8 +291,10 @@ class _AuthTextFieldState extends State<AuthTextField> {
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(16 * s),
               border: Border.all(
-                color: focused ? AppColors.brandRed : AppColors.border,
-                width: 1,
+                color: (widget.hasError || focused)
+                    ? AppColors.brandRed
+                    : AppColors.border,
+                width: widget.hasError ? 1.5 : 1,
               ),
             ),
             padding: EdgeInsets.only(
@@ -219,14 +306,29 @@ class _AuthTextFieldState extends State<AuthTextField> {
               children: [
                 Expanded(
                   child: TextField(
+                    // Key: iOS не всегда меняет раскладку при смене keyboardType
+                    // без пересоздания TextInputConnection.
+                    key: ValueKey<String>(
+                      'auth-tf-$_keyboardType-$_capitalization-$showToggle',
+                    ),
                     controller: widget.controller,
                     focusNode: _focusNode,
                     autofocus: widget.autofocus,
                     obscureText: showToggle ? _isObscured : widget.obscureText,
-                    keyboardType: widget.keyboardType,
+                    // Явный text (не name): NamePhonePad на iOS ломает Shift.
+                    keyboardType: _keyboardType,
                     textInputAction: widget.textInputAction,
                     textCapitalization: _capitalization,
-                    inputFormatters: widget.inputFormatters,
+                    // Autofill name/email часто сбрасывает autocapitalization на iOS.
+                    autofillHints: (_isEmail || widget.obscureText)
+                        ? widget.autofillHints
+                        : null,
+                    autocorrect: _autocorrect,
+                    enableSuggestions: _enableSuggestions,
+                    smartDashesType: SmartDashesType.disabled,
+                    smartQuotesType: SmartQuotesType.disabled,
+                    keyboardAppearance: Brightness.light,
+                    inputFormatters: _formatters,
                     onChanged: widget.onChanged,
                     onSubmitted: widget.onSubmitted,
                     cursorColor: AppColors.brandRed,

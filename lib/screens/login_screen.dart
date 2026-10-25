@@ -37,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _keyboardWasOpen = false;
   bool _busy = false;
   String? _error;
+  bool _fieldsError = false;
 
   @override
   void initState() {
@@ -68,6 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _busy = true;
       _error = null;
+      _fieldsError = false;
     });
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -76,6 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final me = await AuthApi.instance.refreshMe();
       final display = me['display_name']?.toString() ?? email;
       final companies = (me['companies'] as List?) ?? const [];
+      // Реальный API-вход сбрасывает локальный режим Альфа-демо.
+      await SessionStore.markAlfaDemo(enabled: false);
       // Локальный профиль для экранов, ещё не переведённых на API.
       final data = (await SessionStore.loadProfile()) ?? OnboardingData();
       data.email = email;
@@ -84,6 +88,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (companies.isNotEmpty) {
         final c = Map<String, dynamic>.from(companies.first as Map);
         data.companyName = c['name']?.toString() ?? data.companyName;
+        try {
+          await AuthApi.instance.markRegistrationComplete();
+        } catch (_) {}
         await SessionStore.finishRegistration(data);
         if (!mounted) return;
         await enterMainApp(
@@ -95,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await SessionStore.markAuthPendingOnboarding();
         if (!mounted) return;
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute<void>(
+          AppPageRoute<void>(
             builder: (_) => OnboardingFlow(data: data),
           ),
           (_) => false,
@@ -105,12 +112,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() {
         _error = e.message;
+        _fieldsError = true;
         _busy = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e.toString();
+        _fieldsError = true;
         _busy = false;
       });
     }
@@ -198,7 +207,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 22 * s),
+                      if (_error != null) ...[
+                        SizedBox(height: 16 * s),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: AppTypography.regular(
+                            13 * s,
+                            color: AppColors.brandRed,
+                          ),
+                        ),
+                        SizedBox(height: 12 * s),
+                      ] else
+                        SizedBox(height: 22 * s),
                       AuthTextField(
                         label: l10n.workEmail,
                         controller: _emailController,
@@ -206,6 +227,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         hint: l10n.emailHint,
                         textInputAction: TextInputAction.next,
                         keyboardType: TextInputType.emailAddress,
+                        hasError: _fieldsError,
+                        onChanged: (_) {
+                          if (_error != null || _fieldsError) {
+                            setState(() {
+                              _error = null;
+                              _fieldsError = false;
+                            });
+                          }
+                        },
                       ),
                       SizedBox(height: 16 * s),
                       AuthTextField(
@@ -213,6 +243,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _passwordController,
                         autoScrollOnFocus: false,
                         obscureText: true,
+                        hasError: _fieldsError,
+                        onChanged: (_) {
+                          if (_error != null || _fieldsError) {
+                            setState(() {
+                              _error = null;
+                              _fieldsError = false;
+                            });
+                          }
+                        },
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _login(),
                       ),
@@ -236,16 +275,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      if (_error != null) ...[
-                        SizedBox(height: 8 * s),
-                        Text(
-                          _error!,
-                          style: AppTypography.regular(
-                            13 * s,
-                            color: AppColors.brandRed,
-                          ),
-                        ),
-                      ],
                       SizedBox(height: 12 * s),
                       AuthPrimaryButton(
                         label: l10n.signIn,

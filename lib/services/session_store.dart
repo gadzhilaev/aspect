@@ -31,6 +31,7 @@ class SessionStore {
   static const _quietEndKey = 'settings_quiet_end';
   static const _languageKey = 'settings_language';
   static const _themeModeKey = 'settings_theme';
+  static const _alfaDemoKey = 'alfa_demo_mode';
 
   static Future<SharedPreferences?> _prefs() async {
     try {
@@ -121,6 +122,22 @@ class SessionStore {
     await saveProfile(data);
     await prefs.setBool(_loggedInKey, true);
     await prefs.setBool(_onboardingDoneKey, true);
+  }
+
+  /// Локальный вход через «Альфа-демо» без JWT / companyId API.
+  static Future<void> markAlfaDemo({required bool enabled}) async {
+    final prefs = await _prefs();
+    if (prefs == null) return;
+    if (enabled) {
+      await prefs.setBool(_alfaDemoKey, true);
+    } else {
+      await prefs.remove(_alfaDemoKey);
+    }
+  }
+
+  static Future<bool> isAlfaDemo() async {
+    final prefs = await _prefs();
+    return prefs?.getBool(_alfaDemoKey) == true;
   }
 
   static Future<void> saveLogin({required String userName}) async {
@@ -243,6 +260,7 @@ class SessionStore {
     await prefs.remove(_quietEndKey);
     await prefs.remove(_languageKey);
     await prefs.remove(_themeModeKey);
+    await prefs.remove(_alfaDemoKey);
     await AuthStore.clearAll();
   }
 }

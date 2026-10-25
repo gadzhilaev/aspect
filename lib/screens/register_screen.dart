@@ -28,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _acceptedTerms = false;
   bool _busy = false;
   String? _error;
+  bool _emailFieldError = false;
 
   bool get _canContinue =>
       !_busy &&
@@ -51,7 +52,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _onFormChanged() => setState(() {});
+  void _onFormChanged() {
+    if (_error != null || _emailFieldError) {
+      setState(() {
+        _error = null;
+        _emailFieldError = false;
+      });
+    } else {
+      setState(() {});
+    }
+  }
 
   @override
   void dispose() {
@@ -73,11 +83,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  bool _isEmailConflict(ApiException e) {
+    final code = e.code.toUpperCase();
+    if (code == 'CONFLICT') return true;
+    final msg = e.message.toLowerCase();
+    return msg.contains('уже существует') ||
+        msg.contains('already') ||
+        msg.contains('занят');
+  }
+
   Future<void> _continue() async {
     if (!_canContinue) return;
     setState(() {
       _busy = true;
       _error = null;
+      _emailFieldError = false;
     });
     final data = OnboardingData(
       email: _emailController.text.trim(),
@@ -106,10 +126,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.message);
+      setState(() {
+        _error = e.message;
+        _emailFieldError = _isEmailConflict(e);
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() {
+        _error = e.toString();
+        _emailFieldError = false;
+      });
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -177,13 +203,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               color: AppColors.textSecondary,
                             ),
                           ),
+                          if (_error != null) ...[
+                            SizedBox(height: 8 * s),
+                            Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: AppTypography.regular(
+                                12 * s,
+                                color: AppColors.brandRed,
+                              ),
+                            ),
+                          ],
                           SizedBox(height: 22 * s),
                           AuthTextField(
+                            // Не TextInputType.name / AutofillHints.name:
+                            // на iOS они часто держат клавиатуру в нижнем регистре.
+                            key: const ValueKey('register_fio'),
                             label: l10n.fullName,
                             controller: _nameController,
                             hint: l10n.fullNameHint,
                             textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.text,
+                            textCapitalization: TextCapitalization.words,
+                            autocorrect: true,
+                            enableSuggestions: true,
                           ),
                           SizedBox(height: 14 * s),
                           AuthTextField(
@@ -192,6 +235,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hint: l10n.emailHint,
                             textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.emailAddress,
+                            hasError: _emailFieldError,
                           ),
                           SizedBox(height: 14 * s),
                           AuthTextField(
@@ -247,16 +291,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ],
                       ),
-                      if (_error != null) ...[
-                        SizedBox(height: 12 * s),
-                        Text(
-                          _error!,
-                          style: AppTypography.regular(
-                            12 * s,
-                            color: AppColors.brandRed,
-                          ),
-                        ),
-                      ],
                       SizedBox(height: 16 * s),
                       Column(
                         children: [

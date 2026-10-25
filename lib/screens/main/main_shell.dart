@@ -35,6 +35,7 @@ class _MainShellState extends State<MainShell> {
   bool _headerScrolled = false;
   final Map<int, double> _scrollOffsets = {};
   int _scenariosUnread = 0;
+  int _eventsUnread = 0;
 
   @override
   void initState() {
@@ -78,6 +79,11 @@ class _MainShellState extends State<MainShell> {
     setState(() => _scenariosUnread = count);
   }
 
+  void _onEventsUnreadChanged(int count) {
+    if (!mounted || count == _eventsUnread) return;
+    setState(() => _eventsUnread = count);
+  }
+
   void _onTabScroll(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return;
     // Only the tab's primary ListView (depth 0 inside the listener child).
@@ -103,7 +109,7 @@ class _MainShellState extends State<MainShell> {
     final l10n = context.l10n;
     final pages = [
       OverviewTab(userName: _userName),
-      const EventsTab(),
+      EventsTab(onUnreadChanged: _onEventsUnreadChanged),
       ScenariosTab(onUnreadChanged: _onScenariosUnreadChanged),
       const CompanyTab(),
     ];
@@ -175,6 +181,7 @@ class _MainShellState extends State<MainShell> {
                   label: l10n.navEvents,
                   selected: _index == 1,
                   onTap: () => _selectTab(1),
+                  showBadge: _eventsUnread > 0,
                 ),
                 _NavItem(
                   asset: 'assets/images/nav/scenarios.svg',
