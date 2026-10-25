@@ -1,4 +1,8 @@
-"""Static checks for competition Docker config when Docker daemon is unavailable."""
+"""Static checks for competition Docker config when Docker daemon is unavailable.
+
+Aspect mobile package: API + bootstrap (+ news_scheduler). React web / frontend/
+is optional and not required for STATIC_OK.
+"""
 
 from __future__ import annotations
 
@@ -15,14 +19,12 @@ def main() -> int:
     files = [
         REPO_ROOT / "docker-compose.competition.yml",
         BACKEND_ROOT / "docker" / "competition" / "Dockerfile.api",
-        BACKEND_ROOT / "docker" / "competition" / "Dockerfile.web",
-        REPO_ROOT / "frontend" / "Dockerfile",
-        REPO_ROOT / "frontend" / "nginx.conf",
         BACKEND_ROOT / "docker" / "competition" / "entrypoint-api.sh",
         BACKEND_ROOT / "docker" / "competition" / "entrypoint-bootstrap.sh",
         BACKEND_ROOT / ".dockerignore",
         BACKEND_ROOT / ".env.competition.example",
         BACKEND_ROOT / "requirements-linux.lock",
+        REPO_ROOT / "THIRD_PARTY_NOTICES",
     ]
     for p in files:
         if not p.is_file():
@@ -32,7 +34,8 @@ def main() -> int:
                 rel = p
             errors.append(f"missing:{rel}")
 
-    compose = (REPO_ROOT / "docker-compose.competition.yml").read_text(encoding="utf-8")
+    compose_path = REPO_ROOT / "docker-compose.competition.yml"
+    compose = compose_path.read_text(encoding="utf-8") if compose_path.is_file() else ""
     # Ignore comments when scanning for forbidden services.
     compose_code = "\n".join(
         ln for ln in compose.splitlines() if not ln.lstrip().startswith("#")
@@ -43,36 +46,20 @@ def main() -> int:
         errors.append("compose_contains_postgres")
     if re.search(r"(?im)^\s*worker:", compose_code):
         errors.append("compose_contains_worker")
-    if "context: ./backend" not in compose and "context:./backend" not in compose.replace(
-        " ", ""
-    ):
-        if "dockerfile: docker/competition/Dockerfile.api" in compose and "context: ./backend" not in compose:
-            errors.append("compose_api_context_not_backend")
-    if "./frontend" not in compose and "KONTUR_FRONT_DIR" not in compose:
-        errors.append("compose_web_context_not_frontend")
+    compact = compose.replace(" ", "")
+    if "context:./backend" not in compact and "context: ./backend" not in compose:
+        errors.append("compose_api_context_not_backend")
+    if "dockerfile: docker/competition/Dockerfile.api" not in compose:
+        errors.append("compose_api_dockerfile_missing")
+    if re.search(r"(?im)^\s*api:", compose_code) is None:
+        errors.append("compose_missing_api_service")
+    if "bootstrap" not in compose_code:
+        errors.append("compose_missing_bootstrap")
 
     if "HACKATHON_API_KEY" in (
         BACKEND_ROOT / "docker/competition/Dockerfile.api"
     ).read_text(encoding="utf-8"):
         errors.append("api_dockerfile_mentions_key")
-
-    front_df = (REPO_ROOT / "frontend" / "Dockerfile").read_text(encoding="utf-8")
-    if "ARG HACKATHON" in front_df:
-        errors.append("web_dockerfile_buildarg_key")
-    if "npm ci" not in front_df:
-        errors.append("web_dockerfile_no_npm_ci")
-    if "npm run build" not in front_df:
-        errors.append("web_dockerfile_no_production_build")
-    if re.search(r"npm\s+run\s+dev", front_df):
-        errors.append("web_dockerfile_uses_dev_server")
-
-    nginx = (REPO_ROOT / "frontend" / "nginx.conf").read_text(encoding="utf-8")
-    if "proxy_read_timeout 120s" not in nginx:
-        errors.append("nginx_missing_120s_timeout")
-    if "try_files" not in nginx:
-        errors.append("nginx_missing_spa_fallback")
-    if "location /api/" not in nginx:
-        errors.append("nginx_missing_api_proxy")
 
     api_df = (BACKEND_ROOT / "docker/competition/Dockerfile.api").read_text(
         encoding="utf-8"
@@ -100,7 +87,7 @@ def main() -> int:
         for e in errors:
             print(f"  - {e}")
         return 1
-    print("STATIC_OK competition docker config")
+    print("STATIC_OK competition docker config (API-only / Flutter UI)")
     return 0
 
 

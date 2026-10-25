@@ -1,0 +1,129 @@
+# Competition stack for Aspect (mobile package).
+# UI = Flutter app against COMPETITION_API_HOST_PORT (no React web in this repo).
+# Legacy Kontur web frontend is out of scope here.
+#
+# Usage (from repo root):
+#   docker compose -f docker-compose.competition.yml --env-file backend/.env.competition build api
+#   docker compose -f docker-compose.competition.yml --env-file backend/.env.competition --profile bootstrap run --rm bootstrap
+#   docker compose -f docker-compose.competition.yml --env-file backend/.env.competition up -d api news_scheduler
+
+name: ${COMPOSE_PROJECT_NAME:-kontur_competition}
+
+services:
+  bootstrap:
+    profiles: ["bootstrap"]
+    build:
+      context: ./backend
+      dockerfile: docker/competition/Dockerfile.api
+    image: kontur-competition-api:local
+    entrypoint: ["/entrypoint-bootstrap.sh"]
+    environment:
+      COMPETITION_BOOTSTRAP_MODE: ${COMPETITION_BOOTSTRAP_MODE:-bootstrap}
+      COMPETITION_EXTERNAL_UIDS: ${COMPETITION_EXTERNAL_UIDS:?set COMPETITION_EXTERNAL_UIDS}
+      COMPETITION_STAND_DIR: /stand
+      COMPETITION_CSV_DIR: /inputs/csv
+      COMPETITION_PDF_DIR: /inputs/pdf
+      COMPETITION_OCR_DIR: /inputs/ocr
+      COMPETITION_QA_DIR: /inputs/qa
+    volumes:
+      - ${COMPETITION_STAND_VOLUME:-kontur_competition_stand_data}:/stand
+      - ${COMPETITION_INPUTS_DIR:?set COMPETITION_INPUTS_DIR}:/inputs:ro
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: docker/competition/Dockerfile.api
+    image: kontur-competition-api:local
+    ports:
+      - "${COMPETITION_API_HOST_PORT:-8019}:8000"
+    environment:
+      COMPETITION_MODE: "true"
+      ASSISTANT_PROVIDER: hackathon
+      ASSISTANT_AGENT_LOOP: "true"
+      APP_ENV: production
+      SECRET_KEY: ${COMPETITION_SECRET_KEY:-competition-docker-local-secret}
+      HACKATHON_API_KEY: ${HACKATHON_API_KEY:-}
+      DADATA_API_KEY: ${DADATA_API_KEY:-}
+      TELEGRAM_NEWS_NOTIFICATIONS_ENABLED: ${TELEGRAM_NEWS_NOTIFICATIONS_ENABLED:-false}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      PUBLIC_WEB_BASE_URL: ${PUBLIC_WEB_BASE_URL:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    volumes:
+      - ${COMPETITION_STAND_VOLUME:-kontur_competition_stand_data}:/stand
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  news_scheduler:
+    image: kontur-competition-api:local
+    depends_on:
+      api:
+        condition: service_healthy
+    entrypoint: ["python", "-m", "app.workers.news_scheduler"]
+    environment:
+      COMPETITION_MODE: "true"
+      ASSISTANT_PROVIDER: hackathon
+      APP_ENV: production
+      SECRET_KEY: ${COMPETITION_SECRET_KEY:-competition-docker-local-secret}
+      DATABASE_URL: sqlite:////stand/stand.db
+      BANK_MATERIALS_STORAGE_ROOT: /stand/storage
+      NEWS_SCHEDULER_STATE_DIR: /stand/news_scheduler_runtime
+      NEWS_SCHEDULER_INTERVAL_SECONDS: ${NEWS_SCHEDULER_INTERVAL_SECONDS:-1200}
+      TELEGRAM_NEWS_NOTIFICATIONS_ENABLED: ${TELEGRAM_NEWS_NOTIFICATIONS_ENABLED:-false}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      PUBLIC_WEB_BASE_URL: ${PUBLIC_WEB_BASE_URL:-}
+    volumes:
+      - ${COMPETITION_STAND_VOLUME:-kontur_competition_stand_data}:/stand
+
+  telegram_worker:
+    profiles: ["telegram"]
+    image: kontur-competition-api:local
+    entrypoint: ["/entrypoint-telegram-worker.sh"]
+    environment:
+      COMPETITION_MODE: "true"
+      APP_ENV: production
+      SECRET_KEY: ${COMPETITION_SECRET_KEY:-competition-docker-local-secret}
+      DATABASE_URL: sqlite:////stand/stand.db
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?token required for telegram profile}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_OUTBOX_KINDS: ${TELEGRAM_OUTBOX_KINDS:-test,news}
+      TELEGRAM_NEWS_NOTIFICATIONS_ENABLED: ${TELEGRAM_NEWS_NOTIFICATIONS_ENABLED:-false}
+      TELEGRAM_WORKER_INTERVAL_SECONDS: ${TELEGRAM_WORKER_INTERVAL_SECONDS:-5}
+      PUBLIC_WEB_BASE_URL: ${PUBLIC_WEB_BASE_URL:-}
+      TELEGRAM_POLLING_STATE_DIR: /stand/telegram_runtime
+    volumes:
+      - ${COMPETITION_STAND_VOLUME:-kontur_competition_stand_data}:/stand
+
+  telegram_polling:
+    profiles: ["telegram"]
+    image: kontur-competition-api:local
+    entrypoint: ["/entrypoint-telegram-polling.sh"]
+    environment:
+      COMPETITION_MODE: "true"
+      APP_ENV: production
+      SECRET_KEY: ${COMPETITION_SECRET_KEY:-competition-docker-local-secret}
+      DATABASE_URL: sqlite:////stand/stand.db
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?token required for telegram profile}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_INGRESS_MODE: ${TELEGRAM_INGRESS_MODE:-polling}
+      TELEGRAM_WEBHOOK_ACTIVE: ${TELEGRAM_WEBHOOK_ACTIVE:-false}
+      TELEGRAM_NEWS_NOTIFICATIONS_ENABLED: ${TELEGRAM_NEWS_NOTIFICATIONS_ENABLED:-false}
+      TELEGRAM_POLLING_STATE_DIR: /stand/telegram_runtime
+      PUBLIC_WEB_BASE_URL: ${PUBLIC_WEB_BASE_URL:-}
+    volumes:
+      - ${COMPETITION_STAND_VOLUME:-kontur_competition_stand_data}:/stand
+
+volumes:
+  kontur_competition_stand_data:
+    name: ${COMPETITION_STAND_VOLUME:-kontur_competition_stand_data}
+    external: false

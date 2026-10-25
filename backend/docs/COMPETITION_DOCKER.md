@@ -1,8 +1,12 @@
-# Competition Docker stack (этап 6.5)
+# Competition Docker stack (этап 6.5 + mobile package)
 
-Дата: **2026-10-23**  
-Назначение: воспроизводимый **конкурсный** compose (frontend + API + one-shot bootstrap)  
-с постоянным SQLite/PDF storage. **Не** заменяет `docker-compose.yml` (Postgres demo).
+Дата: **2026-10-23** (обновлено **2026-10-25** для Aspect mobile)  
+Назначение: воспроизводимый **конкурсный** compose (**API** + one-shot bootstrap + `news_scheduler`)  
+с постоянным SQLite/PDF storage. UI сдачи — **Flutter** (не React web).  
+**Не** заменяет legacy `docker-compose.yml` (Postgres demo), если он есть в полном monorepo.
+
+Compose-файл: **корень репозитория** `docker-compose.competition.yml`  
+(симлинк `backend/docker-compose.competition.yml` → тот же файл).
 
 ---
 
@@ -27,10 +31,9 @@
 
 | Путь | Роль |
 |------|------|
-| `docker-compose.competition.yml` | api + web + profile `bootstrap` |
+| `../docker-compose.competition.yml` | api + news_scheduler + profile `bootstrap` (+ `telegram`) |
 | `docker/competition/Dockerfile.api` | Python 3.12.10-slim-bookworm + hashed Linux lock |
-| `docker/competition/Dockerfile.web` | Node 24.19.0 build → nginx 1.27.5-alpine |
-| `docker/competition/nginx.conf` | same-origin `/api`, SPA fallback, proxy 120s |
+| `docker/competition/Dockerfile.web` | **deprecated** (React frontend вне mobile-пакета) |
 | `docker/competition/entrypoint-api.sh` | читает `/stand`, **без** import/seed |
 | `docker/competition/entrypoint-bootstrap.sh` | one-shot preflight/bootstrap |
 | `.dockerignore` | исключает `.env`, data/, venv, node_modules, `*.db`… |
@@ -39,7 +42,8 @@
 | `scripts/materialize_competition_docker_smoke_inputs.py` | tiny inputs для smoke |
 | `scripts/verify_competition_docker_static.py` | static gate без Docker |
 
-Базовые теги зафиксированы; **digest/immutability не утверждается**.
+Базовые теги зафиксированы; **digest/immutability не утверждается**.  
+Клиент: Flutter → `http://127.0.0.1:${COMPETITION_API_HOST_PORT:-8019}`.
 
 ---
 
@@ -55,8 +59,6 @@
 
 Windows lock **не** считается проверенным для Linux.  
 Массового bump пакетов не было; hash-проверка сохранена (`pip install --require-hashes`).
-
-Frontend: `npm ci` из `web/package-lock.json`, затем `npm run build` (не Vite dev).
 
 ---
 
@@ -95,12 +97,8 @@ API **не** запускает импорт при рестарте (тольк
 - `HACKATHON_API_KEY` — только compose/runtime env, **не** build-arg, **не** frontend, **не** image layers
 - CASE slot / OCR run IDs / storage — из подготовленного `stand.env` (переписанного на `/stand/...`)
 
-Браузер → `http://localhost:8080` → nginx `/api` → `api:8000`  
-(не `http://api:8000` в JS). `VITE_API_BASE_URL` пустой (same-origin).
-
-Proxy `proxy_read_timeout 120s` ≥ `ASSISTANT_LOOP_TIMEOUT_S=90`.
-
-Healthcheck: `GET /health` / `/healthz` — без model HTTP.
+Flutter → `http://127.0.0.1:${COMPETITION_API_HOST_PORT:-8019}` (прямой API).  
+Healthcheck: `GET /health` — без model HTTP.
 
 ---
 
@@ -130,30 +128,27 @@ docker compose -f docker-compose.competition.yml --env-file .env.competition --p
 $env:COMPETITION_BOOTSTRAP_MODE = "bootstrap"
 docker compose -f docker-compose.competition.yml --env-file .env.competition --profile bootstrap run --rm bootstrap
 
-# 4) Start api+web
-docker compose -f docker-compose.competition.yml --env-file .env.competition up -d api web
+# 4) Start api (+ optional scheduler)
+# из корня репозитория Aspect:
+docker compose -f docker-compose.competition.yml --env-file backend/.env.competition up -d api news_scheduler
 
 # 5) Checks (no live LLM)
-curl http://127.0.0.1:8080/healthz
 curl http://127.0.0.1:8019/health
-# login / context / bank / PDF — TestClient or curl with Bearer from demo_password.local in volume
-# deep-link: curl -I http://127.0.0.1:8080/some/spa/route  → 200 + index.html
+# Flutter: указать API base URL на этот порт; login — demo_password.local из volume
 
 # 6) Restart without data loss
-docker compose -f docker-compose.competition.yml --env-file .env.competition restart api web
-# re-check DB/PDF still present
+docker compose -f docker-compose.competition.yml --env-file backend/.env.competition restart api
 
 # 7) Re-bootstrap same inputs → no-op (no duplicates)
-docker compose -f docker-compose.competition.yml --env-file .env.competition --profile bootstrap run --rm bootstrap
+docker compose -f docker-compose.competition.yml --env-file backend/.env.competition --profile bootstrap run --rm bootstrap
 
 # 8) Stop smoke project ONLY (do NOT use -v if you need to keep volume; -v deletes named volume)
-docker compose -f docker-compose.competition.yml --env-file .env.competition down
-# optional explicit volume remove for smoke only:
-# docker volume rm kontur_comp_smoke_stand_data
+docker compose -f docker-compose.competition.yml --env-file backend/.env.competition down
 ```
 
 **Не** выполнять `docker compose down -v` над чужими/jury volumes.  
-Проект smoke: `kontur_comp_smoke` — отдельное имя.
+Проект smoke: `kontur_comp_smoke` — отдельное имя.  
+Команды с `-f docker-compose.competition.yml` — **из корня** репо (или через симлинк в `backend/`).
 
 ---
 
@@ -167,8 +162,8 @@ $env:COMPETITION_STAND_VOLUME = "kontur_competition_stand_data"
 $env:COMPETITION_INPUTS_DIR = "<host path with csv/pdf/ocr/qa>"
 $env:COMPETITION_EXTERNAL_UIDS = "U_264 U_92"
 # HACKATHON_API_KEY only if live turns needed after UI is up
-docker compose -f docker-compose.competition.yml --env-file .env.competition --profile bootstrap run --rm bootstrap
-docker compose -f docker-compose.competition.yml --env-file .env.competition up -d api web
+docker compose -f docker-compose.competition.yml --env-file backend/.env.competition --profile bootstrap run --rm bootstrap
+docker compose -f docker-compose.competition.yml --env-file backend/.env.competition up -d api news_scheduler
 ```
 
 Полный case import (~1.38M payments) долгий — ожидайте как на native 6.3 (~17 мин на этой машине).  
