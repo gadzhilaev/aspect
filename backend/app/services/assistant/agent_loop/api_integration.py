@@ -169,6 +169,29 @@ def build_conversation_history_data(
     )
 
 
+def analysis_steps_from_trace(safe_trace: dict[str, Any] | None) -> list[str]:
+    """Human-readable agent steps for jury / Flutter (no secrets)."""
+    if not isinstance(safe_trace, dict):
+        return []
+    lines: list[str] = []
+    for step in safe_trace.get("steps") or []:
+        if not isinstance(step, dict):
+            continue
+        kind = str(step.get("kind") or "step")
+        name = str(step.get("name") or step.get("tool") or "").strip()
+        status = str(step.get("status") or "").strip()
+        line = f"{kind}: {name}" if name else kind
+        if status:
+            line = f"{line} ({status})"
+        lines.append(line[:160])
+        if len(lines) >= 20:
+            break
+    tools = safe_trace.get("tool_calls_used")
+    if tools is not None and not lines:
+        lines.append(f"tool_calls_used: {tools}")
+    return lines
+
+
 def _safe_trace(outcome: LoopFinalOutcome | LoopStoppedOutcome) -> dict[str, Any]:
     snap = dict(outcome.budget_snapshot or {})
     steps = []
@@ -488,6 +511,7 @@ def _replay_existing_pair(
         user_message=_msg_out_local(existing),
         assistant_message=_msg_out_local(reply),
         reused=True,
+        analysis_steps=_steps_from_message_blocks(reply.blocks_json),
     )
 
 
@@ -635,13 +659,16 @@ def post_message_agent_loop(
     db.refresh(user_msg)
     existing_reply = _find_reply_after_user(db, conversation_id=conv.id, user_msg=user_msg)
     if existing_reply is not None:
+        reused_steps = _steps_from_message_blocks(existing_reply.blocks_json)
         return PostMessageOut(
             user_message=_msg_out_local(user_msg),
             assistant_message=_msg_out_local(existing_reply),
             reused=True,
+            analysis_steps=reused_steps,
         )
 
     safe_trace = _safe_trace(outcome)
+    analysis_steps = analysis_steps_from_trace(safe_trace)
 
     if isinstance(outcome, LoopStoppedOutcome):
         blocks = _incomplete_blocks(outcome, safe_trace=safe_trace)
@@ -719,7 +746,23 @@ def post_message_agent_loop(
         user_message=_msg_out_local(user_msg),
         assistant_message=_msg_out_local(assistant_msg),
         reused=False,
+        analysis_steps=analysis_steps,
     )
+
+
+def _steps_from_message_blocks(blocks: Any) -> list[str]:
+    if not isinstance(blocks, list):
+        return []
+    for b in blocks:
+        if not isinstance(b, dict):
+            continue
+        data = b.get("data") if isinstance(b.get("data"), dict) else {}
+        diag = data.get("diagnostics") if isinstance(data.get("diagnostics"), dict) else {}
+        trace = data.get("loop_trace") or diag.get("loop_trace")
+        steps = analysis_steps_from_trace(trace if isinstance(trace, dict) else None)
+        if steps:
+            return steps
+    return []
 
 
 def _case_ref_from_sent(ledger: SourceLedger) -> dict[str, Any] | None:

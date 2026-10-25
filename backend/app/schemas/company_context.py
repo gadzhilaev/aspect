@@ -132,6 +132,20 @@ class CaseProfileOut(BaseModel):
     fts_geography: CaseFtsGeographyOut
     group: CaseGroupOut
     revenue: CaseRevenueOut
+    # TZ asks for market share; case CSV has no share field — never invent.
+    market_share: CaseResolvedFieldOut = Field(
+        default_factory=lambda: CaseResolvedFieldOut(
+            key="market_share",
+            status="absent",
+            value=None,
+            detail={
+                "note": (
+                    "Доля рынка в конкурсном CSV не задана; "
+                    "значение не рассчитывается."
+                )
+            },
+        )
+    )
     conflicts: dict[str, Any] = Field(default_factory=dict)
     absent: dict[str, Any] = Field(default_factory=dict)
     provenance: CaseProvenanceOut

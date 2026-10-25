@@ -98,6 +98,8 @@ class PostMessageOut(BaseModel):
     user_message: AssistantMessageOut
     assistant_message: AssistantMessageOut
     reused: bool = False
+    # Jury-facing trace of agent steps / tools (empty on legacy one-shot).
+    analysis_steps: list[str] = Field(default_factory=list)
 
 
 class DraftDecisionIn(BaseModel):

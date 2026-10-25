@@ -356,6 +356,17 @@ def _map_case_profile(ctx: CaseCompanyContext) -> CaseProfileOut | None:
             currency=profile.revenue.currency,
             limitations=list(profile.revenue.limitations),
         ),
+        market_share=CaseResolvedFieldOut(
+            key="market_share",
+            status="absent",
+            value=None,
+            detail={
+                "note": (
+                    "Доля рынка в конкурсном CSV не задана; "
+                    "значение не рассчитывается."
+                )
+            },
+        ),
         conflicts=_sanitize_resolution_map(profile.conflicts),
         absent=_sanitize_resolution_map(profile.absent),
         provenance=CaseProvenanceOut(

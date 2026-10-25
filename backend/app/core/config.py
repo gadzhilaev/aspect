@@ -224,6 +224,10 @@ class Settings(BaseSettings):
         errs = competition_settings_errors(self)
         if errs:
             raise ValueError("; ".join(errs))
+        # K10: in competition mode default to multi-step agent loop unless the
+        # operator explicitly set ASSISTANT_AGENT_LOOP in the environment.
+        if self.competition_mode and "assistant_agent_loop" not in self.model_fields_set:
+            self.assistant_agent_loop = True
         return self
 
     def agent_loop_budget_config(self):
