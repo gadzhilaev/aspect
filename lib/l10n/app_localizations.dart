@@ -186,8 +186,18 @@ class AppLocalizations {
   String get feedEmptyTitle =>
       _t('Пока нет персональных событий', 'No personal events yet');
   String get feedEmptyBody => _t(
-        'Для вашей компании сейчас нет совпадений в персональной ленте.',
-        'There are no matches in your personal feed right now.',
+        'Для вашей компании сейчас нет совпадений в персональной ленте. '
+        'Укажите продукты и бренды в разделе «Компания» — отраслевые новости '
+        'появятся, когда найдётся подходящая публикация (это не гарантировано).',
+        'There are no matches in your personal feed right now. '
+        'Add products and brands under Company — industry news appears only '
+        'when a matching publication is found (not guaranteed).',
+      );
+  String get feedProfileIncompleteBody => _t(
+        'Профиль ещё не заполнен: добавьте продукты, бренды или рынки, '
+        'чтобы подбирать отраслевые новости.',
+        'Profile is incomplete: add products, brands, or markets '
+        'to match industry news.',
       );
   String get telegramPending => _t(
         'Откройте бота и подтвердите связь. Статус обновится после подтверждения.',
@@ -371,6 +381,21 @@ class AppLocalizations {
       _t('Название поставщика', 'Supplier name');
   String get addSupplier => _t('+ Добавить поставщика', '+ Add supplier');
   String get supplierRole => _t('Поставщик', 'Supplier');
+  String get noSourceData =>
+      _t('Нет данных по источнику', 'No source data');
+  String get unknownValue => _t('Неизвестно', 'Unknown');
+  String get noPaymentLinksYet => _t(
+        'Платёжных связей по этой компании пока нет.',
+        'No payment links for this company yet.',
+      );
+  String get noCompanyGroupYet => _t(
+        'Группа компаний по источнику не найдена.',
+        'No company group found in the source.',
+      );
+  String get noSuppliersYet => _t(
+        'Поставщиков пока нет — добавьте вручную.',
+        'No suppliers yet — add one manually.',
+      );
   String get sourcePrefix => _t('Источник: ', 'Source: ');
   String get whatHappened => _t('Что произошло', 'What happened');
   String get whatItMeansForYou =>
@@ -421,6 +446,30 @@ class AppLocalizations {
   String get impactHigh => _t('Высокое влияние', 'High impact');
   String get impactMedium => _t('Среднее влияние', 'Medium impact');
   String get impactOpportunity => _t('Возможность', 'Opportunity');
+  String get impactHighHint => _t(
+        'Сильный риск для вашей компании — лучше разобрать сейчас',
+        'Strong risk for your company — review soon',
+      );
+  String get impactMediumHint => _t(
+        'Стоит учесть в планах, срочности обычно нет',
+        'Worth factoring into plans; usually not urgent',
+      );
+  String get impactOpportunityHint => _t(
+        'Может дать выгоду, если вовремя отреагировать',
+        'May be beneficial if you act in time',
+      );
+  String get whyRelevantTitle => _t(
+        'Почему это про вашу компанию',
+        'Why this is about your company',
+      );
+  String get whyRelevantFallback => _t(
+        'Событие совпало с рынками, поставками или отраслью из вашего профиля.',
+        'The event matches markets, supply chain, or industry in your profile.',
+      );
+  String get whatItMeansHint => _t(
+        'Как это может отразиться на работе и что проверить.',
+        'How this may affect operations and what to check.',
+      );
 
   // —— Dates (simple) ——
   String get today => _t('Сегодня', 'Today');
@@ -537,6 +586,69 @@ class AppLocalizations {
       _t('Название продукта', 'Product name');
   String get onboardingAddProduct =>
       _t('+ Добавить продукт', '+ Add product');
+
+  /// Заголовок / секция / CTA экрана продуктов по типу бизнеса.
+  ({String title, String subtitle, String section, String add, String hint})
+      productsCopyForBusinessType(String businessType) {
+    switch (businessType.trim()) {
+      case 'Торговля':
+        return (
+          title: _t('Что вы продаёте?', 'What do you sell?'),
+          subtitle: _t(
+            'Добавьте ключевые товары. Так мы поймём, какие изменения важны.',
+            'Add key goods so we know which changes matter.',
+          ),
+          section: _t('ТОВАРЫ', 'GOODS'),
+          add: _t('+ Добавить товар', '+ Add product'),
+          hint: _t('Название товара', 'Product name'),
+        );
+      case 'Финансы':
+        return (
+          title: _t('Какие услуги оказываете?', 'What services do you offer?'),
+          subtitle: _t(
+            'Добавьте ключевые услуги. Так мы поймём, какие изменения важны.',
+            'Add key services so we know which changes matter.',
+          ),
+          section: _t('УСЛУГИ', 'SERVICES'),
+          add: _t('+ Добавить услугу', '+ Add service'),
+          hint: _t('Название услуги', 'Service name'),
+        );
+      case 'Технологии':
+        return (
+          title: _t(
+            'Какие продукты или сервисы?',
+            'Which products or services?',
+          ),
+          subtitle: _t(
+            'Добавьте ключевые продукты и сервисы. Так мы поймём, какие изменения важны.',
+            'Add key products and services so we know which changes matter.',
+          ),
+          section: _t('ПРОДУКТЫ И СЕРВИСЫ', 'PRODUCTS & SERVICES'),
+          add: _t('+ Добавить', '+ Add'),
+          hint: _t('Название', 'Name'),
+        );
+      case 'Другое':
+        return (
+          title: _t('Чем занимаетесь?', 'What do you do?'),
+          subtitle: _t(
+            'Добавьте ключевые направления. Так мы поймём, какие изменения важны.',
+            'Add key activities so we know which changes matter.',
+          ),
+          section: _t('НАПРАВЛЕНИЯ', 'ACTIVITIES'),
+          add: _t('+ Добавить', '+ Add'),
+          hint: _t('Название', 'Name'),
+        );
+      case 'Производство':
+      default:
+        return (
+          title: onboardingProductsTitle,
+          subtitle: onboardingProductsSubtitle,
+          section: onboardingProductsSection,
+          add: onboardingAddProduct,
+          hint: onboardingProductNameHint,
+        );
+    }
+  }
   String get onboardingMainMarket =>
       _t('Основной рынок', 'Primary market');
   String get onboardingSpecifyMarket =>
@@ -563,6 +675,78 @@ class AppLocalizations {
         'Все страны добавлены',
         'All countries added',
       );
+
+  /// Заголовок экрана стран по типу бизнеса.
+  ({String title, String subtitle, String section, String add, String footer})
+      countriesCopyForBusinessType(String businessType) {
+    switch (businessType.trim()) {
+      case 'Торговля':
+        return (
+          title: _t(
+            'Страны поставок и партнёров',
+            'Supply and partner countries',
+          ),
+          subtitle: _t(
+            'Укажите страны, откуда идут товары и с кем работаете. Мы отберём события, которые влияют на вашу цепочку поставок.',
+            'List countries where goods come from and partners. We will filter events that affect your supply chain.',
+          ),
+          section: onboardingCountriesSection,
+          add: onboardingAddCountry,
+          footer: onboardingCountriesFooterHint,
+        );
+      case 'Финансы':
+        return (
+          title: _t(
+            'Страны присутствия и партнёров',
+            'Presence and partner countries',
+          ),
+          subtitle: _t(
+            'Укажите страны, где работаете вы и ваши партнёры. Мы отберём релевантные события.',
+            'List countries where you and your partners operate. We will filter relevant events.',
+          ),
+          section: onboardingCountriesSection,
+          add: onboardingAddCountry,
+          footer: onboardingCountriesFooterHint,
+        );
+      case 'Технологии':
+        return (
+          title: _t(
+            'Страны разработки и партнёров',
+            'Development and partner countries',
+          ),
+          subtitle: _t(
+            'Укажите страны команд, поставщиков и партнёров. Мы отберём события, которые влияют на вашу работу.',
+            'List countries for teams, vendors, and partners. We will filter events that affect your work.',
+          ),
+          section: onboardingCountriesSection,
+          add: onboardingAddCountry,
+          footer: onboardingCountriesFooterHint,
+        );
+      case 'Другое':
+        return (
+          title: _t(
+            'Страны поставок и партнёров',
+            'Supply and partner countries',
+          ),
+          subtitle: _t(
+            'Укажите страны, важные для вашего бизнеса. Мы отберём события, которые на них влияют.',
+            'List countries that matter for your business. We will filter events that affect them.',
+          ),
+          section: onboardingCountriesSection,
+          add: onboardingAddCountry,
+          footer: onboardingCountriesFooterHint,
+        );
+      case 'Производство':
+      default:
+        return (
+          title: onboardingCountriesTitle,
+          subtitle: onboardingCountriesSubtitle,
+          section: onboardingCountriesSection,
+          add: onboardingAddCountry,
+          footer: onboardingCountriesFooterHint,
+        );
+    }
+  }
   String get onboardingAddCountry =>
       _t('+ Добавить страну', '+ Add country');
   String get onboardingCountriesFooterHint => _t(
@@ -592,6 +776,84 @@ class AppLocalizations {
       );
   String get onboardingAddCity =>
       _t('+ Добавить город', '+ Add city');
+
+  /// Заголовок / секции экрана локаций по типу бизнеса.
+  ({
+    String title,
+    String subtitle,
+    String regionsSection,
+    String citiesSection,
+    String addRegion,
+  }) locationsCopyForBusinessType(String businessType) {
+    switch (businessType.trim()) {
+      case 'Торговля':
+        return (
+          title: onboardingLocationsTitle,
+          subtitle: _t(
+            'Сначала выберите регионы продаж, затем укажите города в этих странах.',
+            'First pick sales regions, then cities in those countries.',
+          ),
+          regionsSection: _t('РЕГИОНЫ ПРОДАЖ', 'SALES REGIONS'),
+          citiesSection: onboardingCitiesSection,
+          addRegion: onboardingAddRegion,
+        );
+      case 'Финансы':
+        return (
+          title: _t(
+            'Где работает бизнес?',
+            'Where does the business operate?',
+          ),
+          subtitle: _t(
+            'Сначала выберите регионы присутствия, затем укажите города.',
+            'First pick presence regions, then cities.',
+          ),
+          regionsSection: _t('РЕГИОНЫ ПРИСУТСТВИЯ', 'PRESENCE REGIONS'),
+          citiesSection: onboardingCitiesSection,
+          addRegion: _t('+ Добавить регион', '+ Add region'),
+        );
+      case 'Технологии':
+        return (
+          title: onboardingLocationsTitle,
+          subtitle: _t(
+            'Сначала выберите регионы работы, затем укажите города команд и офисов.',
+            'First pick operating regions, then cities for teams and offices.',
+          ),
+          regionsSection: _t('РЕГИОНЫ РАБОТЫ', 'OPERATING REGIONS'),
+          citiesSection: onboardingCitiesSection,
+          addRegion: onboardingAddRegion,
+        );
+      case 'Другое':
+        return (
+          title: onboardingLocationsTitle,
+          subtitle: _t(
+            'Сначала выберите регионы, затем укажите города.',
+            'First pick regions, then cities.',
+          ),
+          regionsSection: _t('РЕГИОНЫ', 'REGIONS'),
+          citiesSection: onboardingCitiesSection,
+          addRegion: onboardingAddRegion,
+        );
+      case 'Производство':
+        return (
+          title: onboardingLocationsTitle,
+          subtitle: _t(
+            'Сначала выберите регионы продаж, затем укажите города в этих странах.',
+            'First pick sales regions, then cities in those countries.',
+          ),
+          regionsSection: onboardingSalesRegionsSection,
+          citiesSection: onboardingCitiesSection,
+          addRegion: onboardingAddRegion,
+        );
+      default:
+        return (
+          title: onboardingLocationsTitle,
+          subtitle: onboardingLocationsSubtitle,
+          regionsSection: onboardingSalesRegionsSection,
+          citiesSection: onboardingCitiesSection,
+          addRegion: onboardingAddRegion,
+        );
+    }
+  }
   String get onboardingPickCityTitle =>
       _t('Выберите город', 'Choose a city');
   String get onboardingSearchCityHint =>

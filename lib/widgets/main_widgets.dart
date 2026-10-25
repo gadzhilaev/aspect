@@ -89,9 +89,13 @@ class EventSignalCard extends StatelessWidget {
     required this.title,
     required this.contextLead,
     required this.contextBody,
+    this.timeLabel = '',
+    this.sourceLabel = '',
+    this.sourceUrl = '',
     this.warning,
     required this.actionLabel,
     this.onOpen,
+    this.onSourceTap,
   });
 
   final ImpactLevel level;
@@ -99,14 +103,28 @@ class EventSignalCard extends StatelessWidget {
   final String title;
   final String contextLead;
   final String contextBody;
+  final String timeLabel;
+  final String sourceLabel;
+  final String sourceUrl;
   final String? warning;
   final String actionLabel;
   final VoidCallback? onOpen;
+  final VoidCallback? onSourceTap;
+
+  double _titleFontSize(double s) {
+    final len = title.trim().length;
+    if (len > 110) return 12.2 * s;
+    if (len > 70) return 13 * s;
+    return 14.3 * s;
+  }
 
   @override
   Widget build(BuildContext context) {
     final accent = ImpactColors.accent(level);
     final s = designScale(context);
+    final titleSize = _titleFontSize(s);
+    final showSource = sourceUrl.isNotEmpty || sourceLabel.isNotEmpty;
+    final sourceText = sourceUrl.isNotEmpty ? sourceUrl : sourceLabel;
 
     return Container(
       decoration: BoxDecoration(
@@ -143,125 +161,146 @@ class EventSignalCard extends StatelessWidget {
                 width: AppColors.isDark ? 1 : 0.1,
               ),
             ),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(14 * s, 14 * s, 16 * s, 14 * s),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 3 * s,
-                    margin: EdgeInsets.fromLTRB(14 * s, 14 * s, 0, 14 * s),
-                    decoration: BoxDecoration(
+                  Text(
+                    meta,
+                    style: AppTypography.medium(
+                      11 * s,
                       color: accent,
-                      borderRadius: BorderRadius.circular(2 * s),
                     ),
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        12 * s,
-                        14 * s,
-                        16 * s,
-                        14 * s,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            meta,
-                            style: AppTypography.medium(
-                              11 * s,
-                              color: accent,
-                            ),
+                  SizedBox(height: 8 * s),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          width: 3 * s,
+                          decoration: BoxDecoration(
+                            color: accent,
+                            borderRadius: BorderRadius.circular(2 * s),
                           ),
-                          SizedBox(height: 6 * s),
-                          Text(
+                        ),
+                        SizedBox(width: 10 * s),
+                        Expanded(
+                          child: Text(
                             title,
                             style: AppTypography.bold(
-                              14.3 * s,
+                              titleSize,
                               color: AppColors.textPrimary,
                             ),
                           ),
-                          SizedBox(height: 14 * s),
-                          Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: contextLead,
-                                  style: AppTypography.bold(
-                                    11 * s,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: ' $contextBody',
-                                  style: AppTypography.medium(
-                                    11 * s,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (timeLabel.isNotEmpty) ...[
+                    SizedBox(height: 8 * s),
+                    Text(
+                      timeLabel,
+                      style: AppTypography.regular(
+                        11 * s,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                  if (showSource) ...[
+                    SizedBox(height: 4 * s),
+                    GestureDetector(
+                      onTap: onSourceTap,
+                      behavior: HitTestBehavior.opaque,
+                      child: Text(
+                        sourceText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.regular(
+                          11 * s,
+                          color: AppColors.brandRed,
+                        ),
+                      ),
+                    ),
+                  ],
+                  SizedBox(height: 14 * s),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: contextLead,
+                          style: AppTypography.bold(
+                            11 * s,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' $contextBody',
+                          style: AppTypography.medium(
+                            11 * s,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (warning != null) ...[
+                    SizedBox(height: 14 * s),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.fromLTRB(
+                        10 * s,
+                        10 * s,
+                        12 * s,
+                        10 * s,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningBg,
+                        borderRadius: BorderRadius.circular(6.5 * s),
+                        border: Border.all(
+                          color: AppColors.warningBorder,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 23 * s,
+                            height: 23 * s,
+                            child: Center(
+                              child: SvgPicture.asset(
+                                'assets/images/icon_risk.svg',
+                                width: 23 * s,
+                                height: 23 * s,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
-                          if (warning != null) ...[
-                            SizedBox(height: 14 * s),
-                            Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.fromLTRB(
-                                10 * s,
-                                10 * s,
-                                12 * s,
-                                10 * s,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.warningBg,
-                                borderRadius: BorderRadius.circular(6.5 * s),
-                                border: Border.all(
-                                  color: AppColors.warningBorder,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 23 * s,
-                                    height: 23 * s,
-                                    child: Center(
-                                      child: SvgPicture.asset(
-                                        'assets/images/icon_risk.svg',
-                                        width: 23 * s,
-                                        height: 23 * s,
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 10 * s),
-                                  Expanded(
-                                    child: Text(
-                                      warning!,
-                                      style: AppTypography.medium(
-                                        11 * s,
-                                        color: AppColors.warningText,
-                                      ).copyWith(height: 1.25),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          SizedBox(height: 14 * s),
-                          Text(
-                            actionLabel,
-                            style: AppTypography.medium(
-                              13 * s,
-                              color: accent,
-                            ).copyWith(
-                              decoration: TextDecoration.underline,
-                              decorationColor: accent,
+                          SizedBox(width: 10 * s),
+                          Expanded(
+                            child: Text(
+                              warning!,
+                              style: AppTypography.medium(
+                                11 * s,
+                                color: AppColors.warningText,
+                              ).copyWith(height: 1.25),
                             ),
                           ),
                         ],
                       ),
+                    ),
+                  ],
+                  SizedBox(height: 14 * s),
+                  Text(
+                    actionLabel,
+                    style: AppTypography.medium(
+                      13 * s,
+                      color: accent,
+                    ).copyWith(
+                      decoration: TextDecoration.underline,
+                      decorationColor: accent,
                     ),
                   ),
                 ],
