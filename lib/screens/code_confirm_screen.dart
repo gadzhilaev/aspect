@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../api/auth_api.dart';
 import '../l10n/app_localizations.dart';
@@ -262,7 +263,9 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
       setState(() {
         _navigating = false;
         _hasError = true;
-        _apiError = e.toString();
+        _apiError = ApiClient.isNetworkFailure(e)
+            ? ApiClient.networkUnavailable(e).message
+            : e.toString();
       });
       _clearDigits();
       _nodes.first.requestFocus();
@@ -299,7 +302,9 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
       if (!mounted) return;
       setState(() {
         _hasError = true;
-        _apiError = e.toString();
+        _apiError = ApiClient.isNetworkFailure(e)
+            ? ApiClient.networkUnavailable(e).message
+            : e.toString();
       });
       return;
     }

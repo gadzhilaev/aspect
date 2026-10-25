@@ -55,6 +55,10 @@ class AppLocalizations {
   String get password => _t('Пароль', 'Password');
   String get forgotPassword => _t('Забыли пароль?', 'Forgot password?');
   String get signIn => _t('Войти', 'Log in');
+  String get loginFailedGeneric => _t(
+        'Не удалось войти. Попробуйте ещё раз.',
+        'Could not sign in. Please try again.',
+      );
   String get demoLoginVia => _t('Демо вход через', 'Demo sign-in via');
   String get noAccount => _t('Нет аккаунта? ', 'No account? ');
   String get registerAction => _t('Зарегистрируйтесь', 'Sign up');

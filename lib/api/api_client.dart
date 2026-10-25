@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -15,6 +17,32 @@ class ApiClient {
 
   final http.Client _http = http.Client();
   bool _refreshing = false;
+
+  static const _networkUnavailableMessage =
+      'Сервер недоступен. Проверьте, что API запущен, и попробуйте снова.';
+
+  /// Сырой Socket/ClientException → понятный ApiException (без stack в UI).
+  static ApiException networkUnavailable([Object? cause]) {
+    return ApiException(
+      statusCode: 0,
+      code: 'NETWORK_UNAVAILABLE',
+      message: _networkUnavailableMessage,
+      details: cause?.toString(),
+    );
+  }
+
+  static bool isNetworkFailure(Object error) {
+    if (error is SocketException) return true;
+    if (error is TimeoutException) return true;
+    if (error is http.ClientException) return true;
+    if (error is HandshakeException) return true;
+    final text = error.toString().toLowerCase();
+    return text.contains('socketexception') ||
+        text.contains('connection refused') ||
+        text.contains('failed host lookup') ||
+        text.contains('network is unreachable') ||
+        text.contains('timed out');
+  }
 
   Uri _uri(String path, [Map<String, String>? query]) {
     final p = path.startsWith('/') ? path : '/$path';
@@ -88,17 +116,26 @@ class ApiClient {
     Future<http.Response> Function() once, {
     required bool auth,
   }) async {
-    var res = await once();
-    if (auth && res.statusCode == 401) {
-      final ok = await _tryRefresh();
-      if (ok) {
-        res = await once();
+    try {
+      var res = await once();
+      if (auth && res.statusCode == 401) {
+        final ok = await _tryRefresh();
+        if (ok) {
+          res = await once();
+        }
       }
+      if (res.statusCode >= 400) {
+        throw _toException(res);
+      }
+      return res;
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      if (isNetworkFailure(e)) {
+        throw networkUnavailable(e);
+      }
+      rethrow;
     }
-    if (res.statusCode >= 400) {
-      throw _toException(res);
-    }
-    return res;
   }
 
   Future<bool> _tryRefresh() async {

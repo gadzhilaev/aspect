@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../api/auth_api.dart';
 import '../l10n/app_localizations.dart';
@@ -117,8 +118,11 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      final msg = ApiClient.isNetworkFailure(e)
+          ? ApiClient.networkUnavailable(e).message
+          : context.l10n.loginFailedGeneric;
       setState(() {
-        _error = e.toString();
+        _error = msg;
         _fieldsError = true;
         _busy = false;
       });
@@ -150,11 +154,10 @@ class _LoginScreenState extends State<LoginScreen> {
           builder: (context, constraints) {
             return SingleChildScrollView(
               controller: _scrollController,
-              physics: keyboardOpen
-                  ? const AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    )
-                  : const NeverScrollableScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: EdgeInsets.fromLTRB(
                 16 * s,
                 8 * s,

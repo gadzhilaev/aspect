@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../api/auth_api.dart';
 import '../l10n/app_localizations.dart';
@@ -133,7 +134,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = ApiClient.isNetworkFailure(e)
+            ? ApiClient.networkUnavailable(e).message
+            : context.l10n.loginFailedGeneric;
         _emailFieldError = false;
       });
     } finally {
