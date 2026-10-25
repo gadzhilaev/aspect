@@ -8,9 +8,10 @@
 
 | | |
 |--|--|
-| Git HEAD | `ac1ca8b` (ветка `main`, локально ahead of origin) |
-| Незакоммиченные изменения | да: bank_materials (оригинал), mobile prefs/012, Flutter API/честные UI, docs |
-| Commit / push / deploy | **не** выполнялись |
+| Git HEAD | см. `git rev-parse HEAD` (ветка `main`) |
+| Сценарий жюри | [`JURY_MOBILE_SCENARIO.md`](JURY_MOBILE_SCENARIO.md) |
+| Мониторинг | [`QUALITY_MONITORING.md`](QUALITY_MONITORING.md) |
+| Commit / push | по запросу; доступ GitHub жюри — операционка |
 
 Архив стенда (проверен до использования):
 
