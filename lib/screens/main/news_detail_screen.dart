@@ -6,9 +6,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../api/events_api.dart';
 import '../../api/feed_models.dart';
 import '../../l10n/app_localizations.dart';
+import '../../navigation/app_page_route.dart';
 import '../../services/auth_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../utils/text_sanitize.dart';
 import '../../widgets/main_widgets.dart';
 import 'bank_material_screen.dart';
 import 'chat_screen.dart';
@@ -20,6 +22,8 @@ class NewsDetailData {
     required this.title,
     required this.timeLabel,
     required this.sourceUrl,
+    this.sourceLabel = '',
+    this.levelHint = '',
     required this.body,
     required this.whatHappened,
     required this.concernTitle,
@@ -38,6 +42,8 @@ class NewsDetailData {
   final String title;
   final String timeLabel;
   final String sourceUrl;
+  final String sourceLabel;
+  final String levelHint;
   final String body;
   final String whatHappened;
   final String concernTitle;
@@ -52,17 +58,25 @@ class NewsDetailData {
   final String bankBody;
 }
 
+String _levelHintFor(ImpactLevel level, AppLocalizations l10n) => switch (level) {
+      ImpactLevel.high => l10n.impactHighHint,
+      ImpactLevel.medium => l10n.impactMediumHint,
+      ImpactLevel.opportunity => l10n.impactOpportunityHint,
+    };
+
 const chinaExportDetail = NewsDetailData(
   level: ImpactLevel.high,
   title: 'Китай ограничивает экспорт электроники',
   timeLabel: 'Сегодня 08:24',
   sourceUrl: 'https://pin.it/2FPGIqkTI',
+  sourceLabel: 'https://pin.it/2FPGIqkTI',
+  levelHint: 'Сильный риск для вашей компании — лучше разобрать сейчас',
   body:
       'Китай расширил ограничения на экспорт отдельных категорий электроники и компонентов. Мера затрагивает поставки продукции двойного назначения.\n\nНовые правила могут повлиять на сроки поставок и условия контрактов для зарубежных покупателей. Подробные требования будут опубликованы в ближайшие дни.',
   whatHappened:
       'Ограничения вводятся поэтапно и распространяются на ряд технологических категорий.',
-  concernTitle: 'Почему касается вашей компании',
-  callout: 'Китай - один из рынков поставок вашей компании',
+  concernTitle: 'Почему это про вашу компанию',
+  callout: 'Китай — один из рынков поставок вашей компании',
   risk: 'Задержка поставок критичных компонентов',
   opportunity: 'Заранее пересмотреть пул поставщиков',
   nextAction:
@@ -73,30 +87,89 @@ NewsDetailData newsDetailFor({
   required ImpactLevel level,
   required String title,
   required String meta,
+  String timeLabel = '',
+  String sourceUrl = '',
+  String sourceLabel = '',
+  String levelHint = '',
   String? warning,
+  String reason = '',
+  AppLocalizations? l10n,
 }) {
   if (title.contains('Китай ограничивает')) {
     return chinaExportDetail;
   }
-  final time = meta.contains('вчера') || meta.contains('Вчера')
-      ? 'Вчера'
-      : meta.contains('08:24')
-          ? 'Сегодня 08:24'
-          : meta;
+  final when = timeLabel.isNotEmpty
+      ? timeLabel
+      : (meta.contains('вчера') || meta.contains('Вчера')
+          ? 'Вчера'
+          : meta);
+  final hint = levelHint.isNotEmpty
+      ? levelHint
+      : (l10n != null ? _levelHintFor(level, l10n) : '');
   return NewsDetailData(
     level: level,
-    title: title,
-    timeLabel: time,
-    sourceUrl: 'https://pin.it/2FPGIqkTI',
-    body:
-        'Аспект собрал ключевые факты по событию и оценил влияние на ваш профиль компании.',
-    whatHappened: 'Сигнал отмечен в ленте как значимый для вашей отрасли.',
-    concernTitle: 'Почему касается вашей компании',
-    callout: warning ?? 'Событие связано с рынками и поставками вашей компании',
-    risk: 'Возможны изменения условий закупок и сроков',
-    opportunity: 'Пересмотреть сценарии поставок заранее',
-    nextAction: 'Пересмотреть сценарии поставок заранее.',
+    title: decodeHtmlEntities(title),
+    timeLabel: when,
+    sourceUrl: sourceUrl,
+    sourceLabel: sourceUrl.isNotEmpty
+        ? sourceUrl
+        : sourceLabel,
+    levelHint: hint,
+    body: '',
+    whatHappened: '',
+    concernTitle: 'Почему это про вашу компанию',
+    callout: reason.isNotEmpty
+        ? decodeHtmlEntities(reason)
+        : (warning ?? ''),
+    risk: '',
+    opportunity: '',
+    nextAction: '',
   );
+}
+
+String _pickLongestText(Iterable<String> parts) {
+  var best = '';
+  for (final raw in parts) {
+    final t = decodeHtmlEntities(raw).trim();
+    if (t.length > best.length) best = t;
+  }
+  return best;
+}
+
+String _humanizeRelevance(Map<String, dynamic>? relevance, AppLocalizations l10n) {
+  if (relevance == null) return l10n.whyRelevantFallback;
+  final summary = decodeHtmlEntities((relevance['summary'] ?? '').toString()).trim();
+  final matches = relevance['matched_features'];
+  final bits = <String>[];
+  if (matches is List) {
+    for (final m in matches.take(3)) {
+      if (m is! Map) continue;
+      final axis = m['axis']?.toString() ?? '';
+      final eventValue = m['event_value']?.toString() ?? '';
+      final companyValue = m['company_value']?.toString() ?? '';
+      final nodeName = m['node_name']?.toString() ?? '';
+      final axisRu = switch (axis) {
+        'country' || 'market' => 'рынок',
+        'product' => 'продукт',
+        'supplier' || 'counterparty' => 'поставщик',
+        'industry' || 'okved' => 'отрасль',
+        _ => axis.isEmpty ? 'профиль' : axis,
+      };
+      if (nodeName.isNotEmpty) {
+        bits.add('$axisRu: $nodeName');
+      } else if (companyValue.isNotEmpty && eventValue.isNotEmpty) {
+        bits.add('$axisRu — совпало «$eventValue» с вашим «$companyValue»');
+      } else if (companyValue.isNotEmpty) {
+        bits.add('$axisRu: $companyValue');
+      }
+    }
+  }
+  if (bits.isNotEmpty) {
+    final head = summary.isNotEmpty ? summary : 'Совпало с профилем компании';
+    return '$head\n\nСовпадения: ${bits.join('; ')}.';
+  }
+  if (summary.isNotEmpty) return summary;
+  return l10n.whyRelevantFallback;
 }
 
 NewsDetailData _detailFromApi({
@@ -114,21 +187,31 @@ NewsDetailData _detailFromApi({
           ...impactCard,
           'id': detail['id'] ?? impactCard['id'],
           'title': detail['title'] ?? impactCard['title'],
+          'updated_at': detail['occurred_at'] ??
+              impactCard['updated_at'] ??
+              detail['updated_at'],
+          'sources': detail['sources'] ?? impactCard['sources'],
         }, l10n)
       : null;
   final sources = (detail['sources'] as List?) ?? const [];
   String sourceUrl = fallback.sourceUrl;
+  String sourceLabel = fallback.sourceLabel;
+  final excerpts = <String>[];
   for (final s in sources) {
-    if (s is Map && s['url'] != null && s['url'].toString().isNotEmpty) {
-      sourceUrl = s['url'].toString();
-      break;
+    if (s is! Map) continue;
+    final url = s['url']?.toString() ?? '';
+    if (sourceUrl.isEmpty && url.isNotEmpty) {
+      sourceUrl = url;
+      sourceLabel = url;
     }
+    final excerpt = s['excerpt']?.toString() ?? '';
+    if (excerpt.trim().isNotEmpty) excerpts.add(excerpt);
   }
-  final summary = (detail['summary'] ?? '').toString();
-  final reason = (impact?['reason_summary'] ??
-          impactCard?['reason_summary'] ??
-          '')
-      .toString();
+  final summary = decodeHtmlEntities((detail['summary'] ?? '').toString());
+  final reason = decodeHtmlEntities(
+    (impact?['reason_summary'] ?? impactCard?['reason_summary'] ?? '').toString(),
+  );
+  final body = _pickLongestText([summary, ...excerpts, fallback.body]);
   final expl = impact?['assessment_explanation'];
   String risk = fallback.risk;
   String opportunity = fallback.opportunity;
@@ -136,39 +219,74 @@ NewsDetailData _detailFromApi({
   if (expl is Map) {
     final missing = (expl['missing_data'] as List?)?.join('; ') ?? '';
     final calc = expl['calculation']?.toString() ?? '';
-    if (calc.isNotEmpty) risk = calc;
-    if (missing.isNotEmpty) opportunity = missing;
+    if (calc.isNotEmpty) risk = decodeHtmlEntities(calc);
+    if (missing.isNotEmpty) opportunity = decodeHtmlEntities(missing);
     final summaryExpl = expl['summary']?.toString() ?? '';
-    if (summaryExpl.isNotEmpty) nextAction = summaryExpl;
+    if (summaryExpl.isNotEmpty) nextAction = decodeHtmlEntities(summaryExpl);
   }
-  // Bank block only from API evidence — never keep static mock bank copy.
+  if (risk.isEmpty && reason.isNotEmpty) risk = reason;
+  if (opportunity.isEmpty) {
+    opportunity = switch (feed?.level ?? fallback.level) {
+      ImpactLevel.opportunity => l10n.impactOpportunityHint,
+      ImpactLevel.high => 'Проверить поставки, контракты и запас по критичным позициям',
+      ImpactLevel.medium => 'Учесть в планах закупок и сроках',
+    };
+  }
+  if (nextAction.isEmpty) {
+    nextAction = switch (feed?.level ?? fallback.level) {
+      ImpactLevel.high => 'Открыть влияние и разобрать риски с Аспект',
+      ImpactLevel.opportunity => 'Посмотреть сценарий и зафиксировать шаги',
+      ImpactLevel.medium => 'Сохранить в контроль и уточнить детали у источника',
+    };
+  }
+
   String bankTitle = '';
   String bankBody = '';
   final evidenceItems = evidence?['evidence'];
   final status = evidence?['status']?.toString() ?? '';
-  if (evidenceItems is List && evidenceItems.isNotEmpty && evidenceItems.first is Map) {
+  if (evidenceItems is List &&
+      evidenceItems.isNotEmpty &&
+      evidenceItems.first is Map) {
     final m = Map<String, dynamic>.from(evidenceItems.first as Map);
-    bankTitle = (m['document_title'] ?? m['title'] ?? '').toString();
-    bankBody = (m['text'] ?? m['excerpt'] ?? m['body'] ?? '').toString();
+    bankTitle = decodeHtmlEntities(
+      (m['document_title'] ?? m['title'] ?? '').toString(),
+    );
+    bankBody = decodeHtmlEntities(
+      (m['text'] ?? m['excerpt'] ?? m['body'] ?? '').toString(),
+    );
   } else if (status.isNotEmpty && status != 'available') {
     bankTitle = l10n.alfaBankAnalytics;
     bankBody = l10n.bankEvidenceUnavailable;
   }
-  final riskOut = expl is Map && (expl['calculation']?.toString().isNotEmpty ?? false)
-      ? risk
-      : (impact != null || impactCard != null ? risk : '');
-  final opportunityOut = expl is Map ? opportunity : opportunity;
+
+  final relevance = detail['relevance'] is Map
+      ? Map<String, dynamic>.from(detail['relevance'] as Map)
+      : null;
+  final callout = _humanizeRelevance(relevance, l10n);
+  final whatHappened = body.isNotEmpty
+      ? body
+      : (reason.isNotEmpty ? reason : summary);
+  final level = feed?.level ?? fallback.level;
+
   return NewsDetailData(
-    level: feed?.level ?? fallback.level,
-    title: (detail['title'] ?? fallback.title).toString(),
-    timeLabel: feed?.meta ?? fallback.timeLabel,
+    level: level,
+    title: decodeHtmlEntities(
+      (detail['title'] ?? fallback.title).toString(),
+    ),
+    timeLabel: feed?.timeLabel.isNotEmpty == true
+        ? feed!.timeLabel
+        : fallback.timeLabel,
     sourceUrl: sourceUrl.isNotEmpty ? sourceUrl : '',
-    body: summary.isNotEmpty ? summary : (detail['summary']?.toString() ?? ''),
-    whatHappened: reason.isNotEmpty ? reason : summary,
-    concernTitle: fallback.concernTitle,
-    callout: reason.isNotEmpty ? reason : (summary.isNotEmpty ? summary : ''),
-    risk: riskOut.isNotEmpty ? riskOut : (reason.isNotEmpty ? reason : ''),
-    opportunity: opportunityOut,
+    sourceLabel: sourceUrl.isNotEmpty ? sourceUrl : sourceLabel,
+    levelHint: fallback.levelHint.isNotEmpty
+        ? fallback.levelHint
+        : _levelHintFor(level, l10n),
+    body: body,
+    whatHappened: whatHappened,
+    concernTitle: l10n.whyRelevantTitle,
+    callout: callout.isNotEmpty ? callout : fallback.callout,
+    risk: risk,
+    opportunity: opportunity,
     nextAction: nextAction,
     bankTitle: bankTitle,
     bankBody: bankBody,
@@ -184,7 +302,7 @@ Future<void> openNewsDetail(
 }) {
   onOpened?.call();
   return Navigator.of(context).push(
-    MaterialPageRoute<void>(
+    AppPageRoute<void>(
       builder: (_) => NewsDetailScreen(
         data: data,
         backLabel: backLabel,
@@ -263,6 +381,13 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
 
   static const _bodySize = 15.13;
 
+  double _titleFontSize(double s) {
+    final len = data.title.trim().length;
+    if (len > 90) return 18 * s;
+    if (len > 55) return 20.5 * s;
+    return 24.83 * s;
+  }
+
   Future<void> _openSource() async {
     final uri = Uri.tryParse(data.sourceUrl);
     if (uri == null) return;
@@ -281,6 +406,12 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
     final s = context.scale;
     final accent = ImpactColors.accent(data.level);
     final hPad = AppColors.screenPadding * s;
+    final sourceShown =
+        data.sourceUrl.isNotEmpty ? data.sourceUrl : data.sourceLabel;
+    final bodyStyle = AppTypography.regular(
+      _bodySize * s,
+      color: AppColors.textPrimary,
+    ).copyWith(height: 1.5);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppColors.systemOverlay,
@@ -291,8 +422,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_loading)
-                const LinearProgressIndicator(minHeight: 2),
+              if (_loading) const LinearProgressIndicator(minHeight: 2),
               Material(
                 color: AppColors.surface,
                 child: Padding(
@@ -322,29 +452,43 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                     24 * s + MediaQuery.paddingOf(context).bottom,
                   ),
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 5 * s,
-                          height: 48 * s,
-                          decoration: BoxDecoration(
-                            color: accent,
-                            borderRadius: BorderRadius.circular(2.5 * s),
-                          ),
-                        ),
-                        SizedBox(width: 12 * s),
-                        Expanded(
-                          child: Text(
-                            data.title,
-                            style: AppTypography.bold(
-                              24.83 * s,
-                              color: AppColors.textInput,
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            width: 5 * s,
+                            decoration: BoxDecoration(
+                              color: accent,
+                              borderRadius: BorderRadius.circular(2.5 * s),
                             ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 12 * s),
+                          Expanded(
+                            child: Text(
+                              data.title,
+                              style: AppTypography.bold(
+                                _titleFontSize(s),
+                                color: AppColors.textInput,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    if (data.levelHint.isNotEmpty) ...[
+                      SizedBox(height: 8 * s),
+                      Padding(
+                        padding: EdgeInsets.only(left: 17 * s),
+                        child: Text(
+                          data.levelHint,
+                          style: AppTypography.regular(
+                            13 * s,
+                            color: AppColors.textMuted,
+                          ).copyWith(height: 1.35),
+                        ),
+                      ),
+                    ],
                     SizedBox(height: 8 * s),
                     Padding(
                       padding: EdgeInsets.only(left: 17 * s),
@@ -356,24 +500,28 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                         ),
                       ),
                     ),
-                    SizedBox(height: 8 * s),
-                    Padding(
-                      padding: EdgeInsets.only(left: 17 * s),
-                      child: Text.rich(
-                        TextSpan(
-                          style: AppTypography.regular(
-                            13 * s,
-                            color: AppColors.textMuted,
-                          ),
+                    if (sourceShown.isNotEmpty) ...[
+                      SizedBox(height: 8 * s),
+                      Padding(
+                        padding: EdgeInsets.only(left: 17 * s),
+                        child: Row(
                           children: [
-                            TextSpan(text: l10n.sourcePrefix),
-                            WidgetSpan(
-                              alignment: PlaceholderAlignment.baseline,
-                              baseline: TextBaseline.alphabetic,
+                            Text(
+                              l10n.sourcePrefix,
+                              style: AppTypography.regular(
+                                13 * s,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            Expanded(
                               child: GestureDetector(
-                                onTap: _openSource,
+                                onTap: data.sourceUrl.isEmpty
+                                    ? null
+                                    : _openSource,
                                 child: Text(
-                                  data.sourceUrl,
+                                  sourceShown,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: AppTypography.regular(
                                     13 * s,
                                     color: AppColors.brandRed,
@@ -384,7 +532,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                           ],
                         ),
                       ),
-                    ),
+                    ],
                     SizedBox(height: 15 * s),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(20 * s),
@@ -399,35 +547,42 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                         ),
                       ),
                     ),
-                    SizedBox(height: 16 * s),
-                    Text(
-                      data.body,
-                      style: AppTypography.regular(
-                        _bodySize * s,
-                        color: AppColors.textPrimary,
+                    if (data.body.isNotEmpty) ...[
+                      SizedBox(height: 16 * s),
+                      Text(data.body, style: bodyStyle),
+                    ],
+                    if (data.whatHappened.isNotEmpty &&
+                        data.whatHappened != data.body) ...[
+                      SizedBox(height: 20 * s),
+                      Text(
+                        l10n.whatHappened,
+                        style: AppTypography.bold(
+                          _bodySize * s,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 20 * s),
-                    Text(
-                      l10n.whatHappened,
-                      style: AppTypography.bold(
-                        _bodySize * s,
-                        color: AppColors.textPrimary,
+                      SizedBox(height: 8 * s),
+                      Text(data.whatHappened, style: bodyStyle),
+                    ] else if (data.body.isEmpty &&
+                        data.whatHappened.isNotEmpty) ...[
+                      SizedBox(height: 20 * s),
+                      Text(
+                        l10n.whatHappened,
+                        style: AppTypography.bold(
+                          _bodySize * s,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 8 * s),
-                    Text(
-                      data.whatHappened,
-                      style: AppTypography.regular(
-                        _bodySize * s,
-                        color: AppColors.textPrimary,
+                      SizedBox(height: 8 * s),
+                      Text(data.whatHappened, style: bodyStyle),
+                    ],
+                    if (data.callout.isNotEmpty) ...[
+                      SizedBox(height: 20 * s),
+                      _ConcernCard(
+                        title: data.concernTitle,
+                        body: data.callout,
                       ),
-                    ),
-                    SizedBox(height: 20 * s),
-                    _ConcernCard(
-                      title: data.concernTitle,
-                      body: data.callout,
-                    ),
+                    ],
                     SizedBox(height: 20 * s),
                     Text(
                       l10n.whatItMeansForYou,
@@ -437,30 +592,36 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                       ),
                     ),
                     SizedBox(height: 10 * s),
-                    _ChangeLine(label: l10n.riskLabel, text: data.risk),
-                    SizedBox(height: 8 * s),
-                    _ChangeLine(
-                      label: l10n.opportunityLabel,
-                      text: data.opportunity,
-                    ),
-                    SizedBox(height: 20 * s),
-                    Text(
-                      l10n.nextActionTitle,
-                      style: AppTypography.bold(
-                        _bodySize * s,
-                        color: AppColors.textPrimary,
+                    if (data.risk.isNotEmpty)
+                      _ChangeLine(label: l10n.riskLabel, text: data.risk),
+                    if (data.risk.isNotEmpty && data.opportunity.isNotEmpty)
+                      SizedBox(height: 8 * s),
+                    if (data.opportunity.isNotEmpty)
+                      _ChangeLine(
+                        label: l10n.opportunityLabel,
+                        text: data.opportunity,
                       ),
-                    ),
-                    SizedBox(height: 8 * s),
-                    Text(
-                      data.nextAction,
-                      style: AppTypography.regular(
-                        _bodySize * s,
-                        color: AppColors.textPrimary,
+                    if (data.nextAction.isNotEmpty) ...[
+                      SizedBox(height: 20 * s),
+                      Text(
+                        l10n.nextActionTitle,
+                        style: AppTypography.bold(
+                          _bodySize * s,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                    ),
+                      SizedBox(height: 8 * s),
+                      Text(
+                        data.nextAction,
+                        style: AppTypography.regular(
+                          _bodySize * s,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                     SizedBox(height: 20 * s),
-                    if (data.bankTitle.isNotEmpty || data.bankBody.isNotEmpty) ...[
+                    if (data.bankTitle.isNotEmpty ||
+                        data.bankBody.isNotEmpty) ...[
                       _BankCard(
                         title: data.bankTitle.isNotEmpty
                             ? data.bankTitle
@@ -481,7 +642,8 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                             final impact = switch (data.level) {
                               ImpactLevel.high => l10n.impactHigh,
                               ImpactLevel.medium => l10n.impactMedium,
-                              ImpactLevel.opportunity => l10n.impactOpportunity,
+                              ImpactLevel.opportunity =>
+                                l10n.impactOpportunity,
                             };
                             openChatScreen(
                               context,
@@ -541,7 +703,10 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
 }
 
 class _ConcernCard extends StatelessWidget {
-  const _ConcernCard({required this.title, required this.body});
+  const _ConcernCard({
+    required this.title,
+    required this.body,
+  });
 
   final String title;
   final String body;
@@ -577,13 +742,13 @@ class _ConcernCard extends StatelessWidget {
               color: const Color.fromRGBO(24, 27, 34, 1),
             ),
           ),
-          SizedBox(height: 2 * s),
+          SizedBox(height: 6 * s),
           Text(
             body,
             style: AppTypography.regular(
               15.13 * s,
               color: AppColors.textPrimary,
-            ),
+            ).copyWith(height: 1.45),
           ),
         ],
       ),
@@ -744,7 +909,7 @@ class _ChangeLine extends StatelessWidget {
             style: AppTypography.regular(
               15.13 * s,
               color: AppColors.textPrimary,
-            ),
+            ).copyWith(height: 1.45),
           ),
         ],
       ),
