@@ -16,6 +16,12 @@ from app.services.ingestion.official_sources import (
     classify_official_primary,
     is_official_primary_item,
 )
+from app.services.industry_news.enrich_signals import extract_industry_signals
+
+
+def _industry_attrs(title: str, summary: str) -> dict[str, Any]:
+    """Additive electronics signals for industry personalization (v1)."""
+    return extract_industry_signals(title or "", summary or "")
 
 
 @dataclass
@@ -134,6 +140,9 @@ def publish_event(
         attrs["official_source_ids"] = list(decision.official_source_ids)
         if enrichment.classification_meta:
             attrs["classification"] = dict(enrichment.classification_meta)
+        attrs.update(
+            _industry_attrs(enrichment.title_ru, summary)
+        )
         event.attributes_json = attrs
     else:
         attrs_new: dict = {
@@ -144,6 +153,7 @@ def publish_event(
         }
         if enrichment.classification_meta:
             attrs_new["classification"] = dict(enrichment.classification_meta)
+        attrs_new.update(_industry_attrs(enrichment.title_ru, summary))
         event = Event(
             id=event_id,
             title=enrichment.title_ru[:512],

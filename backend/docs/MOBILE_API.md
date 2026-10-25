@@ -310,6 +310,8 @@ Provenance виден в `GET /companies/{id}/profile` → `settings.preferences
 | PATCH | `/companies/{id}/nodes/{node_id}` |
 | POST | `/companies/{id}/edges` |
 | PATCH | `/companies/{id}/finance` |
+| GET | `/companies/{id}/industry-profile` |
+| PATCH | `/companies/{id}/industry-profile` |
 | POST | `/companies/{id}/profile/complete` |
 | POST | `/companies/{id}/digital-twin/build` |
 | GET | `/companies/{id}/dashboard` |
@@ -328,6 +330,13 @@ Provenance виден в `GET /companies/{id}/profile` → `settings.preferences
 Смена FX-пары без явного `fx_rate_from` в том же PATCH очищает сохранённый курс (сервер, не только web).  
 Legacy `fx_purchase_volume` без валюты **не** мигрирует в `fx_exposure_amount`.  
 Подробности: `docs/FINANCE_SETUP_RATE_FX.md`, E2E: `docs/FINANCE_RATE_FX_E2E.md`.
+
+### Industry profile (electronics v1)
+
+`GET|PATCH /companies/{id}/industry-profile` — бренды, категории, линейки, рынки продаж, география закупок.  
+Хранится в `preferences.industry_profile` (не затирает case/registry).  
+Лента: `score_kind=industry_profile_match` — тематика без `EventImpact` и без денежного score; Telegram не расширяется.  
+См. `docs/INDUSTRY_NEWS_PERSONALIZATION.md`.
 
 ## News / For you
 

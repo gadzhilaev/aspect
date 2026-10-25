@@ -25,6 +25,8 @@ from app.schemas.company import (
     EdgeCreateIn,
     EdgeOut,
     FinancePatchIn,
+    IndustryProfileOut,
+    IndustryProfilePatchIn,
     NodeCreateIn,
     NodeOut,
     NodePatchIn,
@@ -314,6 +316,69 @@ def add_edge(
     return EdgeOut.model_validate(edge)
 
 
+@router.get(
+    "/companies/{company_id}/industry-profile",
+    response_model=IndustryProfileOut,
+    summary="Industry personalization profile (brands, categories)",
+)
+def get_industry_profile(
+    company_id: str,
+    db: Session = Depends(get_db),
+    _: CompanyMembership = Depends(require_company_member),
+) -> IndustryProfileOut:
+    from app.services.case_profile_feed import load_industry_profile
+
+    company = db.get(Company, company_id)
+    if company is None:
+        raise AppError("NOT_FOUND", "Компания не найдена", 404)
+    profile = load_industry_profile(db, company_id)
+    return IndustryProfileOut(**profile.to_dict())
+
+
+@router.patch(
+    "/companies/{company_id}/industry-profile",
+    response_model=IndustryProfileOut,
+    summary="Patch industry personalization profile",
+)
+def patch_industry_profile(
+    company_id: str,
+    body: IndustryProfilePatchIn,
+    db: Session = Depends(get_db),
+    _: CompanyMembership = Depends(require_company_member),
+) -> IndustryProfileOut:
+    from app.services.industry_news.profile import (
+        merge_industry_profile,
+        put_industry_profile,
+    )
+
+    company = db.get(Company, company_id)
+    if company is None:
+        raise AppError("NOT_FOUND", "Компания не найдена", 404)
+    settings = (
+        db.query(CompanyProfileSettings)
+        .filter(CompanyProfileSettings.company_id == company_id)
+        .first()
+    )
+    if settings is None:
+        settings = CompanyProfileSettings(id=str(uuid4()), company_id=company_id)
+        db.add(settings)
+        db.flush()
+    prefs = (
+        dict(settings.preferences_json)
+        if isinstance(settings.preferences_json, dict)
+        else {}
+    )
+    patch = body.model_dump(exclude_unset=True)
+    merged = merge_industry_profile(prefs, patch)
+    settings.preferences_json = put_industry_profile(prefs, merged)
+    # Optional: keep purchase currencies in sync when provided here.
+    if "purchase_currencies" in patch and patch["purchase_currencies"] is not None:
+        settings.purchase_currencies_json = list(merged.get("purchase_currencies") or [])
+    db.commit()
+    db.refresh(settings)
+    return IndustryProfileOut(**merged)
+
+
 @router.patch("/companies/{company_id}/finance", response_model=MessageOut)
 def patch_finance(
     company_id: str,
@@ -377,9 +442,11 @@ def complete_profile(
         raise AppError("NOT_FOUND", "Компания не найдена", 404)
     nodes = db.query(CompanyNode).filter(CompanyNode.company_id == company_id).all()
     completeness = _completeness(nodes, company)
-    required = completeness["checks"]
-    # finance is NOT required
-    blocking = [k for k, v in required.items() if not v]
+    # Mobile / lean onboarding: industry + product + market. Full graph
+    # (supplier/component/facility/line) remains optional enrichment.
+    required_keys = ("industry", "product", "market")
+    checks = completeness["checks"]
+    blocking = [k for k in required_keys if not checks.get(k)]
     if blocking:
         raise AppError(
             "PROFILE_INCOMPLETE",

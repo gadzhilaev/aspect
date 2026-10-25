@@ -62,6 +62,35 @@ class FinancePatchIn(BaseModel):
     optional_finance: dict[str, Any] = Field(default_factory=dict)
 
 
+class IndustryProfilePatchIn(BaseModel):
+    """Additive industry personalization fields (electronics v1).
+
+    Stored under preferences.industry_profile. Absent keys keep previous values;
+    null / empty list clears that field. Does not overwrite case/registry data.
+    """
+
+    activity_role: str | None = Field(
+        default=None,
+        description="retailer | manufacturer | distributor | other",
+    )
+    product_categories: list[str] | None = None
+    brands: list[str] | None = None
+    product_lines: list[str] | None = None
+    sales_markets: list[str] | None = None
+    procurement_countries: list[str] | None = None
+    purchase_currencies: list[str] | None = None
+
+
+class IndustryProfileOut(BaseModel):
+    activity_role: str = ""
+    product_categories: list[str] = Field(default_factory=list)
+    brands: list[str] = Field(default_factory=list)
+    product_lines: list[str] = Field(default_factory=list)
+    sales_markets: list[str] = Field(default_factory=list)
+    procurement_countries: list[str] = Field(default_factory=list)
+    purchase_currencies: list[str] = Field(default_factory=list)
+
+
 class CompanySummaryOut(BaseModel):
     id: str
     name: str

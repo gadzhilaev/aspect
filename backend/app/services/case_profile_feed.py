@@ -26,14 +26,23 @@ from app.services.case_profile_relevance import (
     product_snapshot_from_case_context,
 )
 from app.services.company_context import build_case_context_block
+from app.services.industry_news.profile import IndustryProfile, parse_industry_profile
+from app.services.industry_news.relevance import (
+    IndustryRelevanceResult,
+    evaluate_events_industry_relevance,
+)
 
 # Feed groups — lower sorts first. Do not compare scores across groups.
 FEED_KIND_GROUP: dict[str, int] = {
     "company_calculated": 0,
     "event_severity_signal": 1,
     "case_profile_match": 2,
+    # Same group as case_profile_match — thematic, no money score
+    "industry_profile_match": 2,
     "unavailable": 3,
 }
+
+INCLUSION_INDUSTRY = "industry_profile"
 FEED_GROUP_NAME: dict[int, str] = {v: k for k, v in FEED_KIND_GROUP.items()}
 
 FEED_SORT_RULE = (
@@ -268,6 +277,114 @@ def card_from_profile(
     )
 
 
+def _industry_profile_out(result: IndustryRelevanceResult) -> ProfileRelevanceOut:
+    data = result.to_profile_relevance_dict()
+    return ProfileRelevanceOut(
+        matched=True,
+        label=str(data.get("label") or "По вашим продуктам"),
+        summary=result.summary,
+        matches=[
+            ProfileRelevanceMatchOut(
+                rule_id=m["rule_id"],
+                theme=m["theme"],
+                product_code=m["product_code"],
+                product_label=m["product_label"],
+                product_status=m["product_status"],
+                explanation=m["explanation"],
+                event_theme_signals=list(m.get("event_theme_signals") or []),
+                limitations=list(m.get("limitations") or []),
+            )
+            for m in data.get("matches") or []
+        ],
+        limitations=list(data.get("limitations") or []),
+        provenance=None,
+    )
+
+
+def card_from_industry(
+    event: Event,
+    source_count: int,
+    *,
+    industry: IndustryRelevanceResult,
+) -> EventCardOut:
+    """Industry thematic card — no Impact, no money score."""
+    profile_out = _industry_profile_out(industry)
+    kind = "industry_profile_match"
+    priority = "medium" if industry.precision == "exact" else "low"
+    return EventCardOut(
+        id=event.id,
+        title=event.title,
+        category=event.category,
+        priority=priority,
+        impact_score=None,
+        impact_score_available=False,
+        urgency="watch",
+        confidence=0.0,
+        reason_summary=industry.summary,
+        exposure=None,
+        claims={},
+        source_count=source_count,
+        updated_at=event.occurred_at or datetime.now(timezone.utc),
+        status="profile_match",
+        is_demo=event.is_demo,
+        assessment_state="calculation_unavailable",
+        metric_labels={
+            "impact_score": "По вашим продуктам",
+            "confidence": "Не оценка качества расчёта",
+        },
+        score_kind=kind,
+        score_kind_label="По вашим продуктам",
+        inclusion_bases=[INCLUSION_INDUSTRY],
+        profile_relevance=profile_out,
+    )
+
+
+def load_industry_profile(db: Session, company_id: str) -> IndustryProfile:
+    settings = (
+        db.query(CompanyProfileSettings)
+        .filter(CompanyProfileSettings.company_id == company_id)
+        .first()
+    )
+    prefs = (
+        settings.preferences_json
+        if settings and isinstance(settings.preferences_json, dict)
+        else {}
+    )
+    profile = parse_industry_profile(prefs)
+    # Merge twin product / market node names (manual profile, not case overwrite).
+    from app.models import CompanyNode
+
+    nodes = (
+        db.query(CompanyNode).filter(CompanyNode.company_id == company_id).all()
+    )
+    products: list[str] = []
+    markets: list[str] = []
+    for n in nodes:
+        name = (n.name or "").strip()
+        if not name:
+            continue
+        if n.node_type == "product":
+            products.append(name)
+        elif n.node_type == "market":
+            markets.append(name)
+            if n.country:
+                markets.append(n.country)
+    if products:
+        profile.product_names = list(
+            dict.fromkeys([*profile.product_names, *products])
+        )
+    if markets and not profile.sales_markets:
+        profile.sales_markets = list(dict.fromkeys(markets))
+    if settings and isinstance(settings.purchase_currencies_json, list):
+        if not profile.purchase_currencies:
+            profile.purchase_currencies = [
+                str(c).strip()
+                for c in settings.purchase_currencies_json
+                if str(c).strip()
+            ]
+    return profile
+
+
 def build_merged_feed_entries(
     db: Session,
     *,
@@ -280,6 +397,10 @@ def build_merged_feed_entries(
     impact_by_event = {row[0].event_id: row for row in impact_rows}
     active_events = db.query(Event).filter(Event.status == "active").all()
     profile_by_event = evaluate_events_profile_relevance(active_events, products)
+    industry_profile = load_industry_profile(db, company_id)
+    industry_by_event = evaluate_events_industry_relevance(
+        active_events, industry_profile
+    )
 
     event_ids = [e.id for e in active_events]
     src_counts: dict[str, int] = {eid: 0 for eid in event_ids}
@@ -311,6 +432,21 @@ def build_merged_feed_entries(
             profile=pref if pref and pref.matched else None,
             products=products if pref and pref.matched else None,
         )
+        # Attach industry explanation when Impact card has no case profile match.
+        ind = industry_by_event.get(event.id)
+        if (
+            card.profile_relevance is None
+            and ind is not None
+            and ind.matched
+        ):
+            card = card.model_copy(
+                update={
+                    "profile_relevance": _industry_profile_out(ind),
+                    "inclusion_bases": list(
+                        dict.fromkeys([*card.inclusion_bases, INCLUSION_INDUSTRY])
+                    ),
+                }
+            )
         entries.append(
             FeedEntry(
                 event_id=event.id,
@@ -340,6 +476,29 @@ def build_merged_feed_entries(
                 event_id=event.id,
                 score_kind="case_profile_match",
                 sort_key=_occurred_sort_key(event),
+                card=card,
+            )
+        )
+        seen.add(event.id)
+
+    for event in active_events:
+        if event.id in seen:
+            continue
+        ind = industry_by_event.get(event.id)
+        if ind is None or not ind.matched:
+            continue
+        card = card_from_industry(
+            event,
+            src_counts.get(event.id, 0),
+            industry=ind,
+        )
+        # Exact matches sort slightly above broad within the thematic group.
+        sort_boost = 1e12 if ind.precision == "exact" else 0.0
+        entries.append(
+            FeedEntry(
+                event_id=event.id,
+                score_kind="industry_profile_match",
+                sort_key=_occurred_sort_key(event) + sort_boost,
                 card=card,
             )
         )

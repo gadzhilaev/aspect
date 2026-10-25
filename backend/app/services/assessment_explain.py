@@ -22,6 +22,7 @@ SCORE_KIND_LABELS = {
     SCORE_KIND_COMPANY: IMPACT_SCORE_LABEL,
     SCORE_KIND_SEVERITY: EVENT_SEVERITY_SIGNAL_LABEL,
     SCORE_KIND_CASE_PROFILE: "По профилю компании",
+    "industry_profile_match": "По вашим продуктам",
     SCORE_KIND_UNAVAILABLE: "Оценка недоступна",
 }
 
