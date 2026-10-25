@@ -49,8 +49,20 @@ abstract final class AuthStore {
     await p?.setString(_userIdKey, userId);
     await p?.setString(_emailKey, email);
     await p?.setString(_displayNameKey, displayName);
-    if (companyId != null) await p?.setString(_companyIdKey, companyId);
-    if (companyName != null) await p?.setString(_companyNameKey, companyName);
+    if (companyId != null) {
+      if (companyId.isEmpty) {
+        await p?.remove(_companyIdKey);
+      } else {
+        await p?.setString(_companyIdKey, companyId);
+      }
+    }
+    if (companyName != null) {
+      if (companyName.isEmpty) {
+        await p?.remove(_companyNameKey);
+      } else {
+        await p?.setString(_companyNameKey, companyName);
+      }
+    }
   }
 
   static Future<String?> displayName() async =>

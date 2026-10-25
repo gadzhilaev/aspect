@@ -32,6 +32,8 @@ class ChangePasswordIn(BaseModel):
 class UserPreferencesIn(BaseModel):
     language: str | None = Field(default=None, pattern=r"^(ru|en)$")
     theme_mode: str | None = Field(default=None, pattern=r"^(light|dark|system)$")
+    # True only after onboarding reaches main — until then email can be re-used.
+    registration_complete: bool | None = None
 
 
 class DeleteAccountIn(BaseModel):

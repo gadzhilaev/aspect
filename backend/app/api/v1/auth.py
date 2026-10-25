@@ -65,21 +65,42 @@ def _prefs(user: User) -> dict:
     return dict(raw) if isinstance(raw, dict) else {}
 
 
+def _email_reserved(user: User) -> bool:
+    """Почта занята только после открытия главного экрана (registration_complete).
+
+    Черновики онбординга (даже с кодом/компанией) можно перерегистрировать.
+    """
+    return bool(_prefs(user).get("registration_complete"))
+
+
 @router.post("/register", response_model=MessageOut)
 def register(body: RegisterIn, db: Session = Depends(get_db)) -> MessageOut:
-    existing = db.query(User).filter(User.email == body.email.lower()).first()
-    if existing:
+    email = body.email.lower().strip()
+    existing = db.query(User).filter(User.email == email).first()
+    # Почта «занята» только после главного экрана.
+    # Незавершённую заявку можно перезаписать.
+    if existing is not None and _email_reserved(existing):
         raise AppError("CONFLICT", "Пользователь с таким email уже существует", 409)
 
-    user = User(
-        id=str(uuid4()),
-        email=body.email.lower(),
-        password_hash=hash_password(body.password),
-        display_name=body.display_name,
-        email_verified_at=None,
-        preferences_json={},
-    )
-    db.add(user)
+    if existing is not None:
+        user = existing
+        user.password_hash = hash_password(body.password)
+        user.display_name = body.display_name
+        user.email_verified_at = None
+        user.preferences_json = {}
+        db.query(EmailVerification).filter(EmailVerification.email == email).delete(
+            synchronize_session=False
+        )
+    else:
+        user = User(
+            id=str(uuid4()),
+            email=email,
+            password_hash=hash_password(body.password),
+            display_name=body.display_name,
+            email_verified_at=None,
+            preferences_json={},
+        )
+        db.add(user)
 
     settings = get_settings()
     code = settings.demo_email_code if settings.app_env != "production" else f"{uuid4().int % 10**6:06d}"
@@ -173,6 +194,8 @@ def patch_preferences(
         prefs["language"] = body.language
     if body.theme_mode is not None:
         prefs["theme_mode"] = body.theme_mode
+    if body.registration_complete is not None:
+        prefs["registration_complete"] = bool(body.registration_complete)
     user.preferences_json = prefs
     db.add(user)
     db.commit()

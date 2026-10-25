@@ -101,14 +101,21 @@ class AuthApi {
   Future<void> patchPreferences({
     String? language,
     String? themeMode,
+    bool? registrationComplete,
   }) async {
     await _client.patchJson(
       '/users/me/preferences',
       body: {
         'language': ?language,
         'theme_mode': ?themeMode,
+        'registration_complete': ?registrationComplete,
       },
     );
+  }
+
+  /// Помечает аккаунт завершённым — с этого момента email «занят».
+  Future<void> markRegistrationComplete() async {
+    await patchPreferences(registrationComplete: true);
   }
 
   Future<void> logout() async {
