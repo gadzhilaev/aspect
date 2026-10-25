@@ -1136,26 +1136,30 @@ class _CompanyCard extends StatelessWidget {
             SizedBox(height: 20 * s),
             Divider(height: 1 * s, thickness: 1 * s, color: AppColors.divider),
             SizedBox(height: 14 * s),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SvgPicture.asset(
-                  'assets/images/icon_company_size.svg',
-                  width: 16 * s,
-                  height: 18 * s,
-                  fit: BoxFit.contain,
-                ),
-                SizedBox(width: logoGap * s),
-                Expanded(
-                  child: Text(
-                    size,
-                    style: AppTypography.regular(
-                      11.72 * s,
-                      color: AppColors.textTertiary,
+            // Иконка+штат: слева от края карточки 30 (card sidePad 13 + добор).
+            Padding(
+              padding: EdgeInsets.only(left: (30 - sidePad) * s),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    'assets/images/icon_company_size.svg',
+                    width: 16 * s,
+                    height: 18 * s,
+                    fit: BoxFit.contain,
+                  ),
+                  SizedBox(width: logoGap * s),
+                  Expanded(
+                    child: Text(
+                      size,
+                      style: AppTypography.regular(
+                        11.72 * s,
+                        color: AppColors.textTertiary,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
