@@ -6,13 +6,17 @@ class CompaniesApi {
 
   final _client = ApiClient.instance;
 
-  Future<Map<String, dynamic>> lookupByInn(String inn) async {
+  /// Поиск в реестре: ИНН или название компании (`query`).
+  Future<Map<String, dynamic>> lookupCompany(String query) async {
     final res = await _client.postJson(
       '/company-registry/lookup',
-      body: {'inn': inn},
+      body: {'query': query},
     );
     return res ?? {};
   }
+
+  @Deprecated('Use lookupCompany')
+  Future<Map<String, dynamic>> lookupByInn(String inn) => lookupCompany(inn);
 
   Future<Map<String, dynamic>> confirmLookup({
     required String lookupId,
@@ -91,8 +95,47 @@ class CompaniesApi {
     return res ?? {};
   }
 
+  Future<Map<String, dynamic>> addNode(
+    String companyId, {
+    required String nodeType,
+    required String name,
+    String? country,
+  }) async {
+    final res = await _client.postJson(
+      '/companies/$companyId/nodes',
+      body: {
+        'node_type': nodeType,
+        'name': name,
+        if (country != null && country.isNotEmpty) 'country': country,
+      },
+    );
+    return res ?? {};
+  }
+
+  Future<Map<String, dynamic>> getIndustryProfile(String companyId) async {
+    final res = await _client.getJson('/companies/$companyId/industry-profile');
+    return res ?? {};
+  }
+
+  Future<Map<String, dynamic>> patchIndustryProfile(
+    String companyId,
+    Map<String, dynamic> body,
+  ) async {
+    final res = await _client.patchJson(
+      '/companies/$companyId/industry-profile',
+      body: body,
+    );
+    return res ?? {};
+  }
+
   Future<void> completeProfile(String companyId) async {
     await _client.postJson('/companies/$companyId/profile/complete');
+  }
+
+  Future<Map<String, dynamic>> buildDigitalTwin(String companyId) async {
+    final res =
+        await _client.postJson('/companies/$companyId/digital-twin/build');
+    return res ?? {};
   }
 
   Future<Map<String, dynamic>> notificationSettings(String companyId) async {

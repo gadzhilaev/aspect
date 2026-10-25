@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../api/companies_api.dart';
 import '../../api/feed_models.dart';
+import '../../demo/alfa_demo_data.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_store.dart';
+import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
@@ -32,6 +34,17 @@ class _OverviewTabState extends State<OverviewTab> {
     _load();
   }
 
+  /// Локальный Альфа-демо: флаг или профиль с компанией без API-сессии.
+  Future<bool> _useAlfaDemoFeed() async {
+    if (await SessionStore.isAlfaDemo()) return true;
+    if (await AuthStore.hasSession()) return false;
+    final profile = await SessionStore.loadProfile();
+    final hasCompany = profile != null && profile.companyName.trim().isNotEmpty;
+    if (!hasCompany) return false;
+    await SessionStore.markAlfaDemo(enabled: true);
+    return true;
+  }
+
   Future<void> _load() async {
     setState(() {
       _state = _FeedState.loading;
@@ -39,6 +52,16 @@ class _OverviewTabState extends State<OverviewTab> {
     });
     final companyId = await AuthStore.companyId();
     if (companyId == null || companyId.isEmpty) {
+      // Альфа-демо / локальный вход с выбранной компанией, без JWT.
+      if (await _useAlfaDemoFeed()) {
+        if (!mounted) return;
+        setState(() {
+          _cards = AlfaDemoData.feedCards();
+          _emptyDetail = null;
+          _state = _FeedState.ready;
+        });
+        return;
+      }
       if (mounted) setState(() => _state = _FeedState.noCompany);
       return;
     }
@@ -134,6 +157,9 @@ class _OverviewTabState extends State<OverviewTab> {
                       title: e.title,
                       contextLead: e.contextLead,
                       contextBody: e.contextBody,
+                      timeLabel: e.timeLabel,
+                      sourceLabel: e.sourceLabel,
+                      sourceUrl: e.sourceUrl,
                       warning: e.warning,
                       actionLabel: e.actionLabel,
                       onOpen: () => openNewsDetail(
@@ -142,7 +168,13 @@ class _OverviewTabState extends State<OverviewTab> {
                           level: e.level,
                           title: e.title,
                           meta: e.meta,
+                          timeLabel: e.timeLabel,
+                          sourceUrl: e.sourceUrl,
+                          sourceLabel: e.sourceLabel,
+                          levelHint: e.levelHint,
                           warning: e.warning,
+                          reason: e.contextBody,
+                          l10n: l10n,
                         ),
                         backLabel: l10n.navOverview,
                         eventId: e.id,

@@ -54,6 +54,16 @@ class _ProductsScreenState extends State<ProductsScreen>
 
   bool get _isOtherMarket => _market == _otherMarket;
 
+  bool get _marketReady {
+    if (_market.trim().isEmpty) return false;
+    if (_isOtherMarket) {
+      return _customMarketController.text.trim().isNotEmpty;
+    }
+    return true;
+  }
+
+  bool get _canContinue => _products.isNotEmpty && _marketReady;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -72,6 +82,7 @@ class _ProductsScreenState extends State<ProductsScreen>
         _customMarketController.text = stored;
       }
     }
+    _customMarketController.addListener(_onCustomMarketChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncFooter());
   }
 
@@ -80,13 +91,17 @@ class _ProductsScreenState extends State<ProductsScreen>
     super.didUpdateWidget(oldWidget);
     if (widget.isActive && !oldWidget.isActive) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _syncFooter();
+        if (mounted) {
+          setState(() {}); // обновить заголовок по businessType
+          _syncFooter();
+        }
       });
     }
   }
 
   @override
   void dispose() {
+    _customMarketController.removeListener(_onCustomMarketChanged);
     _addController.dispose();
     _addFocus.dispose();
     _customMarketController.dispose();
@@ -94,12 +109,16 @@ class _ProductsScreenState extends State<ProductsScreen>
     super.dispose();
   }
 
+  void _onCustomMarketChanged() {
+    if (mounted) _syncFooter();
+  }
+
   void _syncFooter() {
     final l10n = context.l10n;
     widget.bindFooter?.call(
       label: l10n.continueAction,
       hint: l10n.onboardingProductsFooterHint,
-      onPressed: _continue,
+      onPressed: _canContinue ? _continue : null,
     );
   }
 
@@ -117,10 +136,12 @@ class _ProductsScreenState extends State<ProductsScreen>
       _adding = false;
       if (value.isNotEmpty) _products.add(value);
     });
+    _syncFooter();
   }
 
   void _removeProduct(int index) {
     setState(() => _products.removeAt(index));
+    _syncFooter();
   }
 
   void _onMarketChanged(String value) {
@@ -132,9 +153,11 @@ class _ProductsScreenState extends State<ProductsScreen>
     } else {
       _customMarketController.clear();
     }
+    _syncFooter();
   }
 
   void _continue() {
+    if (!_canContinue) return;
     widget.data.products = List.of(_products);
     if (_isOtherMarket) {
       final custom = _customMarketController.text.trim();
@@ -181,9 +204,11 @@ class _ProductsScreenState extends State<ProductsScreen>
     );
   }
 
-  Widget _addProductField() {
+  Widget _addProductField({
+    required String addLabel,
+    required String hint,
+  }) {
     final s = context.scale;
-    final l10n = context.l10n;
     return Padding(
       padding: EdgeInsets.only(top: 12 * s),
       child: _adding
@@ -208,7 +233,7 @@ class _ProductsScreenState extends State<ProductsScreen>
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
-                  hintText: l10n.onboardingProductNameHint,
+                  hintText: hint,
                   hintStyle: AppTypography.regular(
                     14 * s,
                     color: AppColors.textHint,
@@ -230,7 +255,7 @@ class _ProductsScreenState extends State<ProductsScreen>
                 ),
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  l10n.onboardingAddProduct,
+                  addLabel,
                   style: AppTypography.regular(15 * s, color: _addBorder),
                 ),
               ),
@@ -243,22 +268,23 @@ class _ProductsScreenState extends State<ProductsScreen>
     super.build(context);
     final s = context.scale;
     final l10n = context.l10n;
+    final copy = l10n.productsCopyForBusinessType(widget.data.businessType);
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OnboardingHeader(
           step: 3,
           showChrome: !widget.embedded,
-          title: l10n.onboardingProductsTitle,
-          subtitle: l10n.onboardingProductsSubtitle,
+          title: copy.title,
+          subtitle: copy.subtitle,
         ),
         SizedBox(height: 28 * s),
         Text(
-          l10n.onboardingProductsSection,
+          copy.section,
           style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _products.length; i++) _productField(i),
-        _addProductField(),
+        _addProductField(addLabel: copy.add, hint: copy.hint),
         SizedBox(height: 28 * s),
         AuthDropdown(
           label: l10n.onboardingMainMarket,
@@ -274,6 +300,7 @@ class _ProductsScreenState extends State<ProductsScreen>
             focusNode: _customMarketFocus,
             hint: l10n.onboardingMarketHintExample,
             textInputAction: TextInputAction.done,
+            keyboardType: TextInputType.text,
             textCapitalization: TextCapitalization.sentences,
           ),
         ],
@@ -290,7 +317,7 @@ class _ProductsScreenState extends State<ProductsScreen>
     return OnboardingScaffold(
       buttonLabel: l10n.continueAction,
       footerHint: l10n.onboardingProductsFooterHint,
-      onContinue: _continue,
+      onContinue: _canContinue ? _continue : null,
       body: body,
     );
   }

@@ -12,6 +12,12 @@ class OnboardingData {
   String businessType;
   String businessTypeSubtitle;
   List<String> products;
+  /// Industry personalization (TZ electronics v1).
+  List<String> brands;
+  List<String> productCategories;
+  List<String> productLines;
+  List<String> procurementCountries;
+  String activityRole;
   String mainMarket;
   List<String> countries;
   List<String> cities;
@@ -33,6 +39,11 @@ class OnboardingData {
     this.businessType = '',
     this.businessTypeSubtitle = '',
     List<String>? products,
+    List<String>? brands,
+    List<String>? productCategories,
+    List<String>? productLines,
+    List<String>? procurementCountries,
+    this.activityRole = '',
     this.mainMarket = '',
     List<String>? countries,
     List<String>? cities,
@@ -40,6 +51,10 @@ class OnboardingData {
     List<String>? finances,
     List<String>? counterparties,
   })  : products = products ?? [],
+        brands = brands ?? [],
+        productCategories = productCategories ?? [],
+        productLines = productLines ?? [],
+        procurementCountries = procurementCountries ?? [],
         countries = countries ?? [],
         cities = cities ?? [],
         salesRegions = salesRegions ?? [],
@@ -60,6 +75,11 @@ class OnboardingData {
         'businessType': businessType,
         'businessTypeSubtitle': businessTypeSubtitle,
         'products': products,
+        'brands': brands,
+        'productCategories': productCategories,
+        'productLines': productLines,
+        'procurementCountries': procurementCountries,
+        'activityRole': activityRole,
         'mainMarket': mainMarket,
         'countries': countries,
         'cities': cities,
@@ -93,6 +113,11 @@ class OnboardingData {
       businessType: str(json['businessType']),
       businessTypeSubtitle: str(json['businessTypeSubtitle']),
       products: listOf(json['products']),
+      brands: listOf(json['brands']),
+      productCategories: listOf(json['productCategories']),
+      productLines: listOf(json['productLines']),
+      procurementCountries: listOf(json['procurementCountries']),
+      activityRole: str(json['activityRole']),
       mainMarket: str(json['mainMarket']),
       countries: listOf(json['countries']),
       cities: listOf(json['cities']),

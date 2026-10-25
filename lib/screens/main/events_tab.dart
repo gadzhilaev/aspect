@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../api/companies_api.dart';
 import '../../api/feed_models.dart';
+import '../../demo/alfa_demo_data.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/auth_store.dart';
 import '../../services/session_store.dart';
@@ -13,7 +15,9 @@ import 'news_detail_screen.dart';
 enum _EventsState { loading, noCompany, error, empty, ready }
 
 class EventsTab extends StatefulWidget {
-  const EventsTab({super.key});
+  const EventsTab({super.key, this.onUnreadChanged});
+
+  final ValueChanged<int>? onUnreadChanged;
 
   @override
   State<EventsTab> createState() => _EventsTabState();
@@ -44,6 +48,35 @@ class _EventsTabState extends State<EventsTab> {
       _viewedIds = viewed;
       _viewedLoaded = true;
     });
+    _notifyUnread();
+  }
+
+  void _notifyUnread() {
+    if (!_viewedLoaded) return;
+    final l10n = mounted ? context.l10n : null;
+    if (l10n == null) return;
+    final all = [for (final c in _apiCards) FeedEvent.fromCard(c, l10n)];
+    final count = all.where((e) => !_viewedIds.contains(e.id)).length;
+    widget.onUnreadChanged?.call(count);
+  }
+
+  Future<void> _openSource(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    try {
+      if (!await canLaunchUrl(uri)) return;
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
+  Future<bool> _useAlfaDemoFeed() async {
+    if (await SessionStore.isAlfaDemo()) return true;
+    if (await AuthStore.hasSession()) return false;
+    final profile = await SessionStore.loadProfile();
+    final hasCompany = profile != null && profile.companyName.trim().isNotEmpty;
+    if (!hasCompany) return false;
+    await SessionStore.markAlfaDemo(enabled: true);
+    return true;
   }
 
   Future<void> _loadEvents() async {
@@ -53,11 +86,21 @@ class _EventsTabState extends State<EventsTab> {
     });
     final companyId = await AuthStore.companyId();
     if (companyId == null || companyId.isEmpty) {
+      if (await _useAlfaDemoFeed()) {
+        if (!mounted) return;
+        setState(() {
+          _apiCards = AlfaDemoData.feedCards();
+          _state = _EventsState.ready;
+        });
+        _notifyUnread();
+        return;
+      }
       if (mounted) {
         setState(() {
           _apiCards = const [];
           _state = _EventsState.noCompany;
         });
+        _notifyUnread();
       }
       return;
     }
@@ -73,6 +116,7 @@ class _EventsTabState extends State<EventsTab> {
         _apiCards = cards;
         _state = cards.isEmpty ? _EventsState.empty : _EventsState.ready;
       });
+      _notifyUnread();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -80,6 +124,7 @@ class _EventsTabState extends State<EventsTab> {
         _state = _EventsState.error;
         _errorMessage = e.toString();
       });
+      _notifyUnread();
     }
   }
 
@@ -87,6 +132,7 @@ class _EventsTabState extends State<EventsTab> {
     if (_viewedIds.contains(id)) return;
     setState(() => _viewedIds = {..._viewedIds, id});
     await SessionStore.markEventViewed(id);
+    _notifyUnread();
   }
 
   List<FeedEvent> _visible(List<FeedEvent> all) {
@@ -212,8 +258,14 @@ class _EventsTabState extends State<EventsTab> {
                       title: visible[i].title,
                       contextLead: visible[i].contextLead,
                       contextBody: visible[i].contextBody,
+                      timeLabel: visible[i].timeLabel,
+                      sourceLabel: visible[i].sourceLabel,
+                      sourceUrl: visible[i].sourceUrl,
                       warning: visible[i].warning,
                       actionLabel: visible[i].actionLabel,
+                      onSourceTap: visible[i].sourceUrl.isEmpty
+                          ? null
+                          : () => _openSource(visible[i].sourceUrl),
                       onOpen: () {
                         final e = visible[i];
                         openNewsDetail(
@@ -222,7 +274,13 @@ class _EventsTabState extends State<EventsTab> {
                             level: e.level,
                             title: e.title,
                             meta: e.meta,
+                            timeLabel: e.timeLabel,
+                            sourceUrl: e.sourceUrl,
+                            sourceLabel: e.sourceLabel,
+                            levelHint: e.levelHint,
                             warning: e.warning,
+                            reason: e.contextBody,
+                            l10n: l10n,
                           ),
                           backLabel: l10n.navEvents,
                           eventId: e.id,
