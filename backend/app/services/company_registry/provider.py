@@ -29,9 +29,16 @@ from app.services.company_registry.normalize import (
 
 logger = logging.getLogger(__name__)
 
-# Fixed, allow-listed upstream endpoint (never taken from the request).
+# Fixed, allow-listed upstream endpoints (never taken from the request).
 DADATA_FIND_PARTY_URL = (
     "https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/party"
+)
+DADATA_SUGGEST_PARTY_URL = (
+    "https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/party"
+)
+# Party often returns only OKVED code; names come from okved2 (or okveds[]).
+DADATA_FIND_OKVED2_URL = (
+    "https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/okved2"
 )
 
 SOURCE_INFO = {
@@ -65,6 +72,8 @@ class LookupOutcome:
 
 _cache_lock = threading.Lock()
 _cache: dict[str, tuple[float, list[RegistryCandidate], str | None, float]] = {}
+# OKVED code → human name (or None if upstream had no match).
+_okved_name_cache: dict[str, str | None] = {}
 
 # --- in-process per-user fixed-window rate limiter -------------------------
 
@@ -76,6 +85,7 @@ def reset_state() -> None:
     """Clear cache + rate windows (tests / explicit ops reset)."""
     with _cache_lock:
         _cache.clear()
+        _okved_name_cache.clear()
     with _rate_lock:
         _rate_hits.clear()
 
@@ -139,15 +149,80 @@ def _parse_suggestions(
     return candidates, suggestions[:max_candidates]
 
 
-def lookup_inn(inn: str) -> LookupOutcome:
-    """Call the registry for a validated INN. Never raises for upstream issues —
-    returns a LookupOutcome whose ``kind`` the API layer maps to HTTP."""
+def _okved_name_from_body(body: object) -> str | None:
+    if not isinstance(body, dict):
+        return None
+    suggestions = body.get("suggestions")
+    if not isinstance(suggestions, list) or not suggestions:
+        return None
+    first = suggestions[0]
+    if not isinstance(first, dict):
+        return None
+    value = first.get("value")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    data = first.get("data")
+    if isinstance(data, dict):
+        name = data.get("name")
+        if isinstance(name, str) and name.strip():
+            return name.strip()
+    return None
+
+
+def _enrich_okved_names(
+    client: httpx.Client,
+    *,
+    api_key: str,
+    candidates: list[RegistryCandidate],
+    max_bytes: int,
+) -> None:
+    """Fill okved_name via findById/okved2 when party payload omitted okveds[]."""
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Token {api_key}",
+    }
+    for cand in candidates:
+        if cand.okved_name or not cand.okved:
+            continue
+        code = cand.okved.strip()
+        with _cache_lock:
+            if code in _okved_name_cache:
+                cached_name = _okved_name_cache[code]
+                if cached_name:
+                    cand.okved_name = cached_name
+                continue
+        try:
+            resp = client.post(
+                DADATA_FIND_OKVED2_URL,
+                headers=headers,
+                json={"query": code},
+            )
+        except httpx.HTTPError:
+            continue
+        if resp.status_code != 200:
+            continue
+        content = resp.content or b""
+        if len(content) > max_bytes:
+            continue
+        try:
+            name = _okved_name_from_body(resp.json())
+        except (ValueError, httpx.DecodingError):
+            name = None
+        with _cache_lock:
+            _okved_name_cache[code] = name
+        if name:
+            cand.okved_name = name
+
+
+def _dadata_party(url: str, query: str, *, cache_key: str) -> LookupOutcome:
+    """Shared DaData party call (findById or suggest). Key never logged."""
     settings = get_settings()
     api_key = (getattr(settings, "dadata_api_key", None) or "").strip()
     if not api_key:
         return LookupOutcome(kind=_NOT_CONFIGURED)
 
-    cached = _cache_get(inn)
+    cached = _cache_get(cache_key)
     if cached is not None:
         candidates, actuality, retrieved_at = cached
         kind = _OK if candidates else _NOT_FOUND
@@ -161,18 +236,46 @@ def lookup_inn(inn: str) -> LookupOutcome:
     timeout = float(getattr(settings, "company_registry_timeout_seconds", 6.0) or 6.0)
     max_candidates = int(getattr(settings, "company_registry_max_candidates", 10) or 10)
     max_bytes = int(getattr(settings, "company_registry_max_response_bytes", 1_000_000) or 1_000_000)
+    candidates: list[RegistryCandidate] = []
+    raw_suggestions: list[dict] = []
 
     try:
         with httpx.Client(timeout=timeout, follow_redirects=False) as client:
             resp = client.post(
-                DADATA_FIND_PARTY_URL,
+                url,
                 headers={
                     "Content-Type": "application/json",
                     "Accept": "application/json",
                     "Authorization": f"Token {api_key}",
                 },
-                json={"query": inn, "count": max_candidates},
+                json={"query": query, "count": max_candidates},
             )
+            if resp.status_code in (401, 402, 403):
+                logger.warning("company_registry_upstream_auth status=%s", resp.status_code)
+                return LookupOutcome(kind=_AUTH_ERROR)
+            if resp.status_code == 429:
+                logger.info("company_registry_upstream_rate_limited")
+                return LookupOutcome(kind=_RATE_LIMITED)
+            if resp.status_code >= 500:
+                return LookupOutcome(kind=_UNAVAILABLE)
+            if resp.status_code >= 300:
+                return LookupOutcome(kind=_BAD_RESPONSE)
+
+            content = resp.content or b""
+            if len(content) > max_bytes:
+                logger.info("company_registry_response_too_large bytes=%s", len(content))
+                return LookupOutcome(kind=_BAD_RESPONSE)
+
+            try:
+                body = resp.json()
+                candidates, raw_suggestions = _parse_suggestions(body, max_candidates)
+            except (ValueError, httpx.DecodingError):
+                return LookupOutcome(kind=_BAD_RESPONSE)
+
+            if candidates:
+                _enrich_okved_names(
+                    client, api_key=api_key, candidates=candidates, max_bytes=max_bytes
+                )
     except httpx.TimeoutException:
         logger.info("company_registry_timeout")
         return LookupOutcome(kind=_TIMEOUT)
@@ -180,34 +283,10 @@ def lookup_inn(inn: str) -> LookupOutcome:
         logger.info("company_registry_network_error")
         return LookupOutcome(kind=_UNAVAILABLE)
 
-    if resp.status_code in (401, 402, 403):
-        # Upstream auth/billing problem — must NOT surface as 401 to our user.
-        logger.warning("company_registry_upstream_auth status=%s", resp.status_code)
-        return LookupOutcome(kind=_AUTH_ERROR)
-    if resp.status_code == 429:
-        logger.info("company_registry_upstream_rate_limited")
-        return LookupOutcome(kind=_RATE_LIMITED)
-    if resp.status_code >= 500:
-        return LookupOutcome(kind=_UNAVAILABLE)
-    if resp.status_code >= 300:
-        # Redirect (not followed) or other 4xx → treat as bad upstream response.
-        return LookupOutcome(kind=_BAD_RESPONSE)
-
-    content = resp.content or b""
-    if len(content) > max_bytes:
-        logger.info("company_registry_response_too_large bytes=%s", len(content))
-        return LookupOutcome(kind=_BAD_RESPONSE)
-
-    try:
-        body = resp.json()
-        candidates, raw_suggestions = _parse_suggestions(body, max_candidates)
-    except (ValueError, httpx.DecodingError):
-        return LookupOutcome(kind=_BAD_RESPONSE)
-
     retrieved_at = time.time()
     actuality = source_actuality_date(raw_suggestions)
     if candidates:
-        _cache_put(inn, candidates, actuality, retrieved_at)
+        _cache_put(cache_key, candidates, actuality, retrieved_at)
         return LookupOutcome(
             kind=_OK,
             candidates=candidates,
@@ -215,3 +294,20 @@ def lookup_inn(inn: str) -> LookupOutcome:
             source_actuality_date=actuality,
         )
     return LookupOutcome(kind=_NOT_FOUND, retrieved_at=retrieved_at, source_actuality_date=actuality)
+
+
+def lookup_inn(inn: str) -> LookupOutcome:
+    """Exact party by INN (DaData findById/party)."""
+    return _dadata_party(DADATA_FIND_PARTY_URL, inn, cache_key=f"inn:{inn}")
+
+
+def suggest_party(query: str) -> LookupOutcome:
+    """Fuzzy party by name / free text (DaData suggest/party)."""
+    q = (query or "").strip()
+    if not q:
+        return LookupOutcome(kind=_NOT_FOUND)
+    return _dadata_party(
+        DADATA_SUGGEST_PARTY_URL,
+        q,
+        cache_key=f"name:{q.casefold()}",
+    )

@@ -1,13 +1,27 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.company import CompanySummaryOut
 
 
 class CompanyRegistryLookupIn(BaseModel):
-    # Only an INN — never a URL or free-text query.
-    inn: str = Field(min_length=1, max_length=32)
+    """ИНН и/или свободный запрос (название). URL запрещены."""
+
+    # Legacy: exact INN lookup.
+    inn: str | None = Field(default=None, min_length=1, max_length=32)
+    # Preferred: INN or company name (not a URL).
+    query: str | None = Field(default=None, min_length=1, max_length=200)
+
+    @model_validator(mode="after")
+    def _require_query(self) -> "CompanyRegistryLookupIn":
+        if not (self.query or self.inn):
+            raise ValueError("Укажите ИНН или название компании")
+        raw = (self.query or self.inn or "").strip()
+        lower = raw.lower()
+        if lower.startswith("http://") or lower.startswith("https://") or "://" in lower:
+            raise ValueError("URL в запросе не допускается")
+        return self
 
 
 class RegistrySourceOut(BaseModel):
@@ -27,6 +41,7 @@ class RegistryCandidateOut(BaseModel):
     name_full: str | None = None
     address: str | None = None
     region: str | None = None
+    city: str | None = None
     okved: str | None = None
     okved_name: str | None = None
     okved_version: str | None = None
@@ -40,7 +55,9 @@ class RegistryCandidateOut(BaseModel):
 class CompanyRegistryLookupOut(BaseModel):
     # status: ok | not_found | not_configured (failures are returned as errors)
     status: str
-    query_inn: str
+    query_inn: str = ""
+    query: str | None = None
+    lookup_mode: str | None = None  # inn | name
     lookup_id: str | None = None
     expires_at: str | None = None
     source: RegistrySourceOut | None = None

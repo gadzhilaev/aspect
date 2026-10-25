@@ -87,12 +87,40 @@ def lookup_company(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> CompanyRegistryLookupOut:
-    try:
-        normalized = normalize_inn(body.inn)
-    except InnValidationError as exc:
+    raw = (body.query or body.inn or "").strip()
+    digits = "".join(ch for ch in raw if ch.isdigit())
+    # Чистый ИНН 10/12 → точный findById; иначе suggest по названию/тексту.
+    inn_mode = False
+    normalized_inn = ""
+    if digits and digits == "".join(ch for ch in raw if not ch.isspace()) and len(digits) in (10, 12):
+        try:
+            normalized_inn = normalize_inn(digits).inn
+            inn_mode = True
+        except InnValidationError as exc:
+            raise AppError(
+                "INVALID_INN",
+                exc.message,
+                400,
+                details=[{"reason": exc.reason, "field": "inn"}],
+            ) from exc
+    elif body.inn and not body.query:
+        try:
+            normalized_inn = normalize_inn(body.inn).inn
+            inn_mode = True
+        except InnValidationError as exc:
+            raise AppError(
+                "INVALID_INN",
+                exc.message,
+                400,
+                details=[{"reason": exc.reason, "field": "inn"}],
+            ) from exc
+
+    if not inn_mode and len(raw) < 2:
         raise AppError(
-            "INVALID_INN", exc.message, 400, details=[{"reason": exc.reason, "field": "inn"}]
-        ) from exc
+            "INVALID_QUERY",
+            "Введите ИНН (10 или 12 цифр) или название компании (минимум 2 символа)",
+            400,
+        )
 
     if not provider.check_user_rate(user.id):
         raise AppError(
@@ -102,25 +130,35 @@ def lookup_company(
             details=[{"reason": "user_rate_limited"}],
         )
 
-    outcome = provider.lookup_inn(normalized.inn)
+    lookup_mode = "inn" if inn_mode else "name"
+    outcome = (
+        provider.lookup_inn(normalized_inn)
+        if inn_mode
+        else provider.suggest_party(raw)
+    )
 
     if outcome.kind in _FAILURE_MAP:
         code, status = _FAILURE_MAP[outcome.kind]
         raise AppError(code, _FAILURE_MESSAGES[outcome.kind], status, details=[{"reason": outcome.kind}])
 
     source = RegistrySourceOut(**provider.SOURCE_INFO)
+    query_inn = normalized_inn if inn_mode else ""
 
     if outcome.kind == "not_configured":
         return CompanyRegistryLookupOut(
             status="not_configured",
-            query_inn=normalized.inn,
-            note="Справочник не подключён. Заполните данные компании вручную.",
+            query_inn=query_inn,
+            query=raw,
+            lookup_mode=lookup_mode,
+            note="Справочник не подключён (нет DADATA_API_KEY). Заполните данные компании вручную.",
         )
 
     if outcome.kind == "not_found":
         return CompanyRegistryLookupOut(
             status="not_found",
-            query_inn=normalized.inn,
+            query_inn=query_inn,
+            query=raw,
+            lookup_mode=lookup_mode,
             source=source,
             retrieved_at=(
                 datetime.fromtimestamp(outcome.retrieved_at, tz=timezone.utc).isoformat()
@@ -128,16 +166,23 @@ def lookup_company(
                 else None
             ),
             source_actuality_date=outcome.source_actuality_date,
-            note="По этому ИНН организация не найдена в справочнике.",
+            note=(
+                "По этому ИНН организация не найдена в справочнике."
+                if inn_mode
+                else "По этому запросу организация не найдена в справочнике."
+            ),
         )
 
-    # ok
-    row = store.create_lookup(db, user_id=user.id, inn=normalized.inn, outcome=outcome)
+    # ok — для name-поиска ключ lookup.inn = ИНН первого кандидата (или query).
+    store_inn = query_inn or (outcome.candidates[0].inn if outcome.candidates else raw[:32])
+    row = store.create_lookup(db, user_id=user.id, inn=store_inn, outcome=outcome)
     db.commit()
     candidates = [RegistryCandidateOut(**c.to_public_dict()) for c in outcome.candidates]
     return CompanyRegistryLookupOut(
         status="ok",
-        query_inn=normalized.inn,
+        query_inn=query_inn or store_inn,
+        query=raw,
+        lookup_mode=lookup_mode,
         lookup_id=row.id,
         expires_at=row.expires_at.astimezone(timezone.utc).isoformat(),
         source=source,

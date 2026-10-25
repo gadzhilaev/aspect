@@ -108,6 +108,20 @@ class _Upstream:
             q = str(json.loads(request.content.decode("utf-8")).get("query") or "").strip()
         except Exception:
             q = INN_LEGAL
+        path = str(request.url)
+        if "okved2" in path:
+            # Enrichment of okved_name when party omitted okveds[].
+            return httpx.Response(
+                200,
+                json={
+                    "suggestions": [
+                        {
+                            "value": "Производство коммуникационного оборудования",
+                            "data": {"kod": q, "name": "Производство коммуникационного оборудования"},
+                        }
+                    ]
+                },
+            )
         if self.mode == "timeout":
             raise httpx.ReadTimeout("mock", request=request)
         if self.mode == "network":
@@ -135,6 +149,19 @@ class _Upstream:
             return httpx.Response(200, json={"suggestions": [_legal_suggestion(inn=q, status="LIQUIDATED")]})
         if self.mode == "nullable":
             return httpx.Response(200, json={"suggestions": [{"value": "X", "data": {"inn": q, "type": "LEGAL", "name": {}, "state": {}}}]})
+        if self.mode == "okved_code_only":
+            sug = _legal_suggestion(inn=q)
+            sug["data"].pop("okveds", None)
+            sug["data"]["address"] = {
+                "value": "г Махачкала, ул Учительская, д 13Б",
+                "data": {
+                    "region_with_type": "Респ Дагестан",
+                    "region": "Дагестан",
+                    "city": "Махачкала",
+                    "city_with_type": "г Махачкала",
+                },
+            }
+            return httpx.Response(200, json={"suggestions": [sug]})
         return httpx.Response(200, json={"suggestions": [_legal_suggestion(inn=q)]})
 
 
@@ -238,6 +265,19 @@ def test_lookup_legal_ok(client: TestClient, auth_headers, upstream):
     assert "не прямой запрос" in body["source"]["note"].lower() or "посредник" in body["source"]["note"].lower()
     # No manager/founder personal data leaks
     assert "management" not in json.dumps(body, ensure_ascii=False)
+    # okveds[] present → no extra okved2 call
+    assert upstream.calls == 1
+
+
+def test_lookup_city_and_okved_enrichment(client: TestClient, auth_headers, upstream):
+    """Party often has city + okved code but no okveds[] names — enrich via okved2."""
+    upstream.mode = "okved_code_only"
+    cand = _lookup(client, auth_headers, INN_LEGAL).json()["candidates"][0]
+    assert cand["city"] == "Махачкала"
+    assert cand["region"] == "Респ Дагестан"
+    assert cand["okved"] == "26.30"
+    assert cand["okved_name"] == "Производство коммуникационного оборудования"
+    assert upstream.calls == 2  # party + okved2
 
 
 def test_lookup_individual(client: TestClient, auth_headers, upstream):

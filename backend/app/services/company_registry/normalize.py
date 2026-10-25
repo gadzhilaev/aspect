@@ -67,6 +67,7 @@ class RegistryCandidate:
     name_full: str | None = None
     address: str | None = None
     region: str | None = None
+    city: str | None = None
     okved: str | None = None
     okved_name: str | None = None
     okved_version: str | None = None
@@ -88,6 +89,7 @@ class RegistryCandidate:
             "name_full": self.name_full,
             "address": self.address,
             "region": self.region,
+            "city": self.city,
             "okved": self.okved,
             "okved_name": self.okved_name,
             "okved_version": self.okved_version,
@@ -153,12 +155,27 @@ def normalize_suggestion(index: int, suggestion: dict[str, Any]) -> RegistryCand
 
     address = None
     region = None
+    city = None
     addr = data.get("address")
     if isinstance(addr, dict):
         address = addr.get("value")
         adata = addr.get("data")
         if isinstance(adata, dict):
             region = adata.get("region_with_type") or adata.get("region")
+            # City / settlement for UI (not region like «Респ Дагестан»).
+            raw_city = (
+                adata.get("city")
+                or adata.get("settlement")
+                or adata.get("city_with_type")
+                or adata.get("settlement_with_type")
+            )
+            if isinstance(raw_city, str) and raw_city.strip():
+                city = raw_city.strip()
+                # «г Махачкала» → «Махачкала»
+                for prefix in ("г ", "город ", "пгт ", "пос ", "с ", "дер ", "д "):
+                    if city.lower().startswith(prefix):
+                        city = city[len(prefix) :].strip()
+                        break
 
     state = data.get("state") if isinstance(data.get("state"), dict) else {}
     status_raw = str(state.get("status") or "").upper() if isinstance(state, dict) else ""
@@ -179,6 +196,7 @@ def normalize_suggestion(index: int, suggestion: dict[str, Any]) -> RegistryCand
         name_full=(str(name_full) if name_full else None),
         address=(str(address) if address else None),
         region=(str(region) if region else None),
+        city=(str(city) if city else None),
         okved=okved,
         okved_name=_okved_name(data),
         okved_version=(str(data.get("okved_type")) if data.get("okved_type") else None),

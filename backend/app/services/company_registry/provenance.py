@@ -34,7 +34,10 @@ def company_fields_from_candidate(candidate: dict[str, Any]) -> dict[str, str]:
         out["legal_name"] = str(name_full)
     if candidate.get("inn"):
         out["tax_id"] = str(candidate["inn"])
-    if candidate.get("region"):
+    # Prefer city for HQ label; fall back to region (e.g. Москва as subject).
+    if candidate.get("city"):
+        out["hq_region"] = str(candidate["city"])
+    elif candidate.get("region"):
         out["hq_region"] = str(candidate["region"])
     return out
 
