@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../api/events_api.dart';
 import '../../l10n/app_localizations.dart';
+import '../../navigation/app_page_route.dart';
 import '../../services/auth_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -46,7 +47,7 @@ Future<void> openChatScreen(
   ChatScreenData data,
 ) {
   return Navigator.of(context).push(
-    MaterialPageRoute<void>(
+    AppPageRoute<void>(
       builder: (_) => ChatScreen(data: data),
     ),
   );

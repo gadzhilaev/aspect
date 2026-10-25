@@ -1,38 +1,77 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
-/// Horizontal page-turn style push (slide from right).
-class AppPageRoute<T> extends PageRouteBuilder<T> {
-  AppPageRoute({required WidgetBuilder builder})
-      : super(
-          transitionDuration: const Duration(milliseconds: 380),
-          reverseTransitionDuration: const Duration(milliseconds: 320),
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              builder(context),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
-            );
-            final secondaryCurved = CurvedAnimation(
-              parent: secondaryAnimation,
-              curve: Curves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
-            );
-
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(curved),
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: Offset.zero,
-                  end: const Offset(-0.2, 0),
-                ).animate(secondaryCurved),
-                child: child,
-              ),
-            );
-          },
+/// Push со слайдом и свайпом «назад» не только с края, а с любой точки экрана.
+class AppPageRoute<T> extends CupertinoPageRoute<T> {
+  AppPageRoute({
+    required WidgetBuilder builder,
+    super.title,
+    super.settings,
+    super.maintainState = true,
+    super.fullscreenDialog = false,
+  }) : super(
+          builder: (context) => _FullWidthSwipeBack(
+            child: builder(context),
+          ),
         );
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 380);
+
+  @override
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 320);
+}
+
+class _FullWidthSwipeBack extends StatefulWidget {
+  const _FullWidthSwipeBack({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_FullWidthSwipeBack> createState() => _FullWidthSwipeBackState();
+}
+
+class _FullWidthSwipeBackState extends State<_FullWidthSwipeBack> {
+  double _dx = 0;
+  bool _tracking = false;
+
+  void _onStart(DragStartDetails _) {
+    // Не мешаем вводу текста / диалогам.
+    if (FocusManager.instance.primaryFocus?.hasFocus == true) return;
+    _dx = 0;
+    _tracking = true;
+  }
+
+  void _onUpdate(DragUpdateDetails d) {
+    if (!_tracking) return;
+    _dx += d.delta.dx;
+  }
+
+  void _onEnd(DragEndDetails d) {
+    if (!_tracking) return;
+    _tracking = false;
+    final vx = d.velocity.pixelsPerSecond.dx;
+    final shouldPop = _dx > 72 || (_dx > 36 && vx > 600);
+    _dx = 0;
+    if (shouldPop && mounted) {
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  void _onCancel() {
+    _tracking = false;
+    _dx = 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Свайп вправо с любой точки → назад (не только с края).
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragStart: _onStart,
+      onHorizontalDragUpdate: _onUpdate,
+      onHorizontalDragEnd: _onEnd,
+      onHorizontalDragCancel: _onCancel,
+      child: widget.child,
+    );
+  }
 }

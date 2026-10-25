@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../services/auth_store.dart';
 import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/main_widgets.dart';
 import 'chat_screen.dart';
 
-/// Ids сценариев, которые считаются новыми, пока пользователь их не открыл.
+/// Ids демо-сценариев (локальный Альфа-демо), пока их не открыли.
 const kNewScenarioIds = <String>{
   'china-electronics-export',
 };
@@ -27,6 +28,8 @@ class ScenariosTab extends StatefulWidget {
 class _ScenariosTabState extends State<ScenariosTab> {
   Set<String> _viewedIds = {};
   bool _loaded = false;
+  /// Локальные мок-сценарии только для Альфа-демо; иначе честный empty.
+  bool _showLocalDemo = false;
 
   @override
   void initState() {
@@ -36,15 +39,19 @@ class _ScenariosTabState extends State<ScenariosTab> {
 
   Future<void> _loadViewed() async {
     final viewed = await SessionStore.viewedScenarioIds();
+    final alfa = await SessionStore.isAlfaDemo();
+    final session = await AuthStore.hasSession();
     if (!mounted) return;
     setState(() {
       _viewedIds = viewed;
+      _showLocalDemo = alfa || !session;
       _loaded = true;
     });
     _notifyUnread();
   }
 
   int get _unreadCount {
+    if (!_showLocalDemo) return 0;
     if (!_loaded) return kNewScenarioIds.length;
     return kNewScenarioIds.where((id) => !_viewedIds.contains(id)).length;
   }
@@ -89,90 +96,108 @@ class _ScenariosTabState extends State<ScenariosTab> {
           style: AppTypography.regular(14 * s, color: AppColors.textMuted),
         ),
         SizedBox(height: 14 * s),
-        Container(
-          height: 50 * s,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16 * s),
-            border: Border.all(color: AppColors.border, width: 1),
+        if (!_loaded)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 40 * s),
+            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          )
+        else if (!_showLocalDemo) ...[
+          SizedBox(height: 24 * s),
+          Text(
+            l10n.feedEmptyTitle,
+            style: AppTypography.bold(16 * s, color: AppColors.textPrimary),
           ),
-          padding: EdgeInsets.symmetric(horizontal: 16 * s),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  textCapitalization: TextCapitalization.sentences,
-                  style: AppTypography.regular(
-                    15 * s,
-                    color: AppColors.textPrimary,
-                  ),
-                  cursorColor: AppColors.brandRed,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    hintText: l10n.scenariosSearchHint,
-                    hintStyle: AppTypography.regular(
+          SizedBox(height: 8 * s),
+          Text(
+            'Персональные сценарии появятся после расчёта влияния по событиям ленты. Локальные демо-сценарии здесь не подставляются.',
+            style: AppTypography.regular(14 * s, color: AppColors.textMuted),
+          ),
+        ] else ...[
+          Container(
+            height: 50 * s,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16 * s),
+              border: Border.all(color: AppColors.border, width: 1),
+            ),
+            padding: EdgeInsets.symmetric(horizontal: 16 * s),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    textCapitalization: TextCapitalization.sentences,
+                    style: AppTypography.regular(
                       15 * s,
-                      color: AppColors.textHint,
+                      color: AppColors.textPrimary,
                     ),
-                    contentPadding: EdgeInsets.zero,
+                    cursorColor: AppColors.brandRed,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      hintText: l10n.scenariosSearchHint,
+                      hintStyle: AppTypography.regular(
+                        15 * s,
+                        color: AppColors.textHint,
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
                 ),
+                Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                  size: 22 * s,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 6 * s),
+          _ScenarioRow(
+            accent: AppColors.brandRed,
+            title: l10n.eventChinaTitle,
+            subtitle: l10n.scenarioChinaSub,
+            time: '08:24',
+            badge: chinaUnread || !_loaded ? 1 : null,
+            onTap: () => _openScenario(
+              id: 'china-electronics-export',
+              data: ChatScreenData(
+                title: l10n.eventChinaTitle,
+                meta: l10n.impactMeta(l10n.impactHigh, '${l10n.today} 08:24'),
+                level: ImpactLevel.high,
               ),
-              Icon(
-                Icons.search,
-                color: AppColors.textSecondary,
-                size: 22 * s,
+            ),
+          ),
+          _ScenarioRow(
+            accent: AppColors.impactPurple,
+            title: l10n.eventCnyTitle,
+            subtitle: l10n.scenarioCnySub,
+            time: l10n.yesterday,
+            onTap: () => _openScenario(
+              id: 'cny-rate-week',
+              data: ChatScreenData(
+                title: l10n.eventCnyTitle,
+                meta: l10n.impactMeta(l10n.impactMedium, l10n.yesterday),
+                level: ImpactLevel.medium,
               ),
-            ],
-          ),
-        ),
-        SizedBox(height: 6 * s),
-        _ScenarioRow(
-          accent: AppColors.brandRed,
-          title: l10n.eventChinaTitle,
-          subtitle: l10n.scenarioChinaSub,
-          time: '08:24',
-          badge: chinaUnread || !_loaded ? 1 : null,
-          onTap: () => _openScenario(
-            id: 'china-electronics-export',
-            data: ChatScreenData(
-              title: l10n.eventChinaTitle,
-              meta: l10n.impactMeta(l10n.impactHigh, '${l10n.today} 08:24'),
-              level: ImpactLevel.high,
             ),
           ),
-        ),
-        _ScenarioRow(
-          accent: AppColors.impactPurple,
-          title: l10n.eventCnyTitle,
-          subtitle: l10n.scenarioCnySub,
-          time: l10n.yesterday,
-          onTap: () => _openScenario(
-            id: 'cny-rate-week',
-            data: ChatScreenData(
-              title: l10n.eventCnyTitle,
-              meta: l10n.impactMeta(l10n.impactMedium, l10n.yesterday),
-              level: ImpactLevel.medium,
+          _ScenarioRow(
+            accent: AppColors.impactGreen,
+            title: l10n.eventKzTitle,
+            subtitle: l10n.scenarioKzSub,
+            time: l10n.mondayShort,
+            onTap: () => _openScenario(
+              id: 'kz-electronics-demand',
+              data: ChatScreenData(
+                title: l10n.eventKzTitle,
+                meta: l10n.impactMeta(l10n.impactOpportunity, l10n.mondayShort),
+                level: ImpactLevel.opportunity,
+              ),
             ),
           ),
-        ),
-        _ScenarioRow(
-          accent: AppColors.impactGreen,
-          title: l10n.eventKzTitle,
-          subtitle: l10n.scenarioKzSub,
-          time: l10n.mondayShort,
-          onTap: () => _openScenario(
-            id: 'kz-electronics-demand',
-            data: ChatScreenData(
-              title: l10n.eventKzTitle,
-              meta: l10n.impactMeta(l10n.impactOpportunity, l10n.mondayShort),
-              level: ImpactLevel.opportunity,
-            ),
-          ),
-        ),
+        ],
       ],
     );
   }

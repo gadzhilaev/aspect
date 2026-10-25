@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/onboarding_data.dart';
+import '../../navigation/app_page_route.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
@@ -11,7 +12,7 @@ Future<void> openCompanyDetail(
   required OnboardingData profile,
 }) {
   return Navigator.of(context).push(
-    MaterialPageRoute(
+    AppPageRoute(
       builder: (_) => CompanyDetailScreen(profile: profile),
     ),
   );

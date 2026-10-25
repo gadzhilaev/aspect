@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../navigation/app_page_route.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
@@ -39,7 +40,7 @@ Future<void> openConclusionBasisScreen(
   ConclusionBasisData data = const ConclusionBasisData(),
 }) {
   return Navigator.of(context).push(
-    MaterialPageRoute<void>(
+    AppPageRoute<void>(
       builder: (_) => ConclusionBasisScreen(data: data),
     ),
   );

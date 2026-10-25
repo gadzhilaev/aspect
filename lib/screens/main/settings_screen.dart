@@ -32,7 +32,7 @@ Future<void> openSettingsScreen(
     );
   }
   return Navigator.of(context).push(
-    MaterialPageRoute<void>(
+    AppPageRoute<void>(
       builder: (_) => const SettingsScreen(),
     ),
   );

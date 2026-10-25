@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../navigation/app_page_route.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
@@ -48,7 +49,7 @@ Future<bool?> openConfirmPlanScreen(
   ConfirmPlanData data,
 ) {
   return Navigator.of(context).push<bool>(
-    MaterialPageRoute<bool>(
+    AppPageRoute<bool>(
       builder: (_) => ConfirmPlanScreen(data: data),
     ),
   );
