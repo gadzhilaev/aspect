@@ -24,23 +24,73 @@ class CompanyTab extends StatefulWidget {
   State<CompanyTab> createState() => _CompanyTabState();
 }
 
-class _CompanyTabState extends State<CompanyTab> {
+class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
   OnboardingData? _profile;
   String? _telegramUsername;
+  /// Ждём возврат из Telegram после открытия deep link.
+  bool _awaitingTelegramLink = false;
 
   static const _telegramBlue = Color(0xFF2AABEE);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !_awaitingTelegramLink) return;
+    _onReturnedFromTelegram();
+  }
+
   Future<void> _load() async {
-    final profile = await SessionStore.loadProfile();
+    final profile = await SessionStore.loadProfile() ?? OnboardingData();
+    final authEmail = (await AuthStore.email())?.trim() ?? '';
+    if (profile.email.trim().isEmpty && authEmail.isNotEmpty) {
+      profile.email = authEmail;
+    }
     final companyId = await AuthStore.companyId();
     String? telegram;
     if (companyId != null && companyId.isNotEmpty) {
+        try {
+        final apiProfile = await CompaniesApi.instance.getProfile(companyId);
+        _mergeNodesIntoProfile(profile, apiProfile);
+        final company = apiProfile['company'];
+        if (company is Map) {
+          final name = company['name']?.toString().trim() ?? '';
+          if (name.isNotEmpty) profile.companyName = name;
+          final industry = company['industry']?.toString().trim() ?? '';
+          if (industry.isNotEmpty) profile.companyIndustry = industry;
+        }
+      } catch (_) {}
+      try {
+        final industry =
+            await CompaniesApi.instance.getIndustryProfile(companyId);
+        List<String> listOf(dynamic v) => [
+              if (v is List)
+                for (final i in v)
+                  if (i != null && i.toString().trim().isNotEmpty)
+                    i.toString().trim(),
+            ];
+        final brands = listOf(industry['brands']);
+        final cats = listOf(industry['product_categories']);
+        final lines = listOf(industry['product_lines']);
+        final proc = listOf(industry['procurement_countries']);
+        if (brands.isNotEmpty) profile.brands = brands;
+        if (cats.isNotEmpty) profile.productCategories = cats;
+        if (lines.isNotEmpty) profile.productLines = lines;
+        if (proc.isNotEmpty) profile.procurementCountries = proc;
+        final role = industry['activity_role']?.toString() ?? '';
+        if (role.isNotEmpty) profile.activityRole = role;
+      } catch (_) {}
       try {
         final settings =
             await CompaniesApi.instance.notificationSettings(companyId);
@@ -56,11 +106,40 @@ class _CompanyTabState extends State<CompanyTab> {
         telegram = null;
       }
     }
+    await SessionStore.saveProfile(profile);
     if (!mounted) return;
     setState(() {
       _profile = profile;
       _telegramUsername = telegram;
     });
+  }
+
+  void _mergeNodesIntoProfile(
+    OnboardingData profile,
+    Map<String, dynamic> apiProfile,
+  ) {
+    final nodes = apiProfile['nodes'];
+    if (nodes is! List) return;
+    final products = <String>{...profile.products};
+    final markets = <String>{...profile.countries};
+    final suppliers = <String>{...profile.counterparties};
+    for (final n in nodes) {
+      if (n is! Map) continue;
+      final type = (n['node_type'] ?? '').toString();
+      final name = (n['name'] ?? '').toString().trim();
+      if (name.isEmpty) continue;
+      switch (type) {
+        case 'product':
+          products.add(name);
+        case 'market':
+          markets.add(name);
+        case 'supplier' || 'counterparty':
+          suppliers.add(name);
+      }
+    }
+    if (products.isNotEmpty) profile.products = products.toList();
+    if (markets.isNotEmpty) profile.countries = markets.toList();
+    if (suppliers.isNotEmpty) profile.counterparties = suppliers.toList();
   }
 
   static String _join(
@@ -117,13 +196,17 @@ class _CompanyTabState extends State<CompanyTab> {
     final d = data ?? OnboardingData();
     final empty = l10n.emptyPlaceholder;
     final products = _join(
-      d.products.isNotEmpty
-          ? d.products
-          : [
-              if (d.businessTypeSubtitle.trim().isNotEmpty)
-                d.businessTypeSubtitle,
-              if (d.businessType.trim().isNotEmpty) d.businessType,
-            ],
+      [
+        ...d.products,
+        ...d.brands,
+        ...d.productCategories,
+        if (d.products.isEmpty &&
+            d.brands.isEmpty &&
+            d.productCategories.isEmpty) ...[
+          if (d.businessTypeSubtitle.trim().isNotEmpty) d.businessTypeSubtitle,
+          if (d.businessType.trim().isNotEmpty) d.businessType,
+        ],
+      ],
       empty: empty,
     );
     final markets = _join(
@@ -307,19 +390,29 @@ class _CompanyTabState extends State<CompanyTab> {
     try {
       final res = await CompaniesApi.instance.telegramLinkToken(companyId);
       final deepLink = res['deep_link']?.toString();
-      if (deepLink != null && deepLink.isNotEmpty) {
-        final uri = Uri.tryParse(deepLink);
-        if (uri != null) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
+      final uri =
+          deepLink != null && deepLink.isNotEmpty ? Uri.tryParse(deepLink) : null;
+      if (uri == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.telegramPending)),
+        );
+        return;
       }
-      // Do not mark connected until server confirms via notification-settings.
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.telegramPending)),
-      );
-      await _refreshTelegramStatus(companyId);
+      // Не показываем SnackBar до ухода в Telegram — при возврате он мигает
+      // на секунду и пропадает. Подсказку даём уже после resume.
+      _awaitingTelegramLink = true;
+      final opened =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened) {
+        _awaitingTelegramLink = false;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.telegramPending)),
+        );
+      }
     } catch (e) {
+      _awaitingTelegramLink = false;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
@@ -327,7 +420,45 @@ class _CompanyTabState extends State<CompanyTab> {
     }
   }
 
-  Future<void> _refreshTelegramStatus(String companyId) async {
+  Future<void> _onReturnedFromTelegram() async {
+    final companyId = await AuthStore.companyId();
+    if (companyId == null || companyId.isEmpty) {
+      _awaitingTelegramLink = false;
+      return;
+    }
+    final linked = await _refreshTelegramStatus(companyId);
+    if (!mounted) return;
+    if (linked) {
+      _awaitingTelegramLink = false;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.telegramConnected),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+    // Ещё не подтвердили в боте — стабильное уведомление после возврата.
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.telegramPending),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 8),
+        action: SnackBarAction(
+          label: 'OK',
+          onPressed: () {
+            _awaitingTelegramLink = false;
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Returns whether Telegram is linked after refresh.
+  Future<bool> _refreshTelegramStatus(String companyId) async {
     try {
       final settings =
           await CompaniesApi.instance.notificationSettings(companyId);
@@ -336,7 +467,7 @@ class _CompanyTabState extends State<CompanyTab> {
       final title = private is Map
           ? private['chat_title']?.toString()
           : null;
-      if (!mounted) return;
+      if (!mounted) return linked;
       if (linked) {
         final name = (title != null && title.isNotEmpty)
             ? title
@@ -347,8 +478,10 @@ class _CompanyTabState extends State<CompanyTab> {
         await SessionStore.saveTelegramUsername(null);
         setState(() => _telegramUsername = null);
       }
+      return linked;
     } catch (_) {
       // Keep previous UI state; do not invent a connected username.
+      return false;
     }
   }
 
@@ -729,7 +862,7 @@ class _ContextTile extends StatelessWidget {
               )
             else
               Padding(
-                padding: EdgeInsets.fromLTRB(14 * s, 14 * s, 28 * s, 10 * s),
+                padding: EdgeInsets.fromLTRB(12 * s, 10 * s, 28 * s, 8 * s),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -742,17 +875,24 @@ class _ContextTile extends StatelessWidget {
                         color: spec.foreground,
                       ).copyWith(height: 1.15),
                     ),
-                    const Spacer(),
-                    Text(
-                      spec.subtitle,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.regular(
-                        10 * s,
-                        color: spec.foreground.withValues(
-                          alpha: onDark ? 0.92 : 0.75,
+                    SizedBox(height: 4 * s),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Text(
+                          spec.subtitle,
+                          maxLines: spec.section == ContextSection.myData
+                              ? 3
+                              : 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.regular(
+                            10 * s,
+                            color: spec.foreground.withValues(
+                              alpha: onDark ? 0.92 : 0.75,
+                            ),
+                          ).copyWith(height: 1.15),
                         ),
-                      ).copyWith(height: 1.15),
+                      ),
                     ),
                   ],
                 ),
@@ -769,6 +909,39 @@ class _CompanyCard extends StatelessWidget {
   const _CompanyCard({this.profile});
 
   final OnboardingData? profile;
+
+  /// Подбирает размер шрифта, чтобы текст влез в [maxLines] при ширине [maxWidth].
+  static double _fitFontSize({
+    required String text,
+    required TextStyle style,
+    required double maxWidth,
+    required int maxLines,
+    required double minSize,
+    required double maxSize,
+  }) {
+    if (text.isEmpty || maxWidth <= 0) return maxSize;
+    var lo = minSize;
+    var hi = maxSize;
+    var best = minSize;
+    for (var i = 0; i < 12; i++) {
+      final mid = (lo + hi) / 2;
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style.copyWith(fontSize: mid)),
+        maxLines: maxLines,
+        textDirection: TextDirection.ltr,
+        ellipsis: '…',
+      )..layout(maxWidth: maxWidth);
+      final fits = !painter.didExceedMaxLines &&
+          painter.width <= maxWidth + 0.5;
+      if (fits) {
+        best = mid;
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return best;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -788,6 +961,13 @@ class _CompanyCard extends StatelessWidget {
         ? profile!.companySize.trim()
         : l10n.companySizeMissing;
 
+    // Боковые отступы карточки: 13×scale (слева и справа).
+    // Логотип: 48×38 ×scale.
+    const sidePad = 13.0;
+    const logoW = 48.0;
+    const logoH = 38.0;
+    const logoGap = 15.0;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceRaised,
@@ -806,7 +986,12 @@ class _CompanyCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(13 * s, 24 * s, 13 * s, 20 * s),
+        padding: EdgeInsets.fromLTRB(
+          sidePad * s,
+          24 * s,
+          sidePad * s,
+          20 * s,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -816,31 +1001,59 @@ class _CompanyCard extends StatelessWidget {
               children: [
                 SvgPicture.asset(
                   'assets/images/welcome_logo.svg',
-                  width: 48 * s,
-                  height: 38 * s,
+                  width: logoW * s,
+                  height: logoH * s,
                   fit: BoxFit.contain,
                 ),
-                SizedBox(width: 15 * s),
+                SizedBox(width: logoGap * s),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: AppTypography.bold(
-                          20 * s,
-                          color: AppColors.textInk,
-                        ),
-                      ),
-                      SizedBox(height: 2 * s),
-                      Text(
-                        industry,
-                        style: AppTypography.regular(
-                          14 * s,
-                          color: AppColors.textCaption,
-                        ),
-                      ),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final nameStyle = AppTypography.bold(
+                        20 * s,
+                        color: AppColors.textInk,
+                      );
+                      final industryStyle = AppTypography.regular(
+                        14 * s,
+                        color: AppColors.textCaption,
+                      );
+                      final nameSize = _fitFontSize(
+                        text: name,
+                        style: nameStyle,
+                        maxWidth: constraints.maxWidth,
+                        maxLines: 1,
+                        minSize: 12 * s,
+                        maxSize: 20 * s,
+                      );
+                      final industrySize = _fitFontSize(
+                        text: industry,
+                        style: industryStyle,
+                        maxWidth: constraints.maxWidth,
+                        maxLines: 2,
+                        minSize: 10 * s,
+                        maxSize: 14 * s,
+                      );
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.ellipsis,
+                            style: nameStyle.copyWith(fontSize: nameSize),
+                          ),
+                          SizedBox(height: 2 * s),
+                          Text(
+                            industry,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: industryStyle
+                                .copyWith(fontSize: industrySize, height: 1.2),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],
@@ -857,7 +1070,7 @@ class _CompanyCard extends StatelessWidget {
                   height: 18 * s,
                   fit: BoxFit.contain,
                 ),
-                SizedBox(width: 15 * s),
+                SizedBox(width: logoGap * s),
                 Expanded(
                   child: Text(
                     size,
