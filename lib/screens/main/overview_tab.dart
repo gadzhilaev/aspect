@@ -27,6 +27,7 @@ class _OverviewTabState extends State<OverviewTab> {
   _FeedState _state = _FeedState.loading;
   String? _errorMessage;
   String? _emptyDetail;
+  String _userRole = '';
 
   @override
   void initState() {
@@ -50,19 +51,27 @@ class _OverviewTabState extends State<OverviewTab> {
       _state = _FeedState.loading;
       _errorMessage = null;
     });
+    final profile = await SessionStore.loadProfile();
+    final role = profile?.role.trim() ?? '';
     final companyId = await AuthStore.companyId();
     if (companyId == null || companyId.isEmpty) {
       // Альфа-демо / локальный вход с выбранной компанией, без JWT.
       if (await _useAlfaDemoFeed()) {
         if (!mounted) return;
         setState(() {
+          _userRole = role;
           _cards = AlfaDemoData.feedCards();
           _emptyDetail = null;
           _state = _FeedState.ready;
         });
         return;
       }
-      if (mounted) setState(() => _state = _FeedState.noCompany);
+      if (mounted) {
+        setState(() {
+          _userRole = role;
+          _state = _FeedState.noCompany;
+        });
+      }
       return;
     }
     try {
@@ -82,6 +91,7 @@ class _OverviewTabState extends State<OverviewTab> {
       }
       if (!mounted) return;
       setState(() {
+        _userRole = role;
         _cards = mapped;
         _emptyDetail = emptyDetail;
         _state = mapped.isEmpty ? _FeedState.empty : _FeedState.ready;
@@ -89,6 +99,7 @@ class _OverviewTabState extends State<OverviewTab> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
+        _userRole = role;
         _cards = const [];
         _state = _FeedState.error;
         _errorMessage = e.toString();
@@ -104,7 +115,8 @@ class _OverviewTabState extends State<OverviewTab> {
         widget.userName.trim().isEmpty ? l10n.defaultUserName : widget.userName;
     const hPad = AppColors.screenPadding;
     final apiEvents = [
-      for (final c in _cards) FeedEvent.fromCard(c, l10n),
+      for (final c in _cards)
+        FeedEvent.fromCard(c, l10n, decisionMakerRole: _userRole),
     ];
 
     return RefreshIndicator(
@@ -147,7 +159,7 @@ class _OverviewTabState extends State<OverviewTab> {
                 else if (_state == _FeedState.empty)
                   _HonestBox(
                     title: l10n.feedEmptyTitle,
-                    body: _emptyDetail ?? l10n.feedEmptyBody,
+                    body: _emptyDetail ?? l10n.feedEmptyBodyForRole(_userRole),
                   )
                 else ...[
                   for (final e in apiEvents.take(1)) ...[

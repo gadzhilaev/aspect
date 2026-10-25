@@ -15,9 +15,14 @@ import 'confirm_plan_screen.dart';
 import 'saved_plan_screen.dart';
 
 class _ChatLine {
-  const _ChatLine({required this.role, required this.text});
+  const _ChatLine({
+    required this.role,
+    required this.text,
+    this.analysisSteps = const [],
+  });
   final String role; // user | assistant
   final String text;
+  final List<String> analysisSteps;
 }
 
 class ChatScreenData {
@@ -162,10 +167,21 @@ class _ChatScreenState extends State<ChatScreen> {
       if (reply.isEmpty && res['content'] != null) {
         reply = res['content'].toString();
       }
+      final steps = <String>[
+        for (final s in (res['analysis_steps'] as List?) ?? const [])
+          if (s != null && s.toString().trim().isNotEmpty) s.toString().trim(),
+      ];
       if (!mounted) return;
       setState(() {
-        if (reply.isNotEmpty) {
-          _lines = [..._lines, _ChatLine(role: 'assistant', text: reply)];
+        if (reply.isNotEmpty || steps.isNotEmpty) {
+          _lines = [
+            ..._lines,
+            _ChatLine(
+              role: 'assistant',
+              text: reply.isEmpty ? 'Анализ выполнен.' : reply,
+              analysisSteps: steps,
+            ),
+          ];
         }
         _busy = false;
       });
@@ -311,6 +327,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           _AspectBubble(
                             text: _lines[i].text,
                             senderLabel: l10n.appName,
+                            analysisSteps: _lines[i].analysisSteps,
                             showBankLink: i == 0,
                             bankLinkLabel: l10n.showBankMaterial,
                             onBankLinkTap: i == 0
@@ -461,6 +478,7 @@ class _AspectBubble extends StatelessWidget {
     this.onBankLinkTap,
     this.senderLabel = 'Аспект',
     this.bankLinkLabel = 'Показать материал банка',
+    this.analysisSteps = const [],
   });
 
   final String text;
@@ -468,6 +486,7 @@ class _AspectBubble extends StatelessWidget {
   final VoidCallback? onBankLinkTap;
   final String senderLabel;
   final String bankLinkLabel;
+  final List<String> analysisSteps;
 
   @override
   Widget build(BuildContext context) {
@@ -515,6 +534,27 @@ class _AspectBubble extends StatelessWidget {
                       color: AppColors.textPrimary,
                     ),
                   ),
+                  if (analysisSteps.isNotEmpty) ...[
+                    SizedBox(height: 12 * s),
+                    Text(
+                      'Шаги анализа',
+                      style: AppTypography.bold(
+                        12 * s,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    SizedBox(height: 6 * s),
+                    for (final step in analysisSteps) ...[
+                      Text(
+                        '• $step',
+                        style: AppTypography.regular(
+                          12 * s,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      SizedBox(height: 2 * s),
+                    ],
+                  ],
                   if (showBankLink) ...[
                     SizedBox(height: 14 * s),
                     GestureDetector(

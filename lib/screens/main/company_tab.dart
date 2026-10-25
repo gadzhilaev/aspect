@@ -27,6 +27,8 @@ class CompanyTab extends StatefulWidget {
 class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
   OnboardingData? _profile;
   String? _telegramUsername;
+  /// Case CSV facts when linked (okved / group / revenue); market share never invented.
+  List<String> _caseFacts = const [];
   /// Ждём возврат из Telegram после открытия deep link.
   bool _awaitingTelegramLink = false;
 
@@ -59,6 +61,7 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
     }
     final companyId = await AuthStore.companyId();
     String? telegram;
+    var caseFacts = <String>[];
     if (companyId != null && companyId.isNotEmpty) {
         try {
         final apiProfile = await CompaniesApi.instance.getProfile(companyId);
@@ -69,6 +72,63 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
           if (name.isNotEmpty) profile.companyName = name;
           final industry = company['industry']?.toString().trim() ?? '';
           if (industry.isNotEmpty) profile.companyIndustry = industry;
+        }
+      } catch (_) {}
+      try {
+        final ctx = await CompaniesApi.instance.getContext(companyId);
+        final caseCtx = ctx['case_context'];
+        if (caseCtx is Map) {
+          final facts = <String>[];
+          final caseProfile = caseCtx['profile'];
+          if (caseProfile is Map) {
+            String fieldVal(dynamic f) {
+              if (f is! Map) return '';
+              final v = f['value']?.toString().trim() ?? '';
+              if (v.isNotEmpty) return v;
+              return f['detail']?.toString().trim() ?? '';
+            }
+            final okved = fieldVal(caseProfile['okved_name']);
+            if (okved.isNotEmpty) facts.add('ОКВЭД: $okved');
+            final group = caseProfile['group'];
+            if (group is Map) {
+              final gid = group['external_group_id']?.toString().trim() ?? '';
+              if (gid.isNotEmpty) facts.add('Группа компаний: $gid');
+            }
+            final revenue = caseProfile['revenue'];
+            if (revenue is Map) {
+              final amount = revenue['amount']?.toString().trim() ?? '';
+              final raw = revenue['revenue_raw']?.toString().trim() ?? '';
+              if (amount.isNotEmpty) {
+                facts.add('Выручка (case): $amount');
+              } else if (raw.isNotEmpty) {
+                facts.add('Выручка (case): $raw');
+              }
+            }
+            final share = caseProfile['market_share'];
+            if (share is Map) {
+              final status = share['status']?.toString() ?? '';
+              final detail = share['detail'];
+              var note = '';
+              if (detail is Map) {
+                note = detail['note']?.toString().trim() ?? '';
+              } else if (detail != null) {
+                note = detail.toString().trim();
+              }
+              if (status == 'absent' || share['value'] == null) {
+                facts.add(
+                  note.isNotEmpty
+                      ? note
+                      : 'Доля рынка: не рассчитана (нет в CSV)',
+                );
+              }
+            }
+          } else {
+            final status = caseCtx['status']?.toString() ?? '';
+            if (status.isNotEmpty && status != 'available') {
+              facts.add('Case-контекст: $status');
+            }
+          }
+          caseFacts = facts;
         }
       } catch (_) {}
       try {
@@ -111,6 +171,7 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
     setState(() {
       _profile = profile;
       _telegramUsername = telegram;
+      _caseFacts = caseFacts;
     });
   }
 
@@ -594,6 +655,20 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
           behavior: HitTestBehavior.opaque,
           child: _CompanyCard(profile: _profile),
         ),
+        if (_caseFacts.isNotEmpty) ...[
+          SizedBox(height: 12 * s),
+          for (final fact in _caseFacts)
+            Padding(
+              padding: EdgeInsets.only(bottom: 4 * s),
+              child: Text(
+                fact,
+                style: AppTypography.regular(
+                  12 * s,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ),
+        ],
         SizedBox(height: 15 * s),
         Padding(
           padding: EdgeInsets.only(left: (34 - AppColors.screenPadding) * s),

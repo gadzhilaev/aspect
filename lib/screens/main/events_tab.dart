@@ -30,6 +30,7 @@ class _EventsTabState extends State<EventsTab> {
   _EventsState _state = _EventsState.loading;
   String? _errorMessage;
   List<Map<String, dynamic>> _apiCards = const [];
+  String _userRole = '';
 
   @override
   void initState() {
@@ -55,7 +56,10 @@ class _EventsTabState extends State<EventsTab> {
     if (!_viewedLoaded) return;
     final l10n = mounted ? context.l10n : null;
     if (l10n == null) return;
-    final all = [for (final c in _apiCards) FeedEvent.fromCard(c, l10n)];
+    final all = [
+      for (final c in _apiCards)
+        FeedEvent.fromCard(c, l10n, decisionMakerRole: _userRole),
+    ];
     final count = all.where((e) => !_viewedIds.contains(e.id)).length;
     widget.onUnreadChanged?.call(count);
   }
@@ -84,11 +88,14 @@ class _EventsTabState extends State<EventsTab> {
       _state = _EventsState.loading;
       _errorMessage = null;
     });
+    final profile = await SessionStore.loadProfile();
+    final role = profile?.role.trim() ?? '';
     final companyId = await AuthStore.companyId();
     if (companyId == null || companyId.isEmpty) {
       if (await _useAlfaDemoFeed()) {
         if (!mounted) return;
         setState(() {
+          _userRole = role;
           _apiCards = AlfaDemoData.feedCards();
           _state = _EventsState.ready;
         });
@@ -97,6 +104,7 @@ class _EventsTabState extends State<EventsTab> {
       }
       if (mounted) {
         setState(() {
+          _userRole = role;
           _apiCards = const [];
           _state = _EventsState.noCompany;
         });
@@ -113,6 +121,7 @@ class _EventsTabState extends State<EventsTab> {
       ];
       if (!mounted) return;
       setState(() {
+        _userRole = role;
         _apiCards = cards;
         _state = cards.isEmpty ? _EventsState.empty : _EventsState.ready;
       });
@@ -120,6 +129,7 @@ class _EventsTabState extends State<EventsTab> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
+        _userRole = role;
         _apiCards = const [];
         _state = _EventsState.error;
         _errorMessage = e.toString();
@@ -156,7 +166,10 @@ class _EventsTabState extends State<EventsTab> {
   Widget build(BuildContext context) {
     final s = context.scale;
     final l10n = context.l10n;
-    final all = [for (final c in _apiCards) FeedEvent.fromCard(c, l10n)];
+    final all = [
+      for (final c in _apiCards)
+        FeedEvent.fromCard(c, l10n, decisionMakerRole: _userRole),
+    ];
     final newCount = _viewedLoaded
         ? all.where((e) => !_viewedIds.contains(e.id)).length
         : all.length;
@@ -246,7 +259,7 @@ class _EventsTabState extends State<EventsTab> {
                 else if (_state == _EventsState.empty)
                   _HonestBox(
                     title: l10n.feedEmptyTitle,
-                    body: l10n.feedEmptyBody,
+                    body: l10n.feedEmptyBodyForRole(_userRole),
                   )
                 else
                   for (var i = 0; i < visible.length; i++) ...[

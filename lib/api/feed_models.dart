@@ -34,8 +34,9 @@ class FeedEvent {
 
   factory FeedEvent.fromCard(
     Map<String, dynamic> card,
-    AppLocalizations l10n,
-  ) {
+    AppLocalizations l10n, {
+    String decisionMakerRole = '',
+  }) {
     final priority = (card['priority'] ?? '').toString().toLowerCase();
     final score = (card['impact_score'] as num?)?.toDouble();
     final scoreKind = (card['score_kind'] ?? '').toString();
@@ -44,7 +45,7 @@ class FeedEvent {
     final reason = decodeHtmlEntities((card['reason_summary'] ?? '').toString());
     final profileRel = card['profile_relevance'];
     String whyBody = reason;
-    String whyLead = l10n.whyForYou;
+    String whyLead = l10n.whyForYouForRole(decisionMakerRole);
     if (profileRel is Map && profileRel['matched'] == true) {
       final label = (profileRel['label'] ?? '').toString().trim();
       if (label.isNotEmpty) whyLead = label;

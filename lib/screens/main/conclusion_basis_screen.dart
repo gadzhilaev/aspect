@@ -14,19 +14,23 @@ class ConclusionBasisData {
     this.sections = const [
       (
         'Данные компании',
-        'Наличие кредитных продуктов\nИсточник: demo-профиль СеверПрома',
+        'Признаки из профиля / case-контекста. Пустые поля не заполняем нулями.',
       ),
       (
         'Факт события',
-        'Сохранение ставки, а не ее повышение. Дата и ссылка берутся из источника',
+        'Факты берутся из первоисточника новости.',
       ),
       (
-        'Аналитика банка',
-        'Связанный документ Альфа-Банка. Фрагмент и страница доступны при загрузке.',
+        'Аналитика Альфа-Банка',
+        'Материал банка подтягивается из evidence API, если доступен.',
+      ),
+      (
+        'Вывод модели (AI)',
+        'Отделяется от позиции банка в разборе и в чате.',
       ),
       (
         'Что пока неизвестно',
-        'Сумма долга, тип ставки и сроки пересмотра. Персональная сумма эффекта не рассчитана.',
+        'Уточните финансы, контрагентов или откройте материал банка.',
       ),
     ],
   });
@@ -82,106 +86,102 @@ class ConclusionBasisScreen extends StatelessWidget {
                         child: GestureDetector(
                           onTap: () => Navigator.of(context).maybePop(),
                           behavior: HitTestBehavior.opaque,
-                          child: Text(
-                            '‹ $backLabel',
-                            style: AppTypography.regular(
-                              15 * s,
-                              color: AppColors.brandRed,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SvgPicture.asset(
+                                'assets/icons/chevron_left.svg',
+                                width: 9 * s,
+                                height: 18 * s,
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.brandRed,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                              SizedBox(width: 8 * s),
+                              Flexible(
+                                child: Text(
+                                  backLabel,
+                                  style: AppTypography.medium(
+                                    13 * s,
+                                    color: AppColors.brandRed,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    const _AlfaBankBadge(),
                   ],
                 ),
               ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(hPad, 8 * s, hPad, 12 * s),
+                child: Text(
+                  l10n.conclusionBasis,
+                  style: AppTypography.bold(22 * s, color: titleDark),
+                ),
+              ),
               Expanded(
-                child: ListView(
-                  padding: EdgeInsets.fromLTRB(
-                    hPad,
-                    8 * s,
-                    hPad,
-                    16 * s + bottom,
-                  ),
-                  children: [
-                    Text.rich(
-                      TextSpan(
+                child: ListView.separated(
+                  padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24 * s + bottom),
+                  itemCount: data.sections.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 16 * s),
+                  itemBuilder: (context, i) {
+                    final (title, body) = data.sections[i];
+                    final isBank = title.contains('Альфа-Банка');
+                    final isAi =
+                        title.contains('AI') || title.contains('модели');
+                    return Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(16 * s),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12 * s),
+                        border: Border.all(
+                          color: isBank
+                              ? AppColors.brandRed.withValues(alpha: 0.35)
+                              : Colors.black.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          TextSpan(
-                            text: '${l10n.eventAnalysis}\n',
-                            style: AppTypography.bold(
-                              24.83 * s,
-                              color: titleDark,
-                            ),
+                          Text(
+                            title,
+                            style: AppTypography.bold(14 * s, color: heading),
                           ),
-                          TextSpan(
-                            text: l10n.conclusionBasisHeading,
-                            style: AppTypography.bold(
-                              24.83 * s,
-                              color: AppColors.brandRed,
+                          if (isBank || isAi) ...[
+                            SizedBox(height: 6 * s),
+                            Text(
+                              isBank
+                                  ? 'Позиция / материал банка'
+                                  : 'Сформировано моделью',
+                              style: AppTypography.medium(
+                                11 * s,
+                                color: isBank
+                                    ? AppColors.brandRed
+                                    : AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                          SizedBox(height: 8 * s),
+                          Text(
+                            body,
+                            style: AppTypography.regular(
+                              13 * s,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    SizedBox(height: 24 * s),
-                    for (var i = 0; i < data.sections.length; i++) ...[
-                      if (i > 0) ...[
-                        SizedBox(height: 24 * s),
-                        Divider(
-                          height: 1 * s,
-                          thickness: 1 * s,
-                          color: Colors.black.withValues(alpha: 0.08),
-                        ),
-                        SizedBox(height: 16 * s),
-                      ],
-                      Text(
-                        data.sections[i].$1,
-                        style: AppTypography.bold(15.13 * s, color: heading),
-                      ),
-                      SizedBox(height: 8 * s),
-                      Text(
-                        data.sections[i].$2,
-                        style: AppTypography.regular(
-                          15.13 * s,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ],
+                    );
+                  },
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AlfaBankBadge extends StatelessWidget {
-  const _AlfaBankBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    final s = context.scale;
-    return Container(
-      height: 23 * s,
-      padding: EdgeInsets.symmetric(horizontal: 10 * s),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.brandRed,
-        borderRadius: BorderRadius.circular(6 * s),
-      ),
-      child: SvgPicture.asset(
-        'assets/images/alfa_bank_logo.svg',
-        width: 51 * s,
-        height: 10 * s,
-        fit: BoxFit.contain,
-        colorFilter: ColorFilter.mode(
-          AppColors.surface,
-          BlendMode.srcIn,
         ),
       ),
     );

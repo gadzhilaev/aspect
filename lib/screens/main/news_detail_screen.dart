@@ -83,6 +83,50 @@ const chinaExportDetail = NewsDetailData(
       'Заранее пересмотреть пул поставщиков. Уточнить структуру долга и обсудить, какие условия требуют внимания.',
 );
 
+ConclusionBasisData _basisFromNews(NewsDetailData news) {
+  final sections = <(String, String)>[];
+  sections.add((
+    'Данные компании',
+    news.callout.trim().isNotEmpty
+        ? news.callout.trim()
+        : 'Признаки из профиля / case-контекста. Пустые поля не заполняем нулями.',
+  ));
+  sections.add((
+    'Факт события',
+    news.whatHappened.trim().isNotEmpty
+        ? news.whatHappened.trim()
+        : (news.body.trim().isNotEmpty
+            ? news.body.trim()
+            : 'Факты берутся из первоисточника новости.'),
+  ));
+  final bank = news.bankBody.trim();
+  final bankTitle = news.bankTitle.trim();
+  sections.add((
+    'Аналитика Альфа-Банка',
+    bank.isNotEmpty
+        ? (bankTitle.isNotEmpty ? '$bankTitle\n$bank' : bank)
+        : 'Связанный материал банка не подобран для этого события (или только поиск по корпусу).',
+  ));
+  final ai = <String>[
+    if (news.risk.trim().isNotEmpty) 'Риск / расчёт (модель): ${news.risk.trim()}',
+    if (news.opportunity.trim().isNotEmpty)
+      'Возможность / пробелы: ${news.opportunity.trim()}',
+    if (news.nextAction.trim().isNotEmpty)
+      'Следующий шаг: ${news.nextAction.trim()}',
+  ];
+  sections.add((
+    'Вывод модели (AI)',
+    ai.isNotEmpty
+        ? ai.join('\n')
+        : 'Персонализированная интерпретация формируется ассистентом на основе доступных данных.',
+  ));
+  sections.add((
+    'Что пока неизвестно',
+    'Поля без подтверждённых данных не заполняются нулями. Уточните финансы или откройте материал банка.',
+  ));
+  return ConclusionBasisData(sections: sections);
+}
+
 NewsDetailData newsDetailFor({
   required ImpactLevel level,
   required String title,
@@ -591,6 +635,18 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                         color: AppColors.textPrimary,
                       ),
                     ),
+                    if (data.risk.isNotEmpty ||
+                        data.opportunity.isNotEmpty ||
+                        data.nextAction.isNotEmpty) ...[
+                      SizedBox(height: 6 * s),
+                      Text(
+                        'Вывод модели (AI), не позиция банка',
+                        style: AppTypography.medium(
+                          11 * s,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
                     SizedBox(height: 10 * s),
                     if (data.risk.isNotEmpty)
                       _ChangeLine(label: l10n.riskLabel, text: data.risk),
@@ -619,9 +675,17 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                         ),
                       ),
                     ],
-                    SizedBox(height: 20 * s),
                     if (data.bankTitle.isNotEmpty ||
                         data.bankBody.isNotEmpty) ...[
+                      SizedBox(height: 20 * s),
+                      Text(
+                        'Аналитика Альфа-Банка (не AI)',
+                        style: AppTypography.medium(
+                          11 * s,
+                          color: AppColors.brandRed,
+                        ),
+                      ),
+                      SizedBox(height: 8 * s),
                       _BankCard(
                         title: data.bankTitle.isNotEmpty
                             ? data.bankTitle
@@ -680,7 +744,10 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                     ),
                     SizedBox(height: 12 * s),
                     GestureDetector(
-                      onTap: () => openConclusionBasisScreen(context),
+                      onTap: () => openConclusionBasisScreen(
+                        context,
+                        data: _basisFromNews(data),
+                      ),
                       behavior: HitTestBehavior.opaque,
                       child: Text(
                         l10n.conclusionBasisPrompt,

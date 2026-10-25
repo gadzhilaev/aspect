@@ -193,6 +193,44 @@ class AppLocalizations {
         'Add products and brands under Company — industry news appears only '
         'when a matching publication is found (not guaranteed).',
       );
+
+  /// Лёгкая подстройка empty-state под роль ЛПР (без отдельного ranking).
+  String feedEmptyBodyForRole(String role) {
+    final r = role.toLowerCase();
+    if (r.contains('финанс') || r.contains('казнач') || r.contains('бухгалтер')) {
+      return _t(
+        'Пока нет событий с явной финансовой связью для вашей роли. '
+        'Заполните финансы и продукты в «Компании» — совпадения появятся, '
+        'когда в корпусе будет подходящая публикация.',
+        'No events with a clear finance link for your role yet. '
+        'Fill in finance and products under Company — matches appear only '
+        'when a suitable publication exists.',
+      );
+    }
+    if (r.contains('коммерч') || r.contains('операц')) {
+      return _t(
+        'Пока нет событий по поставкам, рынкам или продуктам под ваш профиль. '
+        'Укажите бренды и географию закупок — отраслевые новости не гарантированы.',
+        'No supply/market/product events for your profile yet. '
+        'Add brands and procurement geography — industry matches are not guaranteed.',
+      );
+    }
+    return feedEmptyBody;
+  }
+
+  String whyForYouForRole(String role) {
+    final r = role.toLowerCase();
+    if (r.contains('финанс') || r.contains('казнач')) {
+      return _t('Почему финансам:', 'Why it matters to finance:');
+    }
+    if (r.contains('коммерч')) {
+      return _t('Почему коммерции:', 'Why it matters to commercial:');
+    }
+    if (r.contains('операц')) {
+      return _t('Почему операциям:', 'Why it matters to operations:');
+    }
+    return whyForYou;
+  }
   String get feedProfileIncompleteBody => _t(
         'Профиль ещё не заполнен: добавьте продукты, бренды или рынки, '
         'чтобы подбирать отраслевые новости.',
