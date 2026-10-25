@@ -93,7 +93,7 @@ class ConclusionBasisScreen extends StatelessWidget {
                                 'assets/icons/chevron_left.svg',
                                 width: 9 * s,
                                 height: 18 * s,
-                                colorFilter: const ColorFilter.mode(
+                                colorFilter: ColorFilter.mode(
                                   AppColors.brandRed,
                                   BlendMode.srcIn,
                                 ),
@@ -127,7 +127,7 @@ class ConclusionBasisScreen extends StatelessWidget {
                 child: ListView.separated(
                   padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24 * s + bottom),
                   itemCount: data.sections.length,
-                  separatorBuilder: (_, __) => SizedBox(height: 16 * s),
+                  separatorBuilder: (_, _) => SizedBox(height: 16 * s),
                   itemBuilder: (context, i) {
                     final (title, body) = data.sections[i];
                     final isBank = title.contains('Альфа-Банка');
