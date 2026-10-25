@@ -83,6 +83,7 @@ class _LocationsScreenState extends State<LocationsScreen>
     await CitiesCatalog.ensureLoaded();
     if (!mounted) return;
     setState(() => _citiesReady = true);
+    _syncFooter();
   }
 
   @override
@@ -90,21 +91,28 @@ class _LocationsScreenState extends State<LocationsScreen>
     super.didUpdateWidget(oldWidget);
     if (widget.isActive && !oldWidget.isActive) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _syncFooter();
+        if (mounted) {
+          setState(() {}); // заголовок по businessType
+          _syncFooter();
+        }
       });
     }
   }
 
+  bool get _canContinue =>
+      _regions.isNotEmpty && _cities.isNotEmpty && _citiesReady;
+
   void _syncFooter() {
     widget.bindFooter?.call(
       label: context.l10n.continueAction,
-      onPressed: _continue,
+      onPressed: _canContinue ? _continue : null,
     );
   }
 
   void _addRegion(String region) {
     if (_regions.contains(region)) return;
     setState(() => _regions.add(region));
+    _syncFooter();
   }
 
   void _removeRegion(int index) {
@@ -113,15 +121,18 @@ class _LocationsScreenState extends State<LocationsScreen>
       final known = _knownCitiesForRegions;
       _cities.removeWhere((city) => !known.contains(city));
     });
+    _syncFooter();
   }
 
   void _addCity(String city) {
     if (_cities.contains(city)) return;
     setState(() => _cities.add(city));
+    _syncFooter();
   }
 
   void _removeCity(int index) {
     setState(() => _cities.removeAt(index));
+    _syncFooter();
   }
 
   Future<void> _openCityPicker() async {
@@ -143,6 +154,7 @@ class _LocationsScreenState extends State<LocationsScreen>
   }
 
   void _continue() {
+    if (!_canContinue) return;
     widget.data.salesRegions = List.of(_regions);
     widget.data.cities = List.of(_cities);
     widget.onNext?.call();
@@ -188,7 +200,7 @@ class _LocationsScreenState extends State<LocationsScreen>
     );
   }
 
-  Widget _addRegionDropdown() {
+  Widget _addRegionDropdown({required String addLabel}) {
     final s = context.scale;
     final l10n = context.l10n;
     final available = _availableRegions;
@@ -214,7 +226,7 @@ class _LocationsScreenState extends State<LocationsScreen>
                 child: DropdownButton<String>(
                   isExpanded: true,
                   hint: Text(
-                    l10n.onboardingAddRegion,
+                    addLabel,
                     style: AppTypography.regular(15 * s, color: _addBorder),
                   ),
                   icon: const Icon(
@@ -293,18 +305,19 @@ class _LocationsScreenState extends State<LocationsScreen>
     super.build(context);
     final s = context.scale;
     final l10n = context.l10n;
+    final copy = l10n.locationsCopyForBusinessType(widget.data.businessType);
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OnboardingHeader(
           step: 5,
           showChrome: !widget.embedded,
-          title: l10n.onboardingLocationsTitle,
-          subtitle: l10n.onboardingLocationsSubtitle,
+          title: copy.title,
+          subtitle: copy.subtitle,
         ),
         SizedBox(height: 28 * s),
         Text(
-          l10n.onboardingSalesRegionsSection,
+          copy.regionsSection,
           style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _regions.length; i++)
@@ -313,10 +326,10 @@ class _LocationsScreenState extends State<LocationsScreen>
             index: i,
             onRemove: () => _removeRegion(i),
           ),
-        _addRegionDropdown(),
+        _addRegionDropdown(addLabel: copy.addRegion),
         SizedBox(height: 28 * s),
         Text(
-          l10n.onboardingCitiesSection,
+          copy.citiesSection,
           style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _cities.length; i++)
@@ -338,7 +351,7 @@ class _LocationsScreenState extends State<LocationsScreen>
 
     return OnboardingScaffold(
       buttonLabel: l10n.continueAction,
-      onContinue: _continue,
+      onContinue: _canContinue ? _continue : null,
       body: body,
     );
   }

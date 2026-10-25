@@ -71,30 +71,39 @@ class _CountriesScreenState extends State<CountriesScreen>
     super.didUpdateWidget(oldWidget);
     if (widget.isActive && !oldWidget.isActive) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _syncFooter();
+        if (mounted) {
+          setState(() {}); // заголовок по businessType
+          _syncFooter();
+        }
       });
     }
   }
 
+  bool get _canContinue => _countries.isNotEmpty;
+
   void _syncFooter() {
     final l10n = context.l10n;
+    final copy = l10n.countriesCopyForBusinessType(widget.data.businessType);
     widget.bindFooter?.call(
       label: l10n.continueAction,
-      hint: l10n.onboardingCountriesFooterHint,
-      onPressed: _continue,
+      hint: copy.footer,
+      onPressed: _canContinue ? _continue : null,
     );
   }
 
   void _addCountry(String country) {
     if (_countries.contains(country)) return;
     setState(() => _countries.add(country));
+    _syncFooter();
   }
 
   void _removeCountry(int index) {
     setState(() => _countries.removeAt(index));
+    _syncFooter();
   }
 
   void _continue() {
+    if (!_canContinue) return;
     widget.data.countries = List.of(_countries);
     widget.onNext?.call();
   }
@@ -135,7 +144,7 @@ class _CountriesScreenState extends State<CountriesScreen>
     );
   }
 
-  Widget _addCountryDropdown() {
+  Widget _addCountryDropdown({required String addLabel}) {
     final s = context.scale;
     final l10n = context.l10n;
     final available = _available;
@@ -161,7 +170,7 @@ class _CountriesScreenState extends State<CountriesScreen>
                 child: DropdownButton<String>(
                   isExpanded: true,
                   hint: Text(
-                    l10n.onboardingAddCountry,
+                    addLabel,
                     style: AppTypography.regular(15 * s, color: _addBorder),
                   ),
                   icon: const Icon(
@@ -196,22 +205,23 @@ class _CountriesScreenState extends State<CountriesScreen>
     super.build(context);
     final s = context.scale;
     final l10n = context.l10n;
+    final copy = l10n.countriesCopyForBusinessType(widget.data.businessType);
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OnboardingHeader(
           step: 4,
           showChrome: !widget.embedded,
-          title: l10n.onboardingCountriesTitle,
-          subtitle: l10n.onboardingCountriesSubtitle,
+          title: copy.title,
+          subtitle: copy.subtitle,
         ),
         SizedBox(height: 28 * s),
         Text(
-          l10n.onboardingCountriesSection,
+          copy.section,
           style: AppTypography.bold(12 * s, color: AppColors.textSecondary),
         ),
         for (var i = 0; i < _countries.length; i++) _countryField(i),
-        _addCountryDropdown(),
+        _addCountryDropdown(addLabel: copy.add),
       ],
     );
 
@@ -224,8 +234,8 @@ class _CountriesScreenState extends State<CountriesScreen>
 
     return OnboardingScaffold(
       buttonLabel: l10n.continueAction,
-      footerHint: l10n.onboardingCountriesFooterHint,
-      onContinue: _continue,
+      footerHint: copy.footer,
+      onContinue: _canContinue ? _continue : null,
       body: body,
     );
   }

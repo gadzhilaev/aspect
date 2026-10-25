@@ -40,6 +40,9 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
   @override
   bool get wantKeepAlive => true;
 
+  bool get _canContinue =>
+      _options.any((e) => e.$1 == _selected);
+
   @override
   void initState() {
     super.initState();
@@ -60,14 +63,13 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
   void _syncFooter() {
     widget.bindFooter?.call(
       label: context.l10n.continueAction,
-      onPressed: _continue,
+      onPressed: _canContinue ? _continue : null,
     );
   }
 
   void _continue() {
-    final matches = _options.where((e) => e.$1 == _selected);
-    if (matches.isEmpty) return;
-    final option = matches.first;
+    if (!_canContinue) return;
+    final option = _options.firstWhere((e) => e.$1 == _selected);
     widget.data.businessType = option.$1;
     widget.data.businessTypeSubtitle = option.$2;
     widget.onNext?.call();
@@ -93,7 +95,10 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
             title: option.$1,
             subtitle: option.$2,
             selected: _selected == option.$1,
-            onTap: () => setState(() => _selected = option.$1),
+            onTap: () {
+              setState(() => _selected = option.$1);
+              _syncFooter();
+            },
           ),
           SizedBox(height: 10 * s),
         ],
@@ -109,7 +114,7 @@ class _BusinessTypeScreenState extends State<BusinessTypeScreen>
 
     return OnboardingScaffold(
       buttonLabel: l10n.continueAction,
-      onContinue: _continue,
+      onContinue: _canContinue ? _continue : null,
       body: body,
     );
   }

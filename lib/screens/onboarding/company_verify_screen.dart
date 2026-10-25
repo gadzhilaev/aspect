@@ -38,11 +38,11 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
   ];
 
   static const _sizes = [
-    'Микро • до 15 сотрудников',
-    'Малая • 15–100 сотрудников',
-    'Средняя • 100–500 сотрудников',
-    'Средняя • 500–1 000 сотрудников',
-    'Крупная • 1 000+ сотрудников',
+    'до 15 сотрудников',
+    '15–100 сотрудников',
+    '100–500 сотрудников',
+    '500–1 000 сотрудников',
+    '1 000+ сотрудников',
   ];
 
   late String _role;
@@ -70,16 +70,19 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
     }
   }
 
+  bool get _canConfirm => _role.trim().isNotEmpty && _size.trim().isNotEmpty;
+
   void _syncFooter() {
     final l10n = context.l10n;
     widget.bindFooter?.call(
       label: l10n.onboardingConfirmData,
       hint: l10n.onboardingVerifyFooterHint,
-      onPressed: _continue,
+      onPressed: _canConfirm ? _continue : null,
     );
   }
 
   void _continue() {
+    if (!_canConfirm) return;
     widget.data.role = _role;
     widget.data.companySize = _size;
     widget.onNext?.call();
@@ -104,7 +107,7 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
         CompanyCard(
           name: data.companyName,
           inn: data.companyInn,
-          city: data.companyCity,
+          address: data.companyCity,
           industry: data.companyIndustry,
         ),
         SizedBox(height: 28 * s),
@@ -112,14 +115,20 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
           label: l10n.onboardingYourRole,
           value: _role,
           items: _roles,
-          onChanged: (value) => setState(() => _role = value),
+          onChanged: (value) {
+            setState(() => _role = value);
+            _syncFooter();
+          },
         ),
         SizedBox(height: 20 * s),
         AuthDropdown(
           label: l10n.onboardingCompanySize,
           value: _size,
           items: _sizes,
-          onChanged: (value) => setState(() => _size = value),
+          onChanged: (value) {
+            setState(() => _size = value);
+            _syncFooter();
+          },
         ),
       ],
     );
@@ -134,7 +143,7 @@ class _CompanyVerifyScreenState extends State<CompanyVerifyScreen>
     return OnboardingScaffold(
       buttonLabel: l10n.onboardingConfirmData,
       footerHint: l10n.onboardingVerifyFooterHint,
-      onContinue: _continue,
+      onContinue: _canConfirm ? _continue : null,
       body: body,
     );
   }

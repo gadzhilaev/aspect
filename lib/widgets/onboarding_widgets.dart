@@ -147,7 +147,7 @@ class CompanyCard extends StatelessWidget {
     super.key,
     required this.name,
     required this.inn,
-    required this.city,
+    required this.address,
     required this.industry,
     this.selected = false,
     this.onTap,
@@ -155,7 +155,8 @@ class CompanyCard extends StatelessWidget {
 
   final String name;
   final String inn;
-  final String city;
+  /// Полный юридический адрес (или город, если адреса нет).
+  final String address;
   final String industry;
   final bool selected;
   final VoidCallback? onTap;
@@ -164,19 +165,20 @@ class CompanyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.scale;
     final l10n = context.l10n;
-    return Container(
+    final innLine =
+        inn.trim().isNotEmpty ? '${l10n.innLabel} ${inn.trim()}' : '';
+    final addressLine = address.trim();
+    final industryLine = industry.trim();
+
+    return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16 * s),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 16 * s,
-            offset: Offset(0, 4 * s),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 6 * s,
-            offset: Offset(0, 1 * s),
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 18 * s,
+            spreadRadius: -2 * s,
+            offset: Offset(0, 8 * s),
           ),
         ],
       ),
@@ -184,68 +186,107 @@ class CompanyCard extends StatelessWidget {
         color: AppColors.surface,
         elevation: 0,
         shadowColor: Colors.transparent,
-        borderRadius: BorderRadius.circular(16 * s),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16 * s),
+          side: BorderSide(
+            color: selected
+                ? AppColors.brandRed
+                : const Color.fromRGBO(0, 0, 0, 0.12),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16 * s),
-          child: Ink(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16 * s),
-              border: Border.all(
-                color: selected
-                    ? AppColors.brandRed
-                    : const Color(0x3D000000),
-                width: selected ? 1 : 0.1,
-              ),
-            ),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    width: 3 * s,
-                    margin: EdgeInsets.fromLTRB(14 * s, 14 * s, 0, 14 * s),
-                    decoration: BoxDecoration(
-                      color: AppColors.brandRed,
-                      borderRadius: BorderRadius.circular(2 * s),
-                    ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 3 * s,
+                  margin: EdgeInsets.fromLTRB(14 * s, 13 * s, 0, 13 * s),
+                  decoration: BoxDecoration(
+                    color: AppColors.brandRed,
+                    borderRadius: BorderRadius.circular(3 * s),
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(12 * s, 14 * s, 16 * s, 14 * s),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: AppTypography.bold(
-                              16 * s,
-                              color: AppColors.brandRed,
-                            ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      12 * s,
+                      13 * s,
+                      selected ? 8 * s : 16 * s,
+                      13 * s,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.bold(
+                            15 * s,
+                            color: AppColors.brandRed,
                           ),
+                        ),
+                        if (innLine.isNotEmpty) ...[
                           SizedBox(height: 8 * s),
                           Text(
-                            '${l10n.innLabel} $inn • $city',
+                            innLine,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: AppTypography.regular(
-                              13 * s,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                          SizedBox(height: 8 * s),
-                          Text(
-                            industry,
-                            style: AppTypography.regular(
-                              13 * s,
+                              12 * s,
                               color: AppColors.textMuted,
                             ),
                           ),
                         ],
+                        if (addressLine.isNotEmpty) ...[
+                          SizedBox(height: 8 * s),
+                          Text(
+                            addressLine,
+                            maxLines: 3,
+                            softWrap: true,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.regular(
+                              12 * s,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                        if (industryLine.isNotEmpty) ...[
+                          SizedBox(height: 8 * s),
+                          Text(
+                            industryLine,
+                            // Полный ОКВЭД; если длинный — перенос на 2-ю строку.
+                            maxLines: 2,
+                            softWrap: true,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.regular(
+                              12 * s,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                if (selected)
+                  Padding(
+                    padding: EdgeInsets.only(right: 14 * s),
+                    child: Center(
+                      child: Icon(
+                        Icons.check_circle,
+                        color: AppColors.brandRed,
+                        size: 22 * s,
                       ),
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         ),

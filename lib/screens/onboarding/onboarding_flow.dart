@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
 import '../../api/api_client.dart';
+import '../../api/auth_api.dart';
 import '../../api/companies_api.dart';
 import '../../navigation/enter_main.dart';
 import '../../services/auth_store.dart';
@@ -65,11 +67,28 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     VoidCallback? onPressed,
   }) {
     if (!mounted) return;
-    setState(() {
-      _buttonLabel = label;
-      _footerHint = hint;
-      _onContinue = onPressed;
-    });
+    void apply() {
+      if (!mounted) return;
+      if (_buttonLabel == label &&
+          _footerHint == hint &&
+          identical(_onContinue, onPressed)) {
+        return;
+      }
+      setState(() {
+        _buttonLabel = label;
+        _footerHint = hint;
+        _onContinue = onPressed;
+      });
+    }
+
+    // didUpdateWidget / build children must not call setState on parent mid-frame.
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      apply();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => apply());
+    }
   }
 
   Future<void> _goTo(int step) async {
@@ -146,6 +165,16 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             },
           );
         }
+        final mainMarket = widget.data.mainMarket.trim();
+        if (mainMarket.isNotEmpty) {
+          await ApiClient.instance.postJson(
+            '/companies/$companyId/nodes',
+            body: {
+              'node_type': 'market',
+              'name': mainMarket,
+            },
+          );
+        }
         for (final c in widget.data.counterparties) {
           if (c.trim().isEmpty) continue;
           await ApiClient.instance.postJson(
@@ -158,10 +187,16 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         }
         try {
           await CompaniesApi.instance.completeProfile(companyId);
+          await CompaniesApi.instance.buildDigitalTwin(companyId);
         } catch (_) {}
       }
     } catch (_) {
       // Онбординг не блокируем при ошибках графа — данные уже в локальном профиле.
+    }
+    try {
+      await AuthApi.instance.markRegistrationComplete();
+    } catch (_) {
+      // Локальный вход всё равно; флаг «email занят» догоним при следующем логине.
     }
     await SessionStore.finishRegistration(widget.data);
     final name = firstNameFromFullName(fullName);

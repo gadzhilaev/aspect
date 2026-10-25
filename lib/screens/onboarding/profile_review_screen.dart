@@ -111,7 +111,7 @@ class _ProfileReviewScreenState extends State<ProfileReviewScreen>
           child: CompanyCard(
             name: data.companyName,
             inn: data.companyInn,
-            city: data.companyCity,
+            address: data.companyCity,
             industry: data.companyIndustry,
           ),
         ),
