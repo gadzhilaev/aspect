@@ -34,6 +34,15 @@ abstract final class AuthStore {
     return t != null && t.isNotEmpty;
   }
 
+  /// Email / user id from a past API login (may remain after [clearTokens]).
+  static Future<bool> hasStoredApiIdentity() async {
+    final p = await _prefs();
+    final email = p.getString(_emailKey)?.trim() ?? '';
+    if (email.isNotEmpty) return true;
+    final userId = p.getString(_userIdKey)?.trim() ?? '';
+    return userId.isNotEmpty;
+  }
+
   static Future<void> saveProfile({
     required String userId,
     required String email,

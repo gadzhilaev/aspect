@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_store.dart';
+import '../services/session_store.dart';
 import 'api_config.dart';
 import 'api_exception.dart';
 
@@ -18,6 +20,11 @@ class ApiClient {
   final http.Client _http = http.Client();
   bool _refreshing = false;
 
+  /// Лог всех HTTP в терминал `flutter run` (только debug).
+  static bool logHttp = kDebugMode;
+
+  static const Duration receiveTimeout = Duration(seconds: 20);
+
   static const _networkUnavailableMessage =
       'Сервер недоступен. Проверьте, что API запущен, и попробуйте снова.';
 
@@ -29,6 +36,10 @@ class ApiClient {
       message: _networkUnavailableMessage,
       details: cause?.toString(),
     );
+  }
+
+  static Never _requestTimedOut() {
+    throw TimeoutException('HTTP request timed out', receiveTimeout);
   }
 
   static bool isNetworkFailure(Object error) {
@@ -55,10 +66,8 @@ class ApiClient {
     bool auth = true,
   }) async {
     final res = await _send(
-      () async => _http.get(
-        _uri(path, query),
-        headers: await _headers(auth: auth),
-      ),
+      'GET',
+      _uri(path, query),
       auth: auth,
     );
     return _decodeMap(res);
@@ -70,12 +79,10 @@ class ApiClient {
     bool auth = true,
   }) async {
     final res = await _send(
-      () async => _http.post(
-        _uri(path),
-        headers: await _headers(auth: auth, json: true),
-        body: body == null ? null : jsonEncode(body),
-      ),
+      'POST',
+      _uri(path),
       auth: auth,
+      jsonBody: body,
     );
     return _decodeMap(res);
   }
@@ -86,12 +93,10 @@ class ApiClient {
     bool auth = true,
   }) async {
     final res = await _send(
-      () async => _http.patch(
-        _uri(path),
-        headers: await _headers(auth: auth, json: true),
-        body: body == null ? null : jsonEncode(body),
-      ),
+      'PATCH',
+      _uri(path),
       auth: auth,
+      jsonBody: body,
     );
     return _decodeMap(res);
   }
@@ -102,26 +107,26 @@ class ApiClient {
     bool auth = true,
   }) async {
     final res = await _send(
-      () async => _http.delete(
-        _uri(path),
-        headers: await _headers(auth: auth, json: body != null),
-        body: body == null ? null : jsonEncode(body),
-      ),
+      'DELETE',
+      _uri(path),
       auth: auth,
+      jsonBody: body,
     );
     return _decodeMap(res);
   }
 
   Future<http.Response> _send(
-    Future<http.Response> Function() once, {
+    String method,
+    Uri uri, {
     required bool auth,
+    Object? jsonBody,
   }) async {
     try {
-      var res = await once();
+      var res = await _once(method, uri, auth: auth, jsonBody: jsonBody);
       if (auth && res.statusCode == 401) {
         final ok = await _tryRefresh();
         if (ok) {
-          res = await once();
+          res = await _once(method, uri, auth: auth, jsonBody: jsonBody);
         }
       }
       if (res.statusCode >= 400) {
@@ -132,10 +137,46 @@ class ApiClient {
       rethrow;
     } catch (e) {
       if (isNetworkFailure(e)) {
+        _logLine('HTTP NET-ERR $method $uri → $e');
         throw networkUnavailable(e);
       }
       rethrow;
     }
+  }
+
+  Future<http.Response> _once(
+    String method,
+    Uri uri, {
+    required bool auth,
+    Object? jsonBody,
+  }) async {
+    final headers = await _headers(auth: auth, json: jsonBody != null);
+    final encoded = jsonBody == null ? null : jsonEncode(jsonBody);
+    _logRequest(method, uri, headers, encoded);
+
+    late http.Response res;
+    switch (method) {
+      case 'GET':
+        res = await _http
+            .get(uri, headers: headers)
+            .timeout(receiveTimeout, onTimeout: _requestTimedOut);
+      case 'POST':
+        res = await _http
+            .post(uri, headers: headers, body: encoded)
+            .timeout(receiveTimeout, onTimeout: _requestTimedOut);
+      case 'PATCH':
+        res = await _http
+            .patch(uri, headers: headers, body: encoded)
+            .timeout(receiveTimeout, onTimeout: _requestTimedOut);
+      case 'DELETE':
+        res = await _http
+            .delete(uri, headers: headers, body: encoded)
+            .timeout(receiveTimeout, onTimeout: _requestTimedOut);
+      default:
+        throw StateError('Unsupported HTTP method: $method');
+    }
+    _logResponse(method, uri, res);
+    return res;
   }
 
   Future<bool> _tryRefresh() async {
@@ -144,13 +185,15 @@ class ApiClient {
     if (refresh == null || refresh.isEmpty) return false;
     _refreshing = true;
     try {
-      final res = await _http.post(
+      final res = await _once(
+        'POST',
         _uri('/auth/refresh'),
-        headers: await _headers(auth: false, json: true),
-        body: jsonEncode({'refresh_token': refresh}),
+        auth: false,
+        jsonBody: {'refresh_token': refresh},
       );
       if (res.statusCode >= 400) {
         await AuthStore.clearTokens();
+        await SessionStore.clearLoginFlags();
         return false;
       }
       final map = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
@@ -161,6 +204,7 @@ class ApiClient {
       return true;
     } catch (_) {
       await AuthStore.clearTokens();
+      await SessionStore.clearLoginFlags();
       return false;
     } finally {
       _refreshing = false;
@@ -211,5 +255,95 @@ class ApiClient {
       message: message,
       details: details,
     );
+  }
+
+  void _logRequest(
+    String method,
+    Uri uri,
+    Map<String, String> headers,
+    String? body,
+  ) {
+    if (!logHttp) return;
+    final buf = StringBuffer()
+      ..writeln('┌─ HTTP → $method $uri')
+      ..writeln('│ headers: ${_redactHeaders(headers)}');
+    if (body != null && body.isNotEmpty) {
+      buf.writeln('│ body: ${_prettyBody(body)}');
+    }
+    buf.write('└─');
+    _logLine(buf.toString());
+  }
+
+  void _logResponse(String method, Uri uri, http.Response res) {
+    if (!logHttp) return;
+    final body = utf8.decode(res.bodyBytes, allowMalformed: true);
+    final buf = StringBuffer()
+      ..writeln('┌─ HTTP ← ${res.statusCode} $method $uri')
+      ..writeln('│ body: ${_prettyBody(body)}')
+      ..write('└─');
+    _logLine(buf.toString());
+  }
+
+  static void _logLine(String text) {
+    // debugPrint режет длинные строки — для JSON в терминале нужен print.
+    // ignore: avoid_print
+    print(text);
+  }
+
+  static Map<String, String> _redactHeaders(Map<String, String> headers) {
+    final out = Map<String, String>.from(headers);
+    final auth = out['Authorization'];
+    if (auth != null && auth.startsWith('Bearer ')) {
+      out['Authorization'] = 'Bearer ${_maskSecret(auth.substring(7))}';
+    }
+    return out;
+  }
+
+  static String _prettyBody(String raw) {
+    if (raw.isEmpty) return '(empty)';
+    try {
+      final decoded = jsonDecode(raw);
+      final redacted = _redactJson(decoded);
+      var pretty = const JsonEncoder.withIndent('  ').convert(redacted);
+      const max = 8000;
+      if (pretty.length > max) {
+        pretty = '${pretty.substring(0, max)}… (+${pretty.length - max} chars)';
+      }
+      return pretty;
+    } catch (_) {
+      if (raw.length > 2000) {
+        return '${raw.substring(0, 2000)}… (+${raw.length - 2000} chars)';
+      }
+      return raw;
+    }
+  }
+
+  static dynamic _redactJson(dynamic value) {
+    if (value is Map) {
+      return {
+        for (final e in value.entries)
+          e.key: _sensitiveKey(e.key.toString())
+              ? _maskSecret(e.value?.toString() ?? '')
+              : _redactJson(e.value),
+      };
+    }
+    if (value is List) {
+      return [for (final item in value) _redactJson(item)];
+    }
+    return value;
+  }
+
+  static bool _sensitiveKey(String key) {
+    final k = key.toLowerCase();
+    return k.contains('password') ||
+        k.contains('token') ||
+        k == 'authorization' ||
+        k == 'code';
+  }
+
+  static String _maskSecret(String value) {
+    if (value.isEmpty) return '(empty)';
+    if (value.length <= 8) return '***';
+    return '${value.substring(0, 4)}…${value.substring(value.length - 4)} (${value.length} chars)';
   }
 }

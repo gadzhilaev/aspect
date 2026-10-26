@@ -1,4 +1,5 @@
 import '../services/auth_store.dart';
+import '../services/session_store.dart';
 import 'api_client.dart';
 
 class AuthApi {
@@ -96,6 +97,7 @@ class AuthApi {
       body: {'password': password},
     );
     await AuthStore.clearAll();
+    await SessionStore.clearLoginFlags();
   }
 
   Future<void> patchPreferences({
@@ -130,5 +132,6 @@ class AuthApi {
 
   Future<void> logout() async {
     await AuthStore.clearAll();
+    await SessionStore.clearLoginFlags();
   }
 }

@@ -49,6 +49,14 @@ class SessionStore {
         data.businessType.trim().isNotEmpty;
   }
 
+  /// Clears login flags after expired JWT / logout without wiping profile draft.
+  static Future<void> clearLoginFlags() async {
+    final prefs = await _prefs();
+    if (prefs == null) return;
+    await prefs.setBool(_loggedInKey, false);
+    await prefs.setBool(_onboardingDoneKey, false);
+  }
+
   /// True after API session exists and onboarding completed (or legacy local login).
   static Future<bool> isLoggedIn() async {
     final prefs = await _prefs();
@@ -58,7 +66,21 @@ class SessionStore {
     final flagged = prefs.getBool(_loggedInKey) == true;
     if (!hasApi && !flagged) return false;
 
-    if (prefs.getBool(_onboardingDoneKey) == true) return true;
+    if (prefs.getBool(_onboardingDoneKey) == true) {
+      if (hasApi) return true;
+      if (await isAlfaDemo()) return true;
+      // API account without JWT — not legacy local login.
+      if (!hasApi && await AuthStore.hasStoredApiIdentity()) {
+        await clearLoginFlags();
+        return false;
+      }
+      if (flagged) {
+        final profile = await loadProfile();
+        if (profile != null && _profileLooksComplete(profile)) return true;
+      }
+      await clearLoginFlags();
+      return false;
+    }
 
     // API session without company → still "in app" only after onboarding.
     if (hasApi) {

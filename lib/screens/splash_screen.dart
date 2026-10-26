@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -59,77 +61,102 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 
+  static const _sessionSyncTimeout = Duration(seconds: 20);
+
   Future<void> _openNext() async {
-    final delayMs = widget.openSettingsAfter ? 1100 : 1600;
-    final delay = Future<void>.delayed(Duration(milliseconds: delayMs));
-    var loggedIn = await SessionStore.isLoggedIn();
-    if (await AuthStore.hasSession()) {
-      try {
-        final me = await AuthApi.instance.refreshMe();
-        loggedIn = await SessionStore.isLoggedIn();
-        final jobRole = AuthApi.jobRoleFromMe(me);
-        if (jobRole != null) {
-          final data = (await SessionStore.loadProfile()) ?? OnboardingData();
-          if (data.role.trim() != jobRole) {
-            data.role = jobRole;
-            await SessionStore.saveProfile(data);
+    var navigated = false;
+    try {
+      final delayMs = widget.openSettingsAfter ? 1100 : 1600;
+      final delay = Future<void>.delayed(Duration(milliseconds: delayMs));
+      var loggedIn = await SessionStore.isLoggedIn();
+      if (await AuthStore.hasSession()) {
+        try {
+          final me = await AuthApi.instance.refreshMe().timeout(
+            _sessionSyncTimeout,
+            onTimeout: () => throw TimeoutException('refreshMe'),
+          );
+          loggedIn = await SessionStore.isLoggedIn();
+          final jobRole = AuthApi.jobRoleFromMe(me);
+          if (jobRole != null) {
+            final data = (await SessionStore.loadProfile()) ?? OnboardingData();
+            if (data.role.trim() != jobRole) {
+              data.role = jobRole;
+              await SessionStore.saveProfile(data);
+            }
           }
+        } catch (_) {
+          // Токен протух / сеть — остаёмся на логине, без «призрачной» сессии в MainShell.
+          await AuthStore.clearAll();
+          await SessionStore.clearLoginFlags();
+          loggedIn = false;
         }
-      } catch (_) {
-        // Токен протух — остаёмся на логине.
-        await AuthStore.clearAll();
-        loggedIn = false;
       }
-    }
-    // Legacy sessions stored only the surname (first FIO token). Drop them so
-    // the user signs in again with the full name and greeting uses given name.
-    if (loggedIn) {
-      final full = await SessionStore.fullName();
-      final parts = full.split(RegExp(r'\s+'));
-      if (parts.length < 2 && !(await AuthStore.hasSession())) {
-        await SessionStore.clear();
-        loggedIn = false;
+      // Legacy sessions stored only the surname (first FIO token). Drop them so
+      // the user signs in again with the full name and greeting uses given name.
+      if (loggedIn) {
+        final full = await SessionStore.fullName();
+        final parts = full.split(RegExp(r'\s+'));
+        if (parts.length < 2 && !(await AuthStore.hasSession())) {
+          await SessionStore.clear();
+          loggedIn = false;
+        }
       }
-    }
-    final userName = loggedIn
-        ? firstNameFromFullName(
-            (await AuthStore.displayName())?.trim().isNotEmpty == true
-                ? (await AuthStore.displayName())!
-                : await SessionStore.fullName(),
-          )
-        : null;
-    final notifOk =
-        loggedIn ? await NotificationPermission.isGranted() : true;
-    await delay;
-    if (!mounted) return;
+      final userName = loggedIn
+          ? firstNameFromFullName(
+              (await AuthStore.displayName())?.trim().isNotEmpty == true
+                  ? (await AuthStore.displayName())!
+                  : await SessionStore.fullName(),
+            )
+          : null;
+      var notifOk = true;
+      if (loggedIn) {
+        try {
+          notifOk = await NotificationPermission.isGranted();
+        } catch (_) {
+          notifOk = true;
+        }
+      }
+      await delay;
+      if (!mounted) return;
 
-    final name = userName ?? 'Пользователь';
-    final Widget next;
-    if (!loggedIn) {
-      next = const LoginScreen();
-    } else if (widget.openSettingsAfter) {
-      next = MainShell(userName: name, openSettingsOnStart: true);
-    } else if (!notifOk) {
-      next = NotificationPermissionScreen(
-        userName: name,
-        allowSkip: true,
+      final name = userName ?? 'Пользователь';
+      final Widget next;
+      if (!loggedIn) {
+        next = const LoginScreen();
+      } else if (widget.openSettingsAfter) {
+        next = MainShell(userName: name, openSettingsOnStart: true);
+      } else if (!notifOk) {
+        next = NotificationPermissionScreen(
+          userName: name,
+          allowSkip: true,
+        );
+      } else {
+        next = MainShell(userName: name);
+      }
+
+      // Без fade: в release opacity=0 на первом кадре выглядел как «пустой экран».
+      navigated = true;
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder<void>(
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+          pageBuilder: (_, _, _) => next,
+        ),
       );
-    } else {
-      next = MainShell(userName: name);
+    } catch (_) {
+      await AuthStore.clearAll();
+      await SessionStore.clearLoginFlags();
+    } finally {
+      if (!navigated && mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder<void>(
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            pageBuilder: (_, _, _) => const LoginScreen(),
+          ),
+        );
+      }
     }
-
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder<void>(
-        transitionDuration: widget.openSettingsAfter
-            ? Duration.zero
-            : const Duration(milliseconds: 450),
-        reverseTransitionDuration: Duration.zero,
-        pageBuilder: (_, animation, _) {
-          if (widget.openSettingsAfter) return next;
-          return FadeTransition(opacity: animation, child: next);
-        },
-      ),
-    );
   }
 
   @override

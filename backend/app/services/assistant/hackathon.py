@@ -433,14 +433,17 @@ class HackathonProvider(AssistantProvider):
             )
         self.api_key = api_key.strip()
         self.model = assert_hackathon_model(model)
+        from app.core.config import get_settings
         from app.services.competition_profile import (
             competition_mode_enabled,
             validate_hackathon_base_url_structure,
         )
 
+        settings = get_settings()
         self.base_url = validate_hackathon_base_url_structure(
             base_url,
             require_competition_exact=competition_mode_enabled(),
+            allowed_egress_port=settings.hackathon_egress_port,
         )
         self._http = http_client
         self._timeout = timeout
@@ -607,10 +610,10 @@ class HackathonProvider(AssistantProvider):
                 # Injected clients (tests) own redirect policy; do not strip their hooks.
                 resp = self._http.post(url, headers=headers, json=payload)
             else:
+                from app.services.assistant.hackathon_http import hackathon_http_client
+
                 # Never follow redirects: Authorization must not leave the configured host.
-                with httpx.Client(
-                    timeout=self._timeout, follow_redirects=False
-                ) as client:
+                with hackathon_http_client(timeout=self._timeout) as client:
                     resp = client.post(url, headers=headers, json=payload)
         except httpx.TimeoutException as exc:
             raise AppError(

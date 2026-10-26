@@ -127,14 +127,17 @@ class HackathonLoopProvider:
             )
         self.api_key = self.api_key.strip()
         self.model = assert_hackathon_model(self.model)
+        from app.core.config import get_settings
         from app.services.competition_profile import (
             competition_mode_enabled,
             validate_hackathon_base_url_structure,
         )
 
+        settings = get_settings()
         self.base_url = validate_hackathon_base_url_structure(
             self.base_url,
             require_competition_exact=competition_mode_enabled(),
+            allowed_egress_port=settings.hackathon_egress_port,
         )
 
     def next_action(self, request: LoopModelRequest) -> ActionEnvelope:
@@ -534,9 +537,9 @@ class HackathonLoopProvider:
                     url, headers=headers, json=payload, timeout=timeout_s
                 )
             else:
-                with httpx.Client(
-                    timeout=timeout_s, follow_redirects=False
-                ) as client:
+                from app.services.assistant.hackathon_http import hackathon_http_client
+
+                with hackathon_http_client(timeout=timeout_s) as client:
                     resp = client.post(url, headers=headers, json=payload)
         except httpx.TimeoutException as exc:
             raise AppError(

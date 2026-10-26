@@ -50,6 +50,7 @@ def validate_hackathon_base_url_structure(
     url: str,
     *,
     require_competition_exact: bool = False,
+    allowed_egress_port: int | None = None,
 ) -> str:
     """Validate HACKATHON_BASE_URL via scheme/host/port/path (not substring search).
 
@@ -116,7 +117,11 @@ def validate_hackathon_base_url_structure(
                 "base_url_host",
                 "В конкурсном режиме HACKATHON_BASE_URL должен указывать на шлюз организаторов",
             )
-        if parts.port not in (None, 443):
+        allowed_ports = {443}
+        if allowed_egress_port is not None and int(allowed_egress_port) not in allowed_ports:
+            allowed_ports.add(int(allowed_egress_port))
+        effective_port = parts.port if parts.port is not None else 443
+        if effective_port not in allowed_ports:
             _raise_misconfigured(
                 "base_url_port",
                 "В конкурсном режиме HACKATHON_BASE_URL не должен задавать нестандартный port",
@@ -136,6 +141,8 @@ def validate_hackathon_base_url_structure(
                 "base_url_fragment",
                 "В конкурсном режиме HACKATHON_BASE_URL не должен содержать fragment",
             )
+        if allowed_egress_port is not None and effective_port == int(allowed_egress_port):
+            return f"https://{COMPETITION_REQUIRED_HOST}:{effective_port}{COMPETITION_REQUIRED_PATH}"
         return COMPETITION_HACKATHON_BASE_URL
 
     return raw.rstrip("/")
@@ -168,6 +175,7 @@ def assert_competition_llm_config(settings=None) -> None:
     validate_hackathon_base_url_structure(
         s.resolved_hackathon_base_url(),
         require_competition_exact=True,
+        allowed_egress_port=getattr(s, "hackathon_egress_port", None),
     )
     assert_hackathon_model(s.resolved_hackathon_model())
 
@@ -206,6 +214,7 @@ def competition_settings_errors(settings) -> list[str]:
         validate_hackathon_base_url_structure(
             settings.resolved_hackathon_base_url(),
             require_competition_exact=True,
+            allowed_egress_port=getattr(settings, "hackathon_egress_port", None),
         )
     except AppError as exc:
         reason = None

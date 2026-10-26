@@ -93,6 +93,13 @@ class Settings(BaseSettings):
     hackathon_api_key: str | None = None
     hackathon_base_url: str = "https://changellenge.up.railway.app/v1"
     hackathon_model: str = "deepseek/deepseek-v4.1-flash"
+    # When VPS/datacenter blocks direct TLS to organizers' gateway (69.46.46.74:443),
+    # run a local TCP relay (e.g. socat on docker bridge IP :9443 → SSH tunnel) and set
+    # HACKATHON_EGRESS_PORT=9443. Host/path stay organizers'; only connect port changes.
+    hackathon_egress_port: int | None = None
+    # SOCKS5/HTTP proxy for hackathon HTTP when datacenter blocks direct TLS to organizers'
+    # gateway (e.g. sidecar: socks5://aspect-hackathon-egress:1080).
+    hackathon_socks_proxy: str | None = None
 
     # Competition profile (stage 6.2). Default off — does not rewrite root .env.
     # When true: only ASSISTANT_PROVIDER=hackathon, organizers' model allow-list,
@@ -168,6 +175,16 @@ class Settings(BaseSettings):
     agent_demo_stand: bool = False
     # Optional explicit event id for the stand; otherwise title/attrs markers.
     agent_demo_event_id: str | None = None
+
+    @field_validator("hackathon_egress_port", mode="before")
+    @classmethod
+    def _coerce_hackathon_egress_port(cls, value: object) -> int | None:
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        port = int(value)
+        if port < 1 or port > 65535:
+            raise ValueError("HACKATHON_EGRESS_PORT must be between 1 and 65535")
+        return port
 
     @field_validator("assistant_provider", mode="before")
     @classmethod
@@ -277,7 +294,17 @@ class Settings(BaseSettings):
 
     def resolved_hackathon_base_url(self) -> str:
         raw = (self.hackathon_base_url or "").strip().rstrip("/")
-        return raw or "https://changellenge.up.railway.app/v1"
+        base = raw or "https://changellenge.up.railway.app/v1"
+        port = self.hackathon_egress_port
+        if port is None or port in (443,):
+            return base
+        from app.services.competition_profile import COMPETITION_HACKATHON_BASE_URL
+
+        if base.rstrip("/") == COMPETITION_HACKATHON_BASE_URL:
+            return (
+                f"https://changellenge.up.railway.app:{int(port)}/v1"
+            )
+        return base
 
     def resolved_hackathon_model(self) -> str:
         raw = (self.hackathon_model or "").strip()
