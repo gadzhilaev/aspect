@@ -10,12 +10,8 @@ abstract final class AuthStore {
   static const _companyIdKey = 'auth_company_id';
   static const _companyNameKey = 'auth_company_name';
 
-  static Future<SharedPreferences?> _prefs() async {
-    try {
-      return await SharedPreferences.getInstance();
-    } catch (_) {
-      return null;
-    }
+  static Future<SharedPreferences> _prefs() async {
+    return SharedPreferences.getInstance();
   }
 
   static Future<void> saveTokens({
@@ -23,15 +19,15 @@ abstract final class AuthStore {
     required String refreshToken,
   }) async {
     final p = await _prefs();
-    await p?.setString(_accessKey, accessToken);
-    await p?.setString(_refreshKey, refreshToken);
+    await p.setString(_accessKey, accessToken);
+    await p.setString(_refreshKey, refreshToken);
   }
 
   static Future<String?> accessToken() async =>
-      (await _prefs())?.getString(_accessKey);
+      (await _prefs()).getString(_accessKey);
 
   static Future<String?> refreshToken() async =>
-      (await _prefs())?.getString(_refreshKey);
+      (await _prefs()).getString(_refreshKey);
 
   static Future<bool> hasSession() async {
     final t = await accessToken();
@@ -46,50 +42,50 @@ abstract final class AuthStore {
     String? companyName,
   }) async {
     final p = await _prefs();
-    await p?.setString(_userIdKey, userId);
-    await p?.setString(_emailKey, email);
-    await p?.setString(_displayNameKey, displayName);
+    await p.setString(_userIdKey, userId);
+    await p.setString(_emailKey, email);
+    await p.setString(_displayNameKey, displayName);
     if (companyId != null) {
       if (companyId.isEmpty) {
-        await p?.remove(_companyIdKey);
+        await p.remove(_companyIdKey);
       } else {
-        await p?.setString(_companyIdKey, companyId);
+        await p.setString(_companyIdKey, companyId);
       }
     }
     if (companyName != null) {
       if (companyName.isEmpty) {
-        await p?.remove(_companyNameKey);
+        await p.remove(_companyNameKey);
       } else {
-        await p?.setString(_companyNameKey, companyName);
+        await p.setString(_companyNameKey, companyName);
       }
     }
   }
 
   static Future<String?> displayName() async =>
-      (await _prefs())?.getString(_displayNameKey);
+      (await _prefs()).getString(_displayNameKey);
 
   static Future<String?> email() async =>
-      (await _prefs())?.getString(_emailKey);
+      (await _prefs()).getString(_emailKey);
 
   static Future<String?> companyId() async =>
-      (await _prefs())?.getString(_companyIdKey);
+      (await _prefs()).getString(_companyIdKey);
 
   static Future<String?> companyName() async =>
-      (await _prefs())?.getString(_companyNameKey);
+      (await _prefs()).getString(_companyNameKey);
 
   static Future<void> setCompany({
     required String companyId,
     required String companyName,
   }) async {
     final p = await _prefs();
-    await p?.setString(_companyIdKey, companyId);
-    await p?.setString(_companyNameKey, companyName);
+    await p.setString(_companyIdKey, companyId);
+    await p.setString(_companyNameKey, companyName);
   }
 
   static Future<void> clearTokens() async {
     final p = await _prefs();
-    await p?.remove(_accessKey);
-    await p?.remove(_refreshKey);
+    await p.remove(_accessKey);
+    await p.remove(_refreshKey);
   }
 
   static Future<void> clearAll() async {
@@ -103,7 +99,7 @@ abstract final class AuthStore {
       _companyIdKey,
       _companyNameKey,
     ]) {
-      await p?.remove(k);
+      await p.remove(k);
     }
   }
 }
