@@ -7,12 +7,13 @@ import '../api/auth_api.dart';
 import '../l10n/app_localizations.dart';
 import '../models/onboarding_data.dart';
 import '../navigation/app_page_route.dart';
+import '../services/session_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/design_scale.dart';
 import '../widgets/auth_widgets.dart';
-import 'code_confirm_screen.dart';
 import 'login_screen.dart';
+import 'onboarding/onboarding_flow.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -106,23 +107,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
       password: _passwordController.text,
     );
     try {
-      final res = await AuthApi.instance.register(
+      await AuthApi.instance.register(
         email: data.email,
         password: data.password,
         displayName: data.fullName,
       );
-      final details = res['details'];
-      String? demoCode;
-      if (details is Map) {
-        demoCode = details['demo_code']?.toString();
-      }
+      await AuthApi.instance.login(
+        email: data.email,
+        password: data.password,
+      );
+      await SessionStore.saveProfile(data);
+      await SessionStore.markAuthPendingOnboarding();
       if (!mounted) return;
-      Navigator.of(context).push(
+      Navigator.of(context).pushReplacement(
         AppPageRoute<void>(
-          builder: (_) => CodeConfirmScreen(
-            data: data,
-            demoCodeHint: demoCode,
-          ),
+          builder: (_) => OnboardingFlow(data: data),
         ),
       );
     } on ApiException catch (e) {

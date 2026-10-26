@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/app_controller.dart';
 import '../../l10n/app_localizations.dart';
-import '../../models/onboarding_data.dart';
 import '../../navigation/app_page_route.dart';
 import '../../api/api_exception.dart';
 import '../../api/auth_api.dart';
@@ -14,7 +13,6 @@ import '../../services/session_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
-import '../code_confirm_screen.dart';
 import '../login_screen.dart';
 import '../splash_screen.dart';
 import 'support_chat_screen.dart';
@@ -226,16 +224,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
 
     if (!mounted) return;
-    final ok = await Navigator.of(context).push<bool>(
-      AppPageRoute(
-        builder: (_) => CodeConfirmScreen(
-          data: OnboardingData(email: email),
-          verifyOnly: true,
-          verifyHint: context.l10n.verifyHintEmail(email),
-        ),
-      ),
-    );
-    if (ok != true || !mounted) return;
 
     final password = await showDialog<String>(
       context: context,

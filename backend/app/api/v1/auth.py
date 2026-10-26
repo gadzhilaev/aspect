@@ -82,11 +82,12 @@ def register(body: RegisterIn, db: Session = Depends(get_db)) -> MessageOut:
     if existing is not None and _email_reserved(existing):
         raise AppError("CONFLICT", "Пользователь с таким email уже существует", 409)
 
+    now = datetime.now(timezone.utc)
     if existing is not None:
         user = existing
         user.password_hash = hash_password(body.password)
         user.display_name = body.display_name
-        user.email_verified_at = None
+        user.email_verified_at = now
         user.preferences_json = {}
         db.query(EmailVerification).filter(EmailVerification.email == email).delete(
             synchronize_session=False
@@ -97,31 +98,19 @@ def register(body: RegisterIn, db: Session = Depends(get_db)) -> MessageOut:
             email=email,
             password_hash=hash_password(body.password),
             display_name=body.display_name,
-            email_verified_at=None,
+            email_verified_at=now,
             preferences_json={},
         )
         db.add(user)
 
-    settings = get_settings()
-    # Demo/хакатон: фиксированный код (DEMO_EMAIL_CODE, по умолчанию 123456).
-    # В ответе demo_code отдаём при DEBUG — клиент показывает подсказку.
-    code = "".join(c for c in (settings.demo_email_code or "") if c.isdigit()) or "123456"
-    db.add(
-        EmailVerification(
-            id=str(uuid4()),
-            email=user.email,
-            code=code,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-            note="demo_code",
-        )
+    # Подтверждение email кодом отключено (хакатон / без SMTP).
+    db.query(EmailVerification).filter(EmailVerification.email == email).delete(
+        synchronize_session=False
     )
     db.commit()
     return MessageOut(
-        message="Аккаунт создан. Подтвердите email кодом.",
-        details={
-            "email": user.email,
-            "demo_code": code if settings.debug else None,
-        },
+        message="Аккаунт создан.",
+        details={"email": user.email, "email_verified": True},
     )
 
 
@@ -176,8 +165,10 @@ def login(body: LoginIn, db: Session = Depends(get_db)) -> TokenPair:
     user = db.query(User).filter(User.email == body.email.lower()).first()
     if user is None or not verify_password(body.password, user.password_hash):
         raise AppError("INVALID_CREDENTIALS", "Неверный email или пароль", 401)
+    # Email OTP отключён — если аккаунт ещё без verified_at, подтверждаем при логине.
     if user.email_verified_at is None:
-        raise AppError("EMAIL_NOT_VERIFIED", "Сначала подтвердите email", 403)
+        user.email_verified_at = datetime.now(timezone.utc)
+        db.commit()
     return TokenPair(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),

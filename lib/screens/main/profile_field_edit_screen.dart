@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../models/onboarding_data.dart';
 import '../../navigation/app_page_route.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/design_scale.dart';
 import '../../widgets/auth_widgets.dart';
-import '../code_confirm_screen.dart';
 
 enum ProfileEditField { fullName, email, role }
 
@@ -83,22 +81,6 @@ class _ProfileFieldEditScreenState extends State<ProfileFieldEditScreen> {
         ProfileEditField.fullName || ProfileEditField.role => 'Подтвердить',
       };
 
-  Future<bool> _verifyCode({
-    required String email,
-    required String hint,
-  }) async {
-    final ok = await Navigator.of(context).push<bool>(
-      AppPageRoute(
-        builder: (_) => CodeConfirmScreen(
-          data: OnboardingData(email: email),
-          verifyOnly: true,
-          verifyHint: hint,
-        ),
-      ),
-    );
-    return ok == true;
-  }
-
   Future<void> _submit() async {
     if (_submitting) return;
     final next = widget.field == ProfileEditField.role
@@ -112,44 +94,7 @@ class _ProfileFieldEditScreenState extends State<ProfileFieldEditScreen> {
 
     setState(() => _submitting = true);
 
-    if (widget.field == ProfileEditField.email) {
-      final oldEmail = widget.currentEmail.trim();
-      if (oldEmail.isNotEmpty) {
-        final oldOk = await _verifyCode(
-          email: oldEmail,
-          hint: 'Код отправлен на текущую почту',
-        );
-        if (!mounted) return;
-        if (!oldOk) {
-          setState(() => _submitting = false);
-          return;
-        }
-      }
-      final newOk = await _verifyCode(
-        email: next,
-        hint: 'Код отправлен на новую почту',
-      );
-      if (!mounted) return;
-      if (!newOk) {
-        setState(() => _submitting = false);
-        return;
-      }
-      Navigator.of(context).pop(next);
-      return;
-    }
-
-    final email = widget.currentEmail.trim();
-    if (email.isNotEmpty) {
-      final ok = await _verifyCode(
-        email: email,
-        hint: 'Код отправлен на вашу почту',
-      );
-      if (!mounted) return;
-      if (!ok) {
-        setState(() => _submitting = false);
-        return;
-      }
-    }
+    // Подтверждение email кодом отключено.
     if (!mounted) return;
     Navigator.of(context).pop(next);
   }
