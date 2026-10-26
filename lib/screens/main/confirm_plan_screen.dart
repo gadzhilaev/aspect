@@ -66,9 +66,6 @@ class ConfirmPlanScreen extends StatelessWidget {
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
-    const titleDark = Color.fromRGBO(24, 35, 44, 1);
-    const heading = Color.fromRGBO(24, 27, 34, 1);
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppColors.systemOverlay,
       child: Scaffold(
@@ -106,14 +103,14 @@ class ConfirmPlanScreen extends StatelessWidget {
                             text: '${l10n.confirmPlan}\n',
                             style: AppTypography.bold(
                               24.83 * s,
-                              color: titleDark,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           TextSpan(
                             text: data.actionTitle,
                             style: AppTypography.bold(
                               24.83 * s,
-                              color: AppColors.brandRed,
+                              color: AppColors.brandRedBright,
                             ),
                           ),
                         ],
@@ -137,10 +134,10 @@ class ConfirmPlanScreen extends StatelessWidget {
                         18 * s,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(12 * s),
                         border: Border.all(
-                          color: AppColors.textMuted.withValues(alpha: 0.22),
+                          color: AppColors.border,
                           width: 1,
                         ),
                       ),
@@ -151,7 +148,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                             l10n.actionPlan,
                             style: AppTypography.bold(
                               15.13 * s,
-                              color: heading,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           SizedBox(height: 16 * s),
@@ -161,7 +158,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                               data.steps[i],
                               style: AppTypography.regular(
                                 15.13 * s,
-                                color: Colors.black,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                           ],
@@ -173,7 +170,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                       l10n.whyThisOption,
                       style: AppTypography.bold(
                         15.13 * s,
-                        color: heading,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     SizedBox(height: 8 * s),
@@ -181,7 +178,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                       data.reason,
                       style: AppTypography.regular(
                         15.13 * s,
-                        color: Colors.black,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -201,7 +198,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(true),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.brandRed,
-                      foregroundColor: AppColors.surface,
+                      foregroundColor: AppColors.onBrand,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(13 * s),
                       ),
@@ -210,7 +207,7 @@ class ConfirmPlanScreen extends StatelessWidget {
                       l10n.confirmAndSave,
                       style: AppTypography.bold(
                         14.06 * s,
-                        color: AppColors.surface,
+                        color: AppColors.onBrand,
                       ),
                     ),
                   ),

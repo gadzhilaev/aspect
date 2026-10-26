@@ -140,7 +140,7 @@ class ActionPlanScreen extends StatelessWidget {
                             softWrap: false,
                             style: AppTypography.medium(
                               9.4 * s,
-                              color: AppColors.surface,
+                              color: AppColors.onBrand,
                             ),
                           ),
                         ),
@@ -189,20 +189,24 @@ class _ActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
-    const titleColor = Color.fromRGBO(24, 27, 34, 1);
 
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(16 * s),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(7 * s),
         border: Border(
           left: BorderSide(color: AppColors.brandRed, width: 3 * s),
+          top: BorderSide(color: AppColors.border),
+          right: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: AppColors.border),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.17),
+            color: Colors.black.withValues(
+              alpha: AppColors.isDark ? 0.35 : 0.17,
+            ),
             offset: Offset(-1 * s, -1 * s),
             blurRadius: 14.2 * s,
           ),
@@ -220,13 +224,13 @@ class _ActionCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: AppTypography.medium(
                     28.37 * s,
-                    color: AppColors.brandRed,
+                    color: AppColors.brandRedBright,
                   ),
                 ),
                 SizedBox(height: 2 * s),
                 Container(
                   height: 2 * s,
-                  color: AppColors.brandRed,
+                  color: AppColors.brandRedBright,
                 ),
               ],
             ),
@@ -234,19 +238,25 @@ class _ActionCard extends StatelessWidget {
           SizedBox(height: 8 * s),
           Text(
             title,
-            style: AppTypography.bold(15.13 * s, color: titleColor),
+            style: AppTypography.bold(15.13 * s, color: AppColors.textPrimary),
           ),
           SizedBox(height: 10 * s),
           Text(
             body,
-            style: AppTypography.regular(15.13 * s, color: Colors.black),
+            style: AppTypography.regular(
+              15.13 * s,
+              color: AppColors.textPrimary,
+            ),
           ),
           SizedBox(height: 8 * s),
           Text(
             note,
-            style: AppTypography.regular(13 * s, color: Colors.black).copyWith(
+            style: AppTypography.regular(
+              13 * s,
+              color: AppColors.textSecondary,
+            ).copyWith(
               decoration: TextDecoration.underline,
-              decorationColor: Colors.black,
+              decorationColor: AppColors.textSecondary,
               decorationStyle: TextDecorationStyle.solid,
             ),
           ),
@@ -262,14 +272,14 @@ class _ActionCard extends StatelessWidget {
                   selectLabel,
                   style: AppTypography.bold(
                     13 * s,
-                    color: AppColors.brandRed,
+                    color: AppColors.brandRedBright,
                   ),
                 ),
                 SizedBox(width: 4 * s),
                 Icon(
                   Icons.arrow_forward,
                   size: 14 * s,
-                  color: AppColors.brandRed,
+                  color: AppColors.brandRedBright,
                 ),
               ],
             ),

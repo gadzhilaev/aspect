@@ -22,6 +22,16 @@ abstract final class AppColors {
   /// Акцент: в dark — приглушённый, в light — #EF3124.
   static Color get brandRed => isDark ? brandRedDark : brandRedLight;
 
+  /// Текст/иконки на заливке brandRed — всегда белый (surface в dark тёмный).
+  static const onBrand = Color(0xFFFFFFFF);
+
+  /// Ссылки и подписи brand в dark — ярче заливки, иначе сливаются с фоном.
+  static Color get brandRedBright =>
+      isDark ? const Color(0xFFFF7A70) : brandRedLight;
+
+  /// Карточки на экране: в dark — raised, иначе белый surface.
+  static Color get card => isDark ? surfaceRaised : surface;
+
   /// Плитки контекста компании.
   static Color get tileRed => brandRed;
 

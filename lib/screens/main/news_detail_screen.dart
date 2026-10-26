@@ -682,7 +682,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                         'Аналитика Альфа-Банка (не AI)',
                         style: AppTypography.medium(
                           11 * s,
-                          color: AppColors.brandRed,
+                          color: AppColors.brandRedBright,
                         ),
                       ),
                       SizedBox(height: 8 * s),
@@ -722,13 +722,13 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                           },
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.brandRed,
-                            foregroundColor: AppColors.surface,
+                            foregroundColor: AppColors.onBrand,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16 * s),
                             ),
                             textStyle: AppTypography.bold(
                               14.06 * s,
-                              color: AppColors.surface,
+                              color: AppColors.onBrand,
                             ),
                           ),
                           child: Text(
@@ -736,7 +736,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                             textAlign: TextAlign.center,
                             style: AppTypography.bold(
                               14.06 * s,
-                              color: AppColors.surface,
+                              color: AppColors.onBrand,
                             ),
                           ),
                         ),
@@ -754,7 +754,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                         textAlign: TextAlign.center,
                         style: AppTypography.medium(
                           13 * s,
-                          color: AppColors.brandRed,
+                          color: AppColors.brandRedBright,
                         ),
                       ),
                     ),
@@ -785,14 +785,19 @@ class _ConcernCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 16 * s),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(7 * s),
         border: Border(
           left: BorderSide(color: AppColors.brandRed, width: 3 * s),
+          top: BorderSide(color: AppColors.border),
+          right: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: AppColors.border),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.17),
+            color: Colors.black.withValues(
+              alpha: AppColors.isDark ? 0.35 : 0.17,
+            ),
             offset: Offset(-1 * s, -1 * s),
             blurRadius: 14.2 * s,
           ),
@@ -806,7 +811,7 @@ class _ConcernCard extends StatelessWidget {
             title,
             style: AppTypography.bold(
               15.13 * s,
-              color: const Color.fromRGBO(24, 27, 34, 1),
+              color: AppColors.textPrimary,
             ),
           ),
           SizedBox(height: 6 * s),
@@ -845,14 +850,19 @@ class _BankCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 16 * s),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(7 * s),
         border: Border(
           left: BorderSide(color: AppColors.brandRed, width: 3 * s),
+          top: BorderSide(color: AppColors.border),
+          right: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: AppColors.border),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.13),
+            color: Colors.black.withValues(
+              alpha: AppColors.isDark ? 0.35 : 0.13,
+            ),
             offset: Offset(-1 * s, 0),
             blurRadius: 12.8 * s,
           ),
@@ -874,7 +884,7 @@ class _BankCard extends StatelessWidget {
                 ),
                 child: Text(
                   analyticsLabel,
-                  style: AppTypography.bold(9.19 * s, color: AppColors.surface),
+                  style: AppTypography.bold(9.19 * s, color: AppColors.onBrand),
                 ),
               ),
               SizedBox(width: 3 * s),
@@ -883,15 +893,21 @@ class _BankCard extends StatelessWidget {
                 height: 19 * s,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(6.56 * s),
-                  border: Border.all(color: AppColors.brandRed, width: 1),
+                  border: Border.all(color: AppColors.brandRedBright, width: 1),
                 ),
                 child: SvgPicture.asset(
                   'assets/images/alfa_bank_logo.svg',
                   width: 51 * s,
                   height: 10 * s,
                   fit: BoxFit.contain,
+                  colorFilter: AppColors.isDark
+                      ? const ColorFilter.mode(
+                          Color(0xFFFF7A70),
+                          BlendMode.srcIn,
+                        )
+                      : null,
                 ),
               ),
             ],
@@ -901,7 +917,7 @@ class _BankCard extends StatelessWidget {
             title,
             style: AppTypography.bold(
               15.13 * s,
-              color: const Color.fromRGBO(24, 27, 34, 1),
+              color: AppColors.textPrimary,
             ),
           ),
           SizedBox(height: 8 * s),
@@ -941,13 +957,13 @@ class _RedLink extends StatelessWidget {
         children: [
           Text(
             label,
-            style: AppTypography.bold(13 * s, color: AppColors.brandRed),
+            style: AppTypography.bold(13 * s, color: AppColors.brandRedBright),
           ),
           SizedBox(width: 4 * s),
           Icon(
             Icons.arrow_forward,
             size: 14 * s,
-            color: AppColors.brandRed,
+            color: AppColors.brandRedBright,
           ),
         ],
       ),

@@ -60,8 +60,6 @@ class ConclusionBasisScreen extends StatelessWidget {
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
-    const titleDark = Color.fromRGBO(24, 35, 44, 1);
-    const heading = Color.fromRGBO(24, 27, 34, 1);
     final backLabel = data.backLabel == 'Разбор события'
         ? l10n.eventAnalysis
         : data.backLabel;
@@ -89,7 +87,7 @@ class ConclusionBasisScreen extends StatelessWidget {
                             '‹ $backLabel',
                             style: AppTypography.regular(
                               15 * s,
-                              color: AppColors.brandRed,
+                              color: AppColors.brandRedBright,
                             ),
                           ),
                         ),
@@ -102,7 +100,7 @@ class ConclusionBasisScreen extends StatelessWidget {
                 padding: EdgeInsets.fromLTRB(hPad, 8 * s, hPad, 12 * s),
                 child: Text(
                   l10n.conclusionBasis,
-                  style: AppTypography.bold(22 * s, color: titleDark),
+                  style: AppTypography.bold(22 * s, color: AppColors.textPrimary),
                 ),
               ),
               Expanded(
@@ -119,12 +117,12 @@ class ConclusionBasisScreen extends StatelessWidget {
                       width: double.infinity,
                       padding: EdgeInsets.all(16 * s),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(12 * s),
                         border: Border.all(
                           color: isBank
-                              ? AppColors.brandRed.withValues(alpha: 0.35)
-                              : Colors.black.withValues(alpha: 0.08),
+                              ? AppColors.brandRedBright.withValues(alpha: 0.55)
+                              : AppColors.border,
                         ),
                       ),
                       child: Column(
@@ -132,7 +130,10 @@ class ConclusionBasisScreen extends StatelessWidget {
                         children: [
                           Text(
                             title,
-                            style: AppTypography.bold(14 * s, color: heading),
+                            style: AppTypography.bold(
+                              14 * s,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                           if (isBank || isAi) ...[
                             SizedBox(height: 6 * s),
@@ -143,7 +144,7 @@ class ConclusionBasisScreen extends StatelessWidget {
                               style: AppTypography.medium(
                                 11 * s,
                                 color: isBank
-                                    ? AppColors.brandRed
+                                    ? AppColors.brandRedBright
                                     : AppColors.textMuted,
                               ),
                             ),

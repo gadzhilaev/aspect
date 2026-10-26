@@ -51,8 +51,6 @@ class BankMaterialScreen extends StatelessWidget {
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
-    const titleDark = Color.fromRGBO(24, 35, 44, 1);
-    const heading = Color.fromRGBO(24, 27, 34, 1);
     final backLabel = data.backLabel == 'Событие'
         ? l10n.backEvent
         : data.backLabel;
@@ -80,7 +78,7 @@ class BankMaterialScreen extends StatelessWidget {
                             '‹ $backLabel',
                             style: AppTypography.regular(
                               15 * s,
-                              color: AppColors.brandRed,
+                              color: AppColors.brandRedBright,
                             ),
                           ),
                         ),
@@ -98,7 +96,7 @@ class BankMaterialScreen extends StatelessWidget {
                       l10n.bankMaterialHeading,
                       style: AppTypography.bold(
                         24.83 * s,
-                        color: titleDark,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     SizedBox(height: 10 * s),
@@ -106,7 +104,7 @@ class BankMaterialScreen extends StatelessWidget {
                       data.headline,
                       style: AppTypography.bold(
                         24.83 * s,
-                        color: AppColors.brandRed,
+                        color: AppColors.brandRedBright,
                       ),
                     ),
                     SizedBox(height: 10 * s),
@@ -122,17 +120,22 @@ class BankMaterialScreen extends StatelessWidget {
                       width: double.infinity,
                       padding: EdgeInsets.all(16 * s),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: AppColors.card,
                         borderRadius: BorderRadius.circular(7 * s),
                         border: Border(
                           left: BorderSide(
                             color: AppColors.brandRed,
                             width: 3 * s,
                           ),
+                          top: BorderSide(color: AppColors.border),
+                          right: BorderSide(color: AppColors.border),
+                          bottom: BorderSide(color: AppColors.border),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.17),
+                            color: Colors.black.withValues(
+                              alpha: AppColors.isDark ? 0.35 : 0.17,
+                            ),
                             offset: Offset(-1 * s, -1 * s),
                             blurRadius: 14.2 * s,
                           ),
@@ -145,7 +148,7 @@ class BankMaterialScreen extends StatelessWidget {
                             data.fragmentTitle,
                             style: AppTypography.bold(
                               15.13 * s,
-                              color: heading,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           SizedBox(height: 10 * s),
@@ -153,7 +156,7 @@ class BankMaterialScreen extends StatelessWidget {
                             data.fragmentBody,
                             style: AppTypography.regular(
                               15.13 * s,
-                              color: Colors.black,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           SizedBox(height: 14 * s),
@@ -164,14 +167,14 @@ class BankMaterialScreen extends StatelessWidget {
                                 data.fragmentLink,
                                 style: AppTypography.bold(
                                   13 * s,
-                                  color: AppColors.brandRed,
+                                  color: AppColors.brandRedBright,
                                 ),
                               ),
                               SizedBox(width: 4 * s),
                               Icon(
                                 Icons.arrow_forward,
                                 size: 14 * s,
-                                color: AppColors.brandRed,
+                                color: AppColors.brandRedBright,
                               ),
                             ],
                           ),
@@ -195,7 +198,7 @@ class BankMaterialScreen extends StatelessWidget {
                     onPressed: () {},
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.brandRed,
-                      foregroundColor: AppColors.surface,
+                      foregroundColor: AppColors.onBrand,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(13 * s),
                       ),
@@ -204,7 +207,7 @@ class BankMaterialScreen extends StatelessWidget {
                       l10n.openOriginalDocument,
                       style: AppTypography.bold(
                         14.06 * s,
-                        color: AppColors.surface,
+                        color: AppColors.onBrand,
                       ),
                     ),
                   ),
