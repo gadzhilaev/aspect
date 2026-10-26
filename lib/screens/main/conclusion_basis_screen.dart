@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../navigation/app_page_route.dart';
@@ -86,29 +85,12 @@ class ConclusionBasisScreen extends StatelessWidget {
                         child: GestureDetector(
                           onTap: () => Navigator.of(context).maybePop(),
                           behavior: HitTestBehavior.opaque,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SvgPicture.asset(
-                                'assets/icons/chevron_left.svg',
-                                width: 9 * s,
-                                height: 18 * s,
-                                colorFilter: ColorFilter.mode(
-                                  AppColors.brandRed,
-                                  BlendMode.srcIn,
-                                ),
-                              ),
-                              SizedBox(width: 8 * s),
-                              Flexible(
-                                child: Text(
-                                  backLabel,
-                                  style: AppTypography.medium(
-                                    13 * s,
-                                    color: AppColors.brandRed,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            '‹ $backLabel',
+                            style: AppTypography.regular(
+                              15 * s,
+                              color: AppColors.brandRed,
+                            ),
                           ),
                         ),
                       ),

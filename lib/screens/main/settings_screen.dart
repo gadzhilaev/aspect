@@ -17,6 +17,7 @@ import '../../theme/design_scale.dart';
 import '../code_confirm_screen.dart';
 import '../login_screen.dart';
 import '../splash_screen.dart';
+import 'support_chat_screen.dart';
 
 Future<void> openSettingsScreen(
   BuildContext context, {
@@ -47,7 +48,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen>
     with WidgetsBindingObserver {
-  static const _supportEmail = 'help@aspect.app';
   static const _timeOptions = [
     '06:00',
     '07:00',
@@ -473,10 +473,8 @@ class _SettingsScreenState extends State<SettingsScreen>
                               const _Divider(),
                               _ActionRow(
                                 title: l10n.support,
-                                value: _supportEmail,
-                                onTap: () => _openUrl(
-                                  'mailto:$_supportEmail',
-                                ),
+                                value: l10n.supportChatOpen,
+                                onTap: () => openSupportChatScreen(context),
                               ),
                             ],
                           ),

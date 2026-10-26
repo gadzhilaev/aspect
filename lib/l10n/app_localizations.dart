@@ -106,6 +106,39 @@ class AppLocalizations {
   String get version => _t('Версия', 'Version');
   String get privacy => _t('Политика', 'Privacy');
   String get support => _t('Поддержка', 'Support');
+  String get supportChatTitle => _t('Чат поддержки', 'Support chat');
+  String get supportChatHint =>
+      _t('Напишите вопрос…', 'Type your question…');
+  String get supportChatOpen => _t('Открыть чат', 'Open chat');
+  String get supportOperator => _t('Оператор', 'Operator');
+  String get supportAi => _t('Поддержка AI', 'Support AI');
+
+  String get caseSourceTitle =>
+      _t('Конкурсный справочник', 'Competition directory');
+  String get caseSourceLinked => _t(
+        'Данные справочника подключены. Ручной профиль не заменяется.',
+        'Directory data is linked. Your manual profile is not replaced.',
+      );
+  String get caseSourceNotLinked => _t(
+        'Компания не привязана к справочнику. Показываем только то, что вы заполнили сами. Привязка не делается автоматически.',
+        'Company is not linked to the directory. Only your own profile is shown. Linking is not automatic.',
+      );
+  String get caseSourceNotConfigured => _t(
+        'Справочник в этой среде не подключён.',
+        'The directory is not configured in this environment.',
+      );
+  String get caseSourceNoSnapshot => _t(
+        'Активный набор данных справочника недоступен.',
+        'No active directory dataset is available.',
+      );
+  String get caseSourceUidMissing => _t(
+        'Привязка есть, но организации нет в текущем наборе. Старые данные не подставляем.',
+        'Linked, but the organisation is missing from the current dataset. Older data is not used.',
+      );
+  String get caseSourceProfileAbsent => _t(
+        'Организация найдена, подробного профиля в справочнике нет.',
+        'Organisation found, but no detailed directory profile.',
+      );
   String get deleteAccount => _t('Удалить аккаунт', 'Delete account');
   String get deleteAccountTitle => _t('Удалить аккаунт?', 'Delete account?');
   String get deleteAccountBody => _t(
