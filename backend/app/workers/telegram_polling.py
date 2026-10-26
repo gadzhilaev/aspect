@@ -37,7 +37,12 @@ logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT_S = 25
 DEFAULT_LIMIT = 50
 MAX_BACKOFF_S = 60.0
-ALLOWED_UPDATES = ["message", "edited_message", "callback_query"]
+ALLOWED_UPDATES = [
+    "message",
+    "edited_message",
+    "callback_query",
+    "my_chat_member",
+]
 
 
 class WebhookConflictError(RuntimeError):

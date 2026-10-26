@@ -36,6 +36,7 @@ from app.models.event import Event, EventImpact, EventSource, ImpactPath
 from app.models.notification import NotificationOutbox, NotificationSubscription, TelegramLinkToken
 from app.models.raw_news import RawNewsItem
 from app.models.solution import Scenario, SolutionCandidate
+from app.models.support import SupportMessage, SupportThread
 from app.models.user import EmailVerification, User
 
 __all__ = [
@@ -82,4 +83,6 @@ __all__ = [
     "BankOcrPage",
     "BankFragment",
     "BankFragmentRegion",
+    "SupportThread",
+    "SupportMessage",
 ]

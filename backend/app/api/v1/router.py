@@ -13,6 +13,7 @@ from app.api.v1 import (
     notifications,
     public,
     solutions,
+    support,
     telegram,
 )
 
@@ -26,6 +27,7 @@ api_router.include_router(events.router)
 api_router.include_router(solutions.router)
 api_router.include_router(decisions.router)
 api_router.include_router(assistant.router)
+api_router.include_router(support.router)
 api_router.include_router(notifications.router)
 api_router.include_router(telegram.router)
 api_router.include_router(internal.router)

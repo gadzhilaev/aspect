@@ -16,6 +16,23 @@
 | POST | `/auth/refresh` | нет |
 | GET | `/users/me` | Bearer |
 
+## Support chat
+
+| Метод | Путь | Auth |
+|---|---|---|
+| GET | `/support/thread` | Bearer |
+| GET | `/support/thread/messages` | Bearer |
+| POST | `/support/thread/messages` | Bearer |
+| POST | `/support/thread/close` | Bearer |
+
+`GET /support/thread` — get-or-create открытого диалога (welcome от AI).  
+`POST …/messages` body: `{ "content": "…", "client_message_id": "c_…", "company_id": "…" }` →  
+user + ответ: сначала FAQ/AI; если AI не уверен — эскалация оператору в Telegram  
+(`TELEGRAM_BOT_TOKEN` + `SUPPORT_OPERATOR_CHAT_IDS`). Оператор отвечает  
+`/support SUP-XXXXXXXX текст` (нужен polling/webhook бота).  
+Роли сообщений: `user` | `support` | `system` | `operator`.  
+Поллинг: `GET …/messages?after_id=<last_id>`.
+
 Сроки JWT (серверные defaults, env переопределяет):
 
 | Токен | Default |

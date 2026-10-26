@@ -17,12 +17,20 @@ from app.services.notifications import (
     consume_link_token,
     unlink_private_by_chat,
 )
+from app.services.support_group_registry import register_chat_id, register_email_alert
+from app.services.support_operator import try_handle_operator_telegram
 
 logger = logging.getLogger(__name__)
 
 
 def reply_send_message(chat_id: int | str, text: str, **extra) -> dict:
     return {"method": "sendMessage", "chat_id": chat_id, "text": text, **extra}
+
+
+def _cmd_name(text: str) -> str:
+    """First token without @bot suffix: '/start@Bot' → '/start'."""
+    head = (text or "").split(maxsplit=1)[0]
+    return head.split("@", 1)[0].lower()
 
 
 def handle_telegram_update(db: Session, update: dict) -> dict:
@@ -33,19 +41,97 @@ def handle_telegram_update(db: Session, update: dict) -> dict:
     must POST it via sendMessage).
     """
     update_id = update.get("update_id")
-    message = update.get("message") or update.get("edited_message") or {}
     callback = update.get("callback_query")
     if callback:
         return _handle_callback(db, callback)
 
+    member = update.get("my_chat_member")
+    if member:
+        return _handle_my_chat_member(member)
+
+    message = update.get("message") or update.get("edited_message") or {}
     chat = message.get("chat") or {}
     text = (message.get("text") or "").strip()
     chat_id = chat.get("id")
     chat_type = (chat.get("type") or "").lower()
+    from_user = message.get("from") or {}
     if not chat_id:
         return {"ok": True}
 
-    if text.startswith("/start"):
+    cmd = _cmd_name(text) if text.startswith("/") else ""
+
+    # /id — always show chat / user ids
+    if cmd == "/id":
+        uid = from_user.get("id")
+        if chat_type == "private":
+            return reply_send_message(
+                chat_id,
+                f"Ваш Telegram user id: {uid}\n"
+                f"chat_id (ЛС): {chat_id}",
+            )
+        return reply_send_message(
+            chat_id,
+            f"ID этой группы: {chat_id}\n"
+            f"Ваш user id: {uid}\n\n"
+            "Чтобы сюда шли обращения поддержки — напишите /support_here",
+        )
+
+    # Register this group as support destination
+    if cmd == "/support_here":
+        if chat_type not in {"group", "supergroup"}:
+            return reply_send_message(
+                chat_id,
+                "Команда /support_here только для группы. "
+                "Добавьте бота в группу поддержки и вызовите там.",
+            )
+        register_chat_id(chat_id)
+        return reply_send_message(
+            chat_id,
+            f"Готово. Группа {chat_id} принимает обращения поддержки Аспект.\n"
+            "Когда AI не справится — сюда придёт карточка SUP-…\n"
+            "Ответьте reply на карточку — ответ уйдёт пользователю в приложение.",
+        )
+
+    # Private: bind this TG chat to an app email for support reply alerts
+    if cmd == "/support_alerts":
+        if chat_type != "private":
+            return reply_send_message(
+                chat_id,
+                "Команда только в личке с ботом.\n"
+                "Формат: /support_alerts ваш@email.ru",
+            )
+        parts = text.split(maxsplit=1)
+        email = parts[1].strip() if len(parts) > 1 else ""
+        if "@" not in email:
+            return reply_send_message(
+                chat_id,
+                "Укажите email аккаунта Аспект:\n"
+                "/support_alerts info@example.com",
+            )
+        try:
+            register_email_alert(email, chat_id)
+        except ValueError:
+            return reply_send_message(chat_id, "Некорректный email.")
+        return reply_send_message(
+            chat_id,
+            f"Готово. Уведомления о ответах поддержки для {email.strip().lower()} "
+            f"будут приходить сюда (chat_id {chat_id}).",
+        )
+
+    # Human support operators — reply / /support before /start pairing.
+    if text:
+        reply_to = message.get("reply_to_message") or {}
+        reply_to_text = (reply_to.get("text") or "") if isinstance(reply_to, dict) else ""
+        op_ack = try_handle_operator_telegram(
+            db,
+            chat_id=chat_id,
+            text=text,
+            reply_to_text=reply_to_text or None,
+        )
+        if op_ack is not None:
+            return reply_send_message(chat_id, op_ack)
+
+    if cmd == "/start":
         parts = text.split(maxsplit=1)
         payload = parts[1] if len(parts) > 1 else ""
         if payload:
@@ -112,40 +198,55 @@ def handle_telegram_update(db: Session, update: dict) -> dict:
                 chat_id,
                 "Готово. Личный Telegram подключён к Аспекту.\n"
                 "Уведомления настраиваются в приложении: Уведомления → Telegram.\n"
-                "Команда /unlink отвязывает все компании этого чата.",
+                "Команда /unlink отвязывает все компании этого чата.\n\n"
+                f"Ваш user id: {from_user.get('id')}\n"
+                f"chat_id: {chat_id}",
+            )
+        # Bare /start — show ids (private) or group id (group)
+        if chat_type == "private":
+            return reply_send_message(
+                chat_id,
+                "Аспект — поддержка и уведомления.\n\n"
+                f"Ваш Telegram user id: {from_user.get('id')}\n"
+                f"chat_id (ЛС): {chat_id}\n\n"
+                "Подключение уведомлений — по ссылке из приложения.\n"
+                "Команды: /help /id /support_alerts /status /mute /unmute /unlink",
             )
         return reply_send_message(
             chat_id,
-            "Аспект — уведомления о важных событиях для вашей компании.\n"
-            "Подключение начинается из приложения. Команды: /help /status /mute /unmute /unlink",
+            f"ID этой группы: {chat_id}\n\n"
+            "Чтобы принимать обращения поддержки — /support_here",
         )
 
-    if text.startswith("/help"):
+    if cmd == "/help":
         return reply_send_message(
             chat_id,
-            "Команды:\n/start — подключение по ссылке из приложения\n"
-            "/status — статус этого чата\n"
-            "/mute — пауза 24ч\n/unmute — возобновить\n"
-            "/unlink — отвязать все компании этого чата\n"
-            "/settings — настройки в приложении\n\n"
+            "Команды:\n/start — id пользователя/группы + подключение\n"
+            "/id — показать chat_id / user id\n"
+            "/support_here — группа-приёмник поддержки\n"
+            "/support_alerts email — уведомления о ответах в ЛС\n"
+            "/support SUP-XXXXXXXX текст — ответ оператора\n"
+            "/history SUP-XXXXXXXX — история обращения\n"
+            "Поиск в группе: #SUP_… или #u_email\n"
+            "/status /mute /unmute /unlink /settings\n\n"
             "Бот не принимает бизнес-решения.",
         )
 
-    if text.startswith("/settings"):
+    if cmd == "/settings":
         return reply_send_message(
             chat_id,
             "Изменить порог и включение уведомлений можно в приложении: Уведомления → Telegram.",
         )
 
-    if text.startswith("/mute"):
+    if cmd == "/mute":
         _mute_chat(db, str(chat_id), hours=24)
         return reply_send_message(chat_id, "Уведомления на паузе на 24 часа.")
 
-    if text.startswith("/unmute"):
+    if cmd == "/unmute":
         _unmute_chat(db, str(chat_id))
         return reply_send_message(chat_id, "Уведомления возобновлены.")
 
-    if text.startswith("/unlink"):
+    if cmd == "/unlink":
         n = unlink_private_by_chat(db, chat_id=str(chat_id))
         db.commit()
         if n == 0:
@@ -156,7 +257,7 @@ def handle_telegram_update(db: Session, update: dict) -> dict:
             "создайте ссылку в приложении для нужной компании.",
         )
 
-    if text.startswith("/status"):
+    if cmd == "/status":
         subs = (
             db.query(NotificationSubscription)
             .filter(
@@ -217,6 +318,30 @@ def _handle_callback(db: Session, callback: dict) -> dict:
         _mute_chat(db, str(chat_id), hours=24)
         return reply_send_message(chat_id, "Ок, пауза на 24 часа.")
     return {"ok": True}
+
+
+def _handle_my_chat_member(member: dict) -> dict:
+    """When bot is added to a group — announce group id."""
+    chat = member.get("chat") or {}
+    chat_id = chat.get("id")
+    chat_type = (chat.get("type") or "").lower()
+    new = member.get("new_chat_member") or {}
+    status = (new.get("status") or "").lower()
+    if not chat_id:
+        return {"ok": True}
+    if chat_type not in {"group", "supergroup"}:
+        return {"ok": True}
+    if status not in {"member", "administrator"}:
+        return {"ok": True}
+    title = chat.get("title") or "группа"
+    return reply_send_message(
+        chat_id,
+        f"Бот добавлен в «{title}».\n"
+        f"ID этой группы: {chat_id}\n\n"
+        "Чтобы сюда приходили обращения поддержки из приложения — "
+        "напишите /support_here\n"
+        "Ответ пользователю: reply на карточку SUP-…",
+    )
 
 
 def _mute_chat(db: Session, chat_id: str, hours: int) -> None:

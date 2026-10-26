@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     telegram_bot_username: str = "KonturDemoBot"
     telegram_webhook_secret: str = "kontur-webhook-secret"
     telegram_link_token_ttl_minutes: int = 10
+    # Support chat: comma-separated Telegram chat_id of human operators.
+    # When AI escalates, a card is sent here; operators reply with /support SUP-… text.
+    support_operator_chat_ids: str | None = None
     # Cooldown between test-send enqueue per subscription (seconds)
     telegram_test_send_cooldown_seconds: int = 60
     # Comma-separated outbox kinds the worker may process.
