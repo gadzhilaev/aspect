@@ -1,54 +1,69 @@
 
-# Android Studio will place build artifacts here
-# Backend local
-# Flutter/Dart/Pub related
-# IntelliJ related
-# Miscellaneous
-# Obfuscation related
-# Symbolication related
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-**/doc/api/
-**/ios/Flutter/.last_build_id
-*.class
-*.iml
-*.ipr
-*.iws
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
+# Flutter / Dart
 .dart_tool/
 .flutter-plugins-dependencies
-.history
-.idea/
 .pub-cache/
 .pub/
-.svn/
-.swiftpm/
+.build/
+.buildlog/
+/build/
+/coverage/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+app.*.map.json
+app.*.symbols
+
+# Android
 /android/app/debug
 /android/app/profile
 /android/app/release
-/build/
-/coverage/
-app.*.map.json
-app.*.symbols
+*.apk
+*.aab
+*.jks
+*.keystore
+key.properties
+
+# IDE / editor
+.idea/
+*.iml
+*.ipr
+*.iws
+.atom/
+.svn/
+.swiftpm/
+.history
+.vscode/
+.cursor/
+
+# OS / misc
+.DS_Store
+*.class
+*.log
+*.swp
+*.pyc
+
+# Backend local
 backend/**/__pycache__/
 backend/.env
+backend/.env.*
 backend/.pytest_cache/
 backend/.venv/
 backend/*.db
 backend/**/*.db
 migrate_working_dir/
-_patch_backup/
-_patch_extract/
+
+# Local stands / patches / secrets (never commit)
 _competition_stand/
 _patch_backup/
 _patch_extract/
 **/demo_password.local
 **/.env.stand.local
+**/correspondence/
+docs/correspondence/
+*.pem
+*.p8
+.env
+.env.*
+!.env.example
+!backend/.env.competition.example
+!backend/.env.example

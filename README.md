@@ -9,10 +9,11 @@
 | | |
 |--|--|
 | Ветка | `main` |
-| Commit / тег сдачи | [`v1.0.0`](https://github.com/gadzhilaev/aspect/releases/tag/v1.0.0) |
-| Клиент в этом репозитории | Flutter (`lib/`) |
-| API в этом репозитории | `backend/` |
-| React web | **не** входит в этот репозиторий |
+| Commit / тег сдачи | [`v1.0.1`](https://github.com/gadzhilaev/aspect/releases/tag/v1.0.1) |
+| Клиент | Flutter (`lib/`) — основное решение |
+| API | `backend/` |
+| Сайт | https://alfa-aspect.ru/ (отдельный фронт; API тот же) |
+| APK | в [релизе v1.0.1](https://github.com/gadzhilaev/aspect/releases/tag/v1.0.1) |
 
 ---
 
@@ -22,9 +23,9 @@
 
 | | |
 |--|--|
-| Демо / стенд | https://alfa-aspect.ru/ |
+| Сайт | https://alfa-aspect.ru/ |
 | Репозиторий | https://github.com/gadzhilaev/aspect |
-| Релиз сдачи | https://github.com/gadzhilaev/aspect/releases/tag/v1.0.0 |
+| Релиз | https://github.com/gadzhilaev/aspect/releases/tag/v1.0.1 |
 
 Локальный конкурсный API после запуска стенда обычно на порту **8020**:
 
