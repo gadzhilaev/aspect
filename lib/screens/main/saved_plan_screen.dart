@@ -73,8 +73,6 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
     final s = context.scale;
     final hPad = AppColors.screenPadding * s;
     final bottom = MediaQuery.paddingOf(context).bottom;
-    const titleDark = Color.fromRGBO(24, 35, 44, 1);
-    const heading = Color.fromRGBO(24, 27, 34, 1);
     final total = _data.steps.length;
     final doneCount = _done.length.clamp(0, total);
 
@@ -103,7 +101,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                         '‹ ${l10n.discussionBack}',
                         style: AppTypography.regular(
                           15 * s,
-                          color: AppColors.brandRed,
+                          color: AppColors.brandRedBright,
                         ),
                       ),
                     ),
@@ -120,14 +118,14 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                               text: '${l10n.actionPlan}\n',
                               style: AppTypography.bold(
                                 24.83 * s,
-                                color: titleDark,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                             TextSpan(
                               text: _data.actionTitle,
                               style: AppTypography.bold(
                                 24.83 * s,
-                                color: AppColors.brandRed,
+                                color: AppColors.brandRedBright,
                               ),
                             ),
                           ],
@@ -144,7 +142,10 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                       SizedBox(height: 22 * s),
                       Text(
                         l10n.progressCompleted(doneCount, total),
-                        style: AppTypography.bold(15.13 * s, color: heading),
+                        style: AppTypography.bold(
+                          15.13 * s,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       SizedBox(height: 8 * s),
                       _ProgressBar(
@@ -177,10 +178,10 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                         child: OutlinedButton(
                           onPressed: _changePlan,
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.brandRed,
+                            foregroundColor: AppColors.brandRedBright,
                             backgroundColor: Colors.transparent,
                             side: BorderSide(
-                              color: AppColors.brandRed,
+                              color: AppColors.brandRedBright,
                               width: 1.5 * s,
                             ),
                             shape: RoundedRectangleBorder(
@@ -191,7 +192,7 @@ class _SavedPlanScreenState extends State<SavedPlanScreen> {
                             l10n.changePlan,
                             style: AppTypography.bold(
                               14.06 * s,
-                              color: AppColors.brandRed,
+                              color: AppColors.brandRedBright,
                             ),
                           ),
                         ),
@@ -232,7 +233,7 @@ class _ProgressBar extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            const ColoredBox(color: Color(0xFFF5F6F8)),
+            ColoredBox(color: AppColors.progressTrack),
             FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: progress.clamp(0.0, 1.0),
@@ -259,7 +260,7 @@ class _StepCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
-    final border = done ? AppColors.brandRed : const Color(0xFFE3E6EB);
+    final border = done ? AppColors.brandRedBright : AppColors.border;
 
     return GestureDetector(
       onTap: onToggle,
@@ -268,7 +269,7 @@ class _StepCard extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.fromLTRB(14 * s, 14 * s, 14 * s, 14 * s),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(14 * s),
           border: Border.all(color: border, width: 1.5),
         ),
@@ -279,18 +280,18 @@ class _StepCard extends StatelessWidget {
               width: 18 * s,
               height: 18 * s,
               decoration: BoxDecoration(
-                color: done ? AppColors.brandRed : AppColors.surface,
+                color: done ? AppColors.brandRed : AppColors.card,
                 borderRadius: BorderRadius.circular(4 * s),
                 border: done
                     ? null
-                    : Border.all(color: const Color(0xFFE3E6EB), width: 1.5),
+                    : Border.all(color: AppColors.border, width: 1.5),
               ),
               alignment: Alignment.center,
               child: done
                   ? Icon(
                       Icons.check,
                       size: 12 * s,
-                      color: AppColors.surface,
+                      color: AppColors.onBrand,
                     )
                   : null,
             ),
@@ -298,7 +299,10 @@ class _StepCard extends StatelessWidget {
             Expanded(
               child: Text(
                 text,
-                style: AppTypography.regular(15.13 * s, color: Colors.black),
+                style: AppTypography.regular(
+                  15.13 * s,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
           ],

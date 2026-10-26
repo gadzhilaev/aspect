@@ -118,19 +118,10 @@ class BankMaterialScreen extends StatelessWidget {
                     SizedBox(height: 20 * s),
                     Container(
                       width: double.infinity,
-                      padding: EdgeInsets.all(16 * s),
                       decoration: BoxDecoration(
                         color: AppColors.card,
                         borderRadius: BorderRadius.circular(7 * s),
-                        border: Border(
-                          left: BorderSide(
-                            color: AppColors.brandRed,
-                            width: 3 * s,
-                          ),
-                          top: BorderSide(color: AppColors.border),
-                          right: BorderSide(color: AppColors.border),
-                          bottom: BorderSide(color: AppColors.border),
-                        ),
+                        border: Border.all(color: AppColors.border, width: 1),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(
@@ -141,44 +132,64 @@ class BankMaterialScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            data.fragmentTitle,
-                            style: AppTypography.bold(
-                              15.13 * s,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          SizedBox(height: 10 * s),
-                          Text(
-                            data.fragmentBody,
-                            style: AppTypography.regular(
-                              15.13 * s,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          SizedBox(height: 14 * s),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7 * s),
+                        child: IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(
-                                data.fragmentLink,
-                                style: AppTypography.bold(
-                                  13 * s,
-                                  color: AppColors.brandRedBright,
-                                ),
+                              Container(
+                                width: 3 * s,
+                                color: AppColors.brandRed,
                               ),
-                              SizedBox(width: 4 * s),
-                              Icon(
-                                Icons.arrow_forward,
-                                size: 14 * s,
-                                color: AppColors.brandRedBright,
+                              Expanded(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16 * s),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        data.fragmentTitle,
+                                        style: AppTypography.bold(
+                                          15.13 * s,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      SizedBox(height: 10 * s),
+                                      Text(
+                                        data.fragmentBody,
+                                        style: AppTypography.regular(
+                                          15.13 * s,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      SizedBox(height: 14 * s),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            data.fragmentLink,
+                                            style: AppTypography.bold(
+                                              13 * s,
+                                              color: AppColors.brandRedBright,
+                                            ),
+                                          ),
+                                          SizedBox(width: 4 * s),
+                                          Icon(
+                                            Icons.arrow_forward,
+                                            size: 14 * s,
+                                            color: AppColors.brandRedBright,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ],

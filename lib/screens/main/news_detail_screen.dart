@@ -783,16 +783,10 @@ class _ConcernCard extends StatelessWidget {
     final s = context.scale;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 16 * s),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(7 * s),
-        border: Border(
-          left: BorderSide(color: AppColors.brandRed, width: 3 * s),
-          top: BorderSide(color: AppColors.border),
-          right: BorderSide(color: AppColors.border),
-          bottom: BorderSide(color: AppColors.border),
-        ),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(
@@ -803,26 +797,42 @@ class _ConcernCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: AppTypography.bold(
-              15.13 * s,
-              color: AppColors.textPrimary,
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(7 * s),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 3 * s, color: AppColors.brandRed),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(16 * s),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTypography.bold(
+                          15.13 * s,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 6 * s),
+                      Text(
+                        body,
+                        style: AppTypography.regular(
+                          15.13 * s,
+                          color: AppColors.textPrimary,
+                        ).copyWith(height: 1.45),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 6 * s),
-          Text(
-            body,
-            style: AppTypography.regular(
-              15.13 * s,
-              color: AppColors.textPrimary,
-            ).copyWith(height: 1.45),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -848,16 +858,10 @@ class _BankCard extends StatelessWidget {
     final s = context.scale;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16 * s, 16 * s, 16 * s, 16 * s),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(7 * s),
-        border: Border(
-          left: BorderSide(color: AppColors.brandRed, width: 3 * s),
-          top: BorderSide(color: AppColors.border),
-          right: BorderSide(color: AppColors.border),
-          bottom: BorderSide(color: AppColors.border),
-        ),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(
@@ -868,72 +872,94 @@ class _BankCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(7 * s),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                height: 19 * s,
-                padding: EdgeInsets.symmetric(horizontal: 8 * s),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.brandRed,
-                  borderRadius: BorderRadius.circular(6.56 * s),
-                ),
-                child: Text(
-                  analyticsLabel,
-                  style: AppTypography.bold(9.19 * s, color: AppColors.onBrand),
-                ),
-              ),
-              SizedBox(width: 3 * s),
-              Container(
-                width: 68 * s,
-                height: 19 * s,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(6.56 * s),
-                  border: Border.all(color: AppColors.brandRedBright, width: 1),
-                ),
-                child: SvgPicture.asset(
-                  'assets/images/alfa_bank_logo.svg',
-                  width: 51 * s,
-                  height: 10 * s,
-                  fit: BoxFit.contain,
-                  colorFilter: AppColors.isDark
-                      ? const ColorFilter.mode(
-                          Color(0xFFFF7A70),
-                          BlendMode.srcIn,
-                        )
-                      : null,
+              Container(width: 3 * s, color: AppColors.brandRed),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(16 * s),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            height: 19 * s,
+                            padding: EdgeInsets.symmetric(horizontal: 8 * s),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppColors.brandRed,
+                              borderRadius: BorderRadius.circular(6.56 * s),
+                            ),
+                            child: Text(
+                              analyticsLabel,
+                              style: AppTypography.bold(
+                                9.19 * s,
+                                color: AppColors.onBrand,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 3 * s),
+                          Container(
+                            width: 68 * s,
+                            height: 19 * s,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppColors.card,
+                              borderRadius: BorderRadius.circular(6.56 * s),
+                              border: Border.all(
+                                color: AppColors.brandRedBright,
+                                width: 1,
+                              ),
+                            ),
+                            child: SvgPicture.asset(
+                              'assets/images/alfa_bank_logo.svg',
+                              width: 51 * s,
+                              height: 10 * s,
+                              fit: BoxFit.contain,
+                              colorFilter: AppColors.isDark
+                                  ? const ColorFilter.mode(
+                                      Color(0xFFFF7A70),
+                                      BlendMode.srcIn,
+                                    )
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 14 * s),
+                      Text(
+                        title,
+                        style: AppTypography.bold(
+                          15.13 * s,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 8 * s),
+                      Text(
+                        body,
+                        style: AppTypography.regular(
+                          15.13 * s,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 14 * s),
+                      _RedLink(
+                        label: materialLinkLabel,
+                        onTap: onMaterialTap,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 14 * s),
-          Text(
-            title,
-            style: AppTypography.bold(
-              15.13 * s,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 8 * s),
-          Text(
-            body,
-            style: AppTypography.regular(
-              15.13 * s,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 14 * s),
-          _RedLink(
-            label: materialLinkLabel,
-            onTap: onMaterialTap,
-          ),
-        ],
+        ),
       ),
     );
   }

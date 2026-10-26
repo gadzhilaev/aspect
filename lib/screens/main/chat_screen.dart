@@ -11,21 +11,104 @@ import '../../navigation/app_page_route.dart';
 import '../../services/auth_store.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/assistant_markdown.dart';
 import '../../widgets/main_widgets.dart';
 import 'action_plan_screen.dart';
 import 'bank_material_screen.dart';
 import 'confirm_plan_screen.dart';
 import 'saved_plan_screen.dart';
 
+class _BankEvidenceItem {
+  const _BankEvidenceItem({
+    required this.title,
+    required this.body,
+    required this.typeLabel,
+    required this.meta,
+  });
+  final String title;
+  final String body;
+  final String typeLabel;
+  final String meta;
+}
+
 class _ChatLine {
   const _ChatLine({
     required this.role,
     required this.text,
     this.analysisSteps = const [],
+    this.bankEvidence = const [],
   });
   final String role; // user | assistant
   final String text;
   final List<String> analysisSteps;
+  final List<_BankEvidenceItem> bankEvidence;
+}
+
+String _bankContentTypeLabel(String? raw) {
+  switch ((raw ?? '').toLowerCase()) {
+    case 'fact':
+      return 'Факт из материала';
+    case 'forecast':
+      return 'Прогноз банка';
+    case 'interpretation':
+      return 'Оценка банка';
+    default:
+      return '';
+  }
+}
+
+String _formatBankMeta(Map item) {
+  final parts = <String>[];
+  final pub = (item['publication_date'] ?? '').toString().trim();
+  if (pub.isNotEmpty) {
+    // Keep ISO date readable: 2026-09-11 → 11.09.2026 when possible
+    final m = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(pub);
+    parts.add(m != null ? '${m[3]}.${m[2]}.${m[1]}' : pub);
+  }
+  final page = item['page_number'];
+  if (page is num) parts.add('стр. ${page.toInt()}');
+  return parts.join(' · ');
+}
+
+List<_BankEvidenceItem> _bankEvidenceFromBlocks(dynamic blocks) {
+  if (blocks is! List) return const [];
+  final out = <_BankEvidenceItem>[];
+  for (final raw in blocks) {
+    if (raw is! Map) continue;
+    if ((raw['type'] ?? '').toString() != 'bank_evidence_list') continue;
+    final data = raw['data'];
+    if (data is! Map) continue;
+    final used = data['used'];
+    if (used is! List) continue;
+    for (final u in used) {
+      if (u is! Map) continue;
+      final title = (u['document_title'] ?? 'Документ банка').toString().trim();
+      final body = (u['text'] ?? '').toString().trim();
+      if (title.isEmpty && body.isEmpty) continue;
+      out.add(
+        _BankEvidenceItem(
+          title: title.isEmpty ? 'Документ банка' : title,
+          body: body,
+          typeLabel: _bankContentTypeLabel(u['content_type']?.toString()),
+          meta: _formatBankMeta(u),
+        ),
+      );
+      if (out.length >= 6) return out;
+    }
+  }
+  return out;
+}
+
+_ChatLine? _lineFromMessage(Map raw) {
+  final role = (raw['role'] ?? '').toString();
+  final content = (raw['content'] ?? '').toString();
+  final bank = _bankEvidenceFromBlocks(raw['blocks']);
+  if (content.isEmpty && bank.isEmpty) return null;
+  return _ChatLine(
+    role: role,
+    text: content,
+    bankEvidence: bank,
+  );
 }
 
 class ChatScreenData {
@@ -113,6 +196,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _thinkingPhase = (_thinkingPhase + 1) % _thinkingPhases.length;
         _thinkingLabel = _thinkingPhases[_thinkingPhase];
       });
+      _scrollToEnd(jump: true);
     });
   }
 
@@ -132,10 +216,8 @@ class _ChatScreenState extends State<ChatScreen> {
       final lines = <_ChatLine>[];
       for (final raw in items) {
         if (raw is! Map) continue;
-        final role = (raw['role'] ?? '').toString();
-        final content = (raw['content'] ?? '').toString();
-        if (content.isEmpty) continue;
-        lines.add(_ChatLine(role: role, text: content));
+        final line = _lineFromMessage(Map<String, dynamic>.from(raw));
+        if (line != null) lines.add(line);
       }
       if (!mounted || lines.isEmpty) return;
       setState(() => _lines = lines);
@@ -165,10 +247,8 @@ class _ChatScreenState extends State<ChatScreen> {
       final lines = <_ChatLine>[];
       for (final raw in items) {
         if (raw is! Map) continue;
-        final role = (raw['role'] ?? '').toString();
-        final content = (raw['content'] ?? '').toString();
-        if (content.isEmpty) continue;
-        lines.add(_ChatLine(role: role, text: content));
+        final line = _lineFromMessage(Map<String, dynamic>.from(raw));
+        if (line != null) lines.add(line);
       }
       final chips = [
         for (final c in (conv['suggestion_chips'] as List?) ?? const [])
@@ -181,6 +261,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _lines = lines;
         _chips = chips;
       });
+      _scrollToEnd(jump: true);
     } catch (_) {
       // Empty history on API failure — do not invent a transcript.
       if (!mounted) return;
@@ -201,6 +282,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _busy = true;
     });
     _startThinking();
+    _scrollToEnd();
     final convId = _conversationId;
     if (!_apiMode || convId == null) {
       _stopThinking();
@@ -215,8 +297,10 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       final assistant = res['assistant_message'] ?? res['message'] ?? res;
       String reply = '';
+      List<_BankEvidenceItem> bank = const [];
       if (assistant is Map) {
         reply = (assistant['content'] ?? '').toString();
+        bank = _bankEvidenceFromBlocks(assistant['blocks']);
       }
       if (reply.isEmpty && res['content'] != null) {
         reply = res['content'].toString();
@@ -228,13 +312,16 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       _stopThinking();
       setState(() {
-        if (reply.isNotEmpty || steps.isNotEmpty) {
+        if (reply.isNotEmpty || steps.isNotEmpty || bank.isNotEmpty) {
           _lines = [
             ..._lines,
             _ChatLine(
               role: 'assistant',
-              text: reply.isEmpty ? 'Анализ выполнен.' : reply,
+              text: reply.isEmpty && bank.isEmpty
+                  ? 'Анализ выполнен.'
+                  : reply,
               analysisSteps: steps,
+              bankEvidence: bank,
             ),
           ];
         }
@@ -288,14 +375,25 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _scrollToEnd() {
+  void _scrollToEnd({bool jump = false}) {
+    void go() {
+      if (!mounted || !_scroll.hasClients) return;
+      final target = _scroll.position.maxScrollExtent;
+      if (jump) {
+        _scroll.jumpTo(target);
+      } else {
+        _scroll.animateTo(
+          target,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+
+    // Два кадра: после setState список ещё может не знать maxScrollExtent.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients) return;
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
+      go();
+      WidgetsBinding.instance.addPostFrameCallback((_) => go());
     });
   }
 
@@ -428,7 +526,12 @@ class _ChatScreenState extends State<ChatScreen> {
                             text: _lines[i].text,
                             senderLabel: l10n.appName,
                             analysisSteps: _lines[i].analysisSteps,
-                            showBankLink: i == 0,
+                            bankEvidence: _lines[i].bankEvidence,
+                            bankMaterialsTitle: l10n.bankMaterials,
+                            analysisStepsTitle: 'Шаги анализа',
+                            viewMaterialLabel: l10n.viewMaterial,
+                            showBankLink: i == 0 &&
+                                _lines[i].bankEvidence.isEmpty,
                             bankLinkLabel: l10n.showBankMaterial,
                             onBankLinkTap: i == 0
                                 ? () => openBankMaterialScreen(
@@ -438,6 +541,17 @@ class _ChatScreenState extends State<ChatScreen> {
                                       ),
                                     )
                                 : null,
+                            onOpenBankItem: (item) => openBankMaterialScreen(
+                              context,
+                              data: BankMaterialData(
+                                backLabel: l10n.backEvent,
+                                headline: item.title,
+                                meta: item.meta.isEmpty
+                                    ? 'Материал банка'
+                                    : item.meta,
+                                fragmentBody: item.body,
+                              ),
+                            ),
                           ),
                       ],
                       if (_busy) ...[
@@ -445,6 +559,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         _AspectBubble(
                           text: _thinkingLabel,
                           senderLabel: l10n.appName,
+                          markdown: false,
                         ),
                       ],
                     ] else ...[
@@ -579,6 +694,12 @@ class _AspectBubble extends StatelessWidget {
     this.senderLabel = 'Аспект',
     this.bankLinkLabel = 'Показать материал банка',
     this.analysisSteps = const [],
+    this.bankEvidence = const [],
+    this.bankMaterialsTitle = 'Материалы банка',
+    this.analysisStepsTitle = 'Шаги анализа',
+    this.viewMaterialLabel = 'Посмотреть материал',
+    this.onOpenBankItem,
+    this.markdown = true,
   });
 
   final String text;
@@ -587,10 +708,24 @@ class _AspectBubble extends StatelessWidget {
   final String senderLabel;
   final String bankLinkLabel;
   final List<String> analysisSteps;
+  final List<_BankEvidenceItem> bankEvidence;
+  final String bankMaterialsTitle;
+  final String analysisStepsTitle;
+  final String viewMaterialLabel;
+  final void Function(_BankEvidenceItem item)? onOpenBankItem;
+  final bool markdown;
 
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    final bodyStyle = AppTypography.regular(
+      13 * s,
+      color: AppColors.textPrimary,
+    ).copyWith(height: 1.35);
+    final boldStyle = AppTypography.bold(
+      13 * s,
+      color: AppColors.textPrimary,
+    ).copyWith(height: 1.35);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -605,15 +740,15 @@ class _AspectBubble extends StatelessWidget {
         Align(
           alignment: Alignment.centerLeft,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 280 * s),
+            constraints: BoxConstraints(maxWidth: 300 * s),
             child: Container(
               padding: EdgeInsets.all(16 * s),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(16 * s),
                 border: Border.all(
-                  color: Colors.black.withValues(alpha: 0.11),
-                  width: 0.5,
+                  color: AppColors.border,
+                  width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -627,17 +762,42 @@ class _AspectBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    text,
-                    style: AppTypography.regular(
-                      13 * s,
-                      color: AppColors.textPrimary,
+                  if (text.isNotEmpty)
+                    markdown
+                        ? AssistantMarkdown(
+                            text,
+                            style: bodyStyle,
+                            boldStyle: boldStyle,
+                            headingStyle: boldStyle,
+                          )
+                        : Text(text, style: bodyStyle),
+                  if (bankEvidence.isNotEmpty) ...[
+                    SizedBox(height: 14 * s),
+                    Text(
+                      bankMaterialsTitle,
+                      style: AppTypography.bold(
+                        12 * s,
+                        color: AppColors.textMuted,
+                      ),
                     ),
-                  ),
+                    SizedBox(height: 8 * s),
+                    for (var i = 0; i < bankEvidence.length; i++) ...[
+                      if (i > 0) SizedBox(height: 8 * s),
+                      BankEvidenceChatCard(
+                        title: bankEvidence[i].title,
+                        body: bankEvidence[i].body,
+                        typeLabel: bankEvidence[i].typeLabel,
+                        meta: bankEvidence[i].meta,
+                        openLabel: viewMaterialLabel,
+                        onOpen: () =>
+                            onOpenBankItem?.call(bankEvidence[i]),
+                      ),
+                    ],
+                  ],
                   if (analysisSteps.isNotEmpty) ...[
                     SizedBox(height: 12 * s),
                     Text(
-                      'Шаги анализа',
+                      analysisStepsTitle,
                       style: AppTypography.bold(
                         12 * s,
                         color: AppColors.textMuted,
@@ -710,7 +870,7 @@ class _UserBubble extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: AppTypography.regular(13 * s, color: AppColors.surface),
+          style: AppTypography.regular(13 * s, color: AppColors.onBrand),
         ),
       ),
     );
@@ -748,7 +908,7 @@ class _QuickChip extends StatelessWidget {
           label,
           style: AppTypography.regular(
             13 * s,
-            color: filled ? AppColors.surface : AppColors.textPrimary,
+            color: filled ? AppColors.onBrand : AppColors.textPrimary,
           ),
         ),
       ),
