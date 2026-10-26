@@ -1,0 +1,232 @@
+/* Notifications — mobile cards, desktop 2-column (no empty right void) */
+
+.notif-shell {
+  padding: 32px 0 56px;
+}
+
+.notif-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 8px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.notif-back:hover {
+  color: var(--color-text);
+}
+
+.notif-layout {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+  align-items: start;
+}
+
+.notif-main,
+.notif-aside {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.notif-status-card {
+  display: grid;
+  gap: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 22px;
+}
+
+.notif-status-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.notif-status-mark {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.notif-status-mark.is-linked {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.notif-status-mark.is-waiting {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.notif-status-copy {
+  min-width: 0;
+}
+
+.notif-status-copy h2 {
+  margin: 0;
+  font-size: clamp(18px, 2.2vw, 22px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.notif-status-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.notif-status-badge.is-on {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.notif-status-badge.is-off {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.notif-status-badge.is-wait {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.notif-meta-line {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.notif-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.notif-actions .btn-primary {
+  min-height: 48px;
+  border-radius: 14px;
+  font-weight: 750;
+}
+
+.notif-link-box {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  display: grid;
+  gap: 12px;
+}
+
+.notif-link-box p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+
+.notif-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.notif-policy {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.notif-policy p {
+  margin: 0;
+}
+
+.notif-panel .field {
+  margin-top: 10px;
+}
+
+.notif-panel .field select {
+  min-height: 48px;
+}
+
+.notif-steps {
+  margin: 10px 0 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+
+.notif-footer-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.notif-footer-links a {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (min-width: 960px) {
+  .notif-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
+    gap: 20px 24px;
+  }
+
+  .notif-shell .page-lead {
+    max-width: 56ch;
+  }
+}
+
+@media (max-width: 560px) {
+  .notif-shell {
+    padding: 22px 0 40px;
+  }
+
+  .notif-actions .btn-primary,
+  .notif-link-box .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .notif-status-card,
+  .notif-panel {
+    padding: 18px 16px;
+  }
+}

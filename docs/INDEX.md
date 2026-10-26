@@ -9,6 +9,7 @@
 | [../README.md](../README.md) | Обзор продукта, быстрый старт, ссылки на релиз |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Как устроены клиент, API, данные |
 | [MOBILE_APP.md](MOBILE_APP.md) | Flutter: экраны, API-клиент, темы, сборка |
+| [../frontend/README.md](../frontend/README.md) | Веб-сайт (React/Vite), локальный запуск и prod build |
 | [PRODUCTION.md](PRODUCTION.md) | Публичный стенд, контейнеры, диагностика |
 | [JURY_MOBILE_SCENARIO.md](JURY_MOBILE_SCENARIO.md) | Сценарий показа жюри в приложении |
 | [MOBILE_STAND_CONNECTION.md](MOBILE_STAND_CONNECTION.md) | Подключение Flutter к локальному/стендовому API |

@@ -6,7 +6,8 @@
 
 | | |
 |--|--|
-| Клиент | Flutter (`lib/`) |
+| Мобильный клиент | Flutter (`lib/`) |
+| Веб-сайт | React + Vite (`frontend/`) → https://gadzhilaev.ru/aspekt/ |
 | API | FastAPI (`backend/`) |
 | Версия | `1.0.0+1` · релиз [`v1.0.0`](https://github.com/gadzhilaev/aspect/releases/tag/v1.0.0) |
 | Документация | **[`docs/INDEX.md`](docs/INDEX.md)** |

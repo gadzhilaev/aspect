@@ -20,9 +20,12 @@
 | Путь | Содержимое |
 |------|------------|
 | `/opt/aspect` | compose, backend image, `.env` → `.env.competition` |
+| `/var/www/aspect` | статика сайта (`frontend/` → `npm run build`, base `/aspekt/`) |
 | `/stand/stand.db` | SQLite стенда |
 | `/stand/storage/` | банковские PDF / OCR |
 | `/stand/demo_password.local` | пароли demo A/B (**не в Git**) |
+
+Исходники сайта в репо: [`frontend/`](../frontend/). На проде nginx отдаёт собранный `dist/` с path `/aspekt/`; API — отдельно на `/aspekt-api`.
 
 Контейнеры (имена могут чуть отличаться):
 

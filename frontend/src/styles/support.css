@@ -1,0 +1,89 @@
+.support-page .page-kicker a {
+  color: var(--color-brand, #e31227);
+  text-decoration: none;
+}
+
+.support-chat {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  max-height: min(70vh, 720px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 16px);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.support-chat-log {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.support-system {
+  margin: 4px 0;
+  text-align: center;
+  color: var(--color-muted, #6b7280);
+  font-size: 0.9rem;
+}
+
+.support-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: min(420px, 92%);
+}
+
+.support-bubble-wrap.is-mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.support-sender {
+  font-size: 0.85rem;
+  color: var(--color-muted, #6b7280);
+  margin: 0 0 6px 8px;
+}
+
+.support-bubble {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  background: var(--color-surface);
+  white-space: pre-wrap;
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+.support-bubble.is-mine {
+  background: var(--color-brand, #e31227);
+  color: #fff;
+  border-color: transparent;
+}
+
+.support-composer {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.support-composer input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  padding: 0 12px;
+  background: transparent;
+  color: inherit;
+}
+
+.support-composer .btn {
+  flex-shrink: 0;
+}

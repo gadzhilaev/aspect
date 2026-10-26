@@ -1,0 +1,15 @@
+.git
+.cursor
+.vscode
+.idea
+.env
+.env.*
+!.env.example
+node_modules
+dist
+dist-ssr
+*.log
+screenshots
+*.local
+.tmp-*
+*.tmp-*.json

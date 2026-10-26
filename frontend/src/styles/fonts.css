@@ -1,0 +1,74 @@
+/*
+  Alfa Bank brandbook typography (alfa-brandbook.pdf).
+
+  Corporate faces: Styrene A LC (UI/body) + Styrene B LC (display).
+  Licensed WOFF2 files are NOT redistributed in this repo.
+  Drop files into web/public/fonts/ when you have a Commercial Type / Alfa license:
+
+    styrene-a-lc-thin.woff2
+    styrene-a-lc-light.woff2
+    styrene-a-lc-regular.woff2
+    styrene-a-lc-medium.woff2
+    styrene-a-lc-bold.woff2
+    styrene-b-lc-medium.woff2
+    styrene-b-lc-bold.woff2
+
+  Until then the stack falls back to Onest (geometric neo-grotesque, Cyrillic).
+  Brand rules: font-feature-settings 'ss01'; antialiased rendering.
+*/
+
+@font-face {
+  font-family: 'Styrene A LC';
+  src: url('/fonts/styrene-a-lc-thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Styrene A LC';
+  src: url('/fonts/styrene-a-lc-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Styrene A LC';
+  src: url('/fonts/styrene-a-lc-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Styrene A LC';
+  src: url('/fonts/styrene-a-lc-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Styrene A LC';
+  src: url('/fonts/styrene-a-lc-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Styrene B LC';
+  src: url('/fonts/styrene-b-lc-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Styrene B LC';
+  src: url('/fonts/styrene-b-lc-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

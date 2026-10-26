@@ -1,0 +1,306 @@
+/* Bank materials — chat evidence cards + fragment detail page */
+
+.bank-evidence-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bank-evidence-card {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bank-evidence-card-eyebrow {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.bank-evidence-card-title {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.bank-evidence-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 13px;
+}
+
+.bank-evidence-card-type {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.bank-evidence-card-kind {
+  font-size: 12px;
+}
+
+.bank-evidence-card-text {
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  margin-top: 2px;
+}
+
+.bank-evidence-card-text.is-quote {
+  border-left: 3px solid var(--color-border);
+  padding-left: 10px;
+}
+
+.bank-evidence-expand {
+  display: inline-block;
+  margin-top: 6px;
+  margin-left: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-weight: 650;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bank-evidence-expand:hover {
+  color: var(--color-accent-hover);
+}
+
+.bank-evidence-card-actions {
+  margin-top: 8px;
+}
+
+.bank-evidence-open {
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.bank-evidence-empty {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.bank-evidence-list-compact .bank-evidence-card {
+  padding: 10px 12px;
+}
+
+/* Fragment detail */
+
+.bank-fragment-page {
+  max-width: 44rem;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+}
+
+.bank-fragment-back {
+  margin-bottom: 16px;
+}
+
+.bank-fragment-hero {
+  margin-bottom: 20px;
+}
+
+.bank-fragment-eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.bank-fragment-title {
+  margin: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+.bank-fragment-pub {
+  margin: 8px 0 0;
+}
+
+.bank-fragment-superseded {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.bank-fragment-main {
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bank-fragment-type {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.bank-fragment-text {
+  margin: 10px 0 0;
+  padding: 0;
+  border: none;
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.bank-fragment-text.is-quote {
+  border-left: 3px solid var(--color-border);
+  padding-left: 14px;
+}
+
+.bank-fragment-restricted {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+}
+
+.bank-fragment-restricted p {
+  margin: 0 0 8px;
+}
+
+.bank-fragment-restricted p:last-child {
+  margin-bottom: 0;
+}
+
+.bank-fragment-qa {
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+
+.bank-fragment-about {
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.bank-fragment-about-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.bank-fragment-about-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bank-fragment-about-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+  gap: 4px 12px;
+}
+
+.bank-fragment-about-list dt {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 650;
+}
+
+.bank-fragment-about-list dd {
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.bank-fragment-disclaimer {
+  margin: 14px 0 0;
+  font-size: 13px;
+}
+
+.bank-fragment-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.bank-fragment-actions .btn {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.bank-fragment-pdf-error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .bank-fragment-about-list > div {
+    grid-template-columns: 1fr;
+  }
+
+  .bank-evidence-open,
+  .bank-fragment-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* News detail — Alfa analytics (stage 6.12); tokens for light/dark */
+
+.news-bank-analytics {
+  min-width: 0;
+}
+
+.news-bank-analytics-disclaimer,
+.news-bank-analytics-status {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.news-bank-list {
+  margin-top: 4px;
+}
+
+.news-bank-card {
+  background: var(--color-surface, var(--color-surface-muted));
+}
+
+@media (max-width: 640px) {
+  .news-bank-analytics .bank-evidence-open {
+    width: 100%;
+    justify-content: center;
+  }
+}

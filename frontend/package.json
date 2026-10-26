@@ -1,0 +1,45 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18.18.0",
+    "npm": ">=9"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:mobile": "vite --mode mobile --port 5181 --strictPort",
+    "build:mobile": "tsc -b && vite build --mode mobile",
+    "test:mobile-backend": "node --experimental-strip-types --test scripts/mobile-backend.test.mjs scripts/mobile-backend-render.test.mjs",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test:case-context": "node --test scripts/case-context-display.test.mjs",
+    "test:bank-materials": "node --experimental-strip-types --test scripts/bank-materials-ui.test.mjs",
+    "test:news-bank-analytics": "node --experimental-strip-types --test scripts/news-bank-analytics-ui.test.mjs",
+    "test:assistant-without-impact": "node --experimental-strip-types --test scripts/assistant-without-impact-ui.test.mjs",
+    "test:assistant-markdown": "node --experimental-strip-types --test scripts/assistant-markdown-ui.test.mjs",
+    "test:event-discoverability": "node --test scripts/event-discoverability-ui.test.mjs",
+    "test:finance-scenario-presentation": "node --experimental-strip-types --test scripts/finance-scenario-presentation.test.mjs",
+    "test:user-triggered-finance": "node --experimental-strip-types --test scripts/user-triggered-finance.test.mjs",
+    "test:finance-recompute-cta": "node --experimental-strip-types --test scripts/finance-recompute-cta.test.mjs",
+    "test:company-registry": "node --experimental-strip-types --test scripts/company-registry.test.mjs",
+    "test:company-inn-lookup": "node --test scripts/company-inn-lookup-ui.test.mjs",
+    "test:company-hub": "node --experimental-strip-types --test scripts/company-hub.test.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}

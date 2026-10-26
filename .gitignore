@@ -67,3 +67,9 @@ docs/correspondence/
 !.env.example
 !backend/.env.competition.example
 !backend/.env.example
+!frontend/.env.example
+!frontend/.env.mobile
+
+# Frontend (Vite/React) — local install & build
+frontend/node_modules/
+frontend/dist/
