@@ -1,22 +1,17 @@
-import 'dart:io';
-
-/// Base URL Kontur API для симулятора / локальной разработки.
+/// Base URL API Аспекта — публичный стенд или override.
 abstract final class ApiConfig {
-  /// Переопределение: `--dart-define=API_BASE=http://192.168.x.x:8020`
-  /// Физический телефон: IP машины в LAN, не localhost.
+  /// Локально: `--dart-define=API_BASE=http://127.0.0.1:8020`
   static const _define = String.fromEnvironment('API_BASE');
 
-  /// Конкурсный очищенный стенд (см. docs/MOBILE_STAND_CONNECTION.md).
+  /// Публичный HTTPS API (тот же origin, что и сайт).
+  static const String competitionApiBase = 'https://alfa-aspect.ru';
+
+  /// Локальный порт стенда (см. docs/MOBILE_STAND_CONNECTION.md).
   static const int standPort = 8020;
 
   static String get baseUrl {
     if (_define.isNotEmpty) return _define.replaceAll(RegExp(r'/$'), '');
-    if (Platform.isAndroid) {
-      // Android emulator → host machine.
-      return 'http://10.0.2.2:$standPort';
-    }
-    // iOS Simulator / desktop.
-    return 'http://127.0.0.1:$standPort';
+    return competitionApiBase;
   }
 
   static String get apiV1 => '$baseUrl/api/v1';
