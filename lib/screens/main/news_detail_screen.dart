@@ -374,7 +374,6 @@ class NewsDetailScreen extends StatefulWidget {
 
 class _NewsDetailScreenState extends State<NewsDetailScreen> {
   late NewsDetailData data;
-  bool _loading = false;
 
   @override
   void initState() {
@@ -387,7 +386,8 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
   }
 
   Future<void> _loadFromApi(String eventId) async {
-    setState(() => _loading = true);
+    // Без видимого прогресса: сразу карточка из ленты,
+    // детали с API подмешиваем тихо.
     try {
       final companyId = await AuthStore.companyId();
       final detail = await EventsApi.instance.getEvent(
@@ -416,11 +416,8 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
           fallback: widget.data,
           l10n: context.l10n,
         );
-        _loading = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
+    } catch (_) {}
   }
 
   static const _bodySize = 15.13;
@@ -466,7 +463,6 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (_loading) const LinearProgressIndicator(minHeight: 2),
               Material(
                 color: AppColors.surface,
                 child: Padding(
@@ -480,7 +476,7 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
                         '‹ ${widget.backLabel}',
                         style: AppTypography.regular(
                           15 * s,
-                          color: AppColors.brandRed,
+                          color: AppColors.brandRedBright,
                         ),
                       ),
                     ),

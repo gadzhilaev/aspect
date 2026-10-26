@@ -166,6 +166,8 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _conversationId;
   bool _busy = false;
   bool _apiMode = false;
+  /// Пока false — лента чата скрыта (нет мигания top→bottom при открытии).
+  bool _chatReveal = false;
   List<_ChatLine> _lines = const [];
   List<String> _chips = const [];
   String _thinkingLabel = _thinkingPhases.first;
@@ -175,6 +177,10 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    final eventId = widget.data.eventId;
+    if (eventId == null || eventId.isEmpty) {
+      _chatReveal = true;
+    }
     _bootstrap();
   }
 
@@ -231,6 +237,7 @@ class _ChatScreenState extends State<ChatScreen> {
         eventId.isEmpty ||
         companyId == null ||
         companyId.isEmpty) {
+      if (mounted && !_chatReveal) setState(() => _chatReveal = true);
       return;
     }
     try {
@@ -239,7 +246,10 @@ class _ChatScreenState extends State<ChatScreen> {
         companyId: companyId,
       );
       final id = conv['id']?.toString();
-      if (id == null || id.isEmpty) return;
+      if (id == null || id.isEmpty) {
+        if (mounted && !_chatReveal) setState(() => _chatReveal = true);
+        return;
+      }
       final msgs = await EventsApi.instance.listMessages(id);
       final items = (msgs['items'] as List?) ??
           (msgs['messages'] as List?) ??
@@ -260,8 +270,9 @@ class _ChatScreenState extends State<ChatScreen> {
         _apiMode = true;
         _lines = lines;
         _chips = chips;
+        _chatReveal = false;
       });
-      _scrollToEnd(jump: true);
+      _revealAtBottom();
     } catch (_) {
       // Empty history on API failure — do not invent a transcript.
       if (!mounted) return;
@@ -269,8 +280,27 @@ class _ChatScreenState extends State<ChatScreen> {
         _apiMode = false;
         _lines = const [];
         _chips = const [];
+        _chatReveal = true;
       });
     }
+  }
+
+  /// Прыжок вниз без анимации, затем показ ленты — пользователь не видит скролл.
+  void _revealAtBottom() {
+    void jump() {
+      if (!mounted || !_scroll.hasClients) return;
+      _scroll.jumpTo(_scroll.position.maxScrollExtent);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      jump();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        jump();
+        if (mounted && !_chatReveal) {
+          setState(() => _chatReveal = true);
+        }
+      });
+    });
   }
 
   Future<void> _send(String text) async {
@@ -379,12 +409,12 @@ class _ChatScreenState extends State<ChatScreen> {
     void go() {
       if (!mounted || !_scroll.hasClients) return;
       final target = _scroll.position.maxScrollExtent;
-      if (jump) {
+      if (jump || !_chatReveal) {
         _scroll.jumpTo(target);
       } else {
         _scroll.animateTo(
           target,
-          duration: const Duration(milliseconds: 280),
+          duration: const Duration(milliseconds: 220),
           curve: Curves.easeOut,
         );
       }
@@ -491,7 +521,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             softWrap: false,
                             style: AppTypography.medium(
                               9.4 * s,
-                              color: AppColors.surface,
+                              color: AppColors.onBrand,
                             ),
                           ),
                         ),
@@ -500,90 +530,101 @@ class _ChatScreenState extends State<ChatScreen> {
                       Divider(
                         height: 1 * s,
                         thickness: 1 * s,
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: AppColors.border,
                       ),
                     ],
                   ),
                 ),
               ),
               Expanded(
-                child: ListView(
-                  controller: _scroll,
-                  padding: EdgeInsets.fromLTRB(
-                    hPad * s,
-                    16 * s,
-                    hPad * s,
-                    16 * s,
-                  ),
-                  children: [
-                    if (_apiMode) ...[
-                      for (var i = 0; i < _lines.length; i++) ...[
-                        if (i > 0) SizedBox(height: 12 * s),
-                        if (_lines[i].role == 'user')
-                          _UserBubble(text: _lines[i].text)
-                        else
+                // ListView всегда в дереве (иначе jumpTo не сработает),
+                // до прыжка вниз — opacity 0, без видимого скролла.
+                child: Opacity(
+                  opacity: _chatReveal ? 1 : 0,
+                  child: IgnorePointer(
+                    ignoring: !_chatReveal,
+                    child: ListView(
+                      controller: _scroll,
+                      padding: EdgeInsets.fromLTRB(
+                        hPad * s,
+                        16 * s,
+                        hPad * s,
+                        16 * s,
+                      ),
+                      children: [
+                        if (_apiMode) ...[
+                          for (var i = 0; i < _lines.length; i++) ...[
+                            if (i > 0) SizedBox(height: 12 * s),
+                            if (_lines[i].role == 'user')
+                              _UserBubble(text: _lines[i].text)
+                            else
+                              _AspectBubble(
+                                text: _lines[i].text,
+                                senderLabel: l10n.appName,
+                                analysisSteps: _lines[i].analysisSteps,
+                                bankEvidence: _lines[i].bankEvidence,
+                                bankMaterialsTitle: l10n.bankMaterials,
+                                analysisStepsTitle: 'Шаги анализа',
+                                viewMaterialLabel: l10n.viewMaterial,
+                                showBankLink: i == 0 &&
+                                    _lines[i].bankEvidence.isEmpty,
+                                bankLinkLabel: l10n.showBankMaterial,
+                                onBankLinkTap: i == 0
+                                    ? () => openBankMaterialScreen(
+                                          context,
+                                          data: BankMaterialData(
+                                            backLabel: l10n.backEvent,
+                                          ),
+                                        )
+                                    : null,
+                                onOpenBankItem: (item) =>
+                                    openBankMaterialScreen(
+                                  context,
+                                  data: BankMaterialData(
+                                    backLabel: l10n.backEvent,
+                                    headline: item.title,
+                                    meta: item.meta.isEmpty
+                                        ? 'Материал банка'
+                                        : item.meta,
+                                    fragmentBody: item.body,
+                                  ),
+                                ),
+                              ),
+                          ],
+                          if (_busy) ...[
+                            SizedBox(height: 12 * s),
+                            _AspectBubble(
+                              text: _thinkingLabel,
+                              senderLabel: l10n.appName,
+                              markdown: false,
+                            ),
+                          ],
+                        ] else ...[
                           _AspectBubble(
-                            text: _lines[i].text,
+                            text:
+                                'Я подготовил варианты действий по этой новости. Начнём с влияния на ваши поставки из Китая?',
+                            showBankLink: true,
                             senderLabel: l10n.appName,
-                            analysisSteps: _lines[i].analysisSteps,
-                            bankEvidence: _lines[i].bankEvidence,
-                            bankMaterialsTitle: l10n.bankMaterials,
-                            analysisStepsTitle: 'Шаги анализа',
-                            viewMaterialLabel: l10n.viewMaterial,
-                            showBankLink: i == 0 &&
-                                _lines[i].bankEvidence.isEmpty,
                             bankLinkLabel: l10n.showBankMaterial,
-                            onBankLinkTap: i == 0
-                                ? () => openBankMaterialScreen(
-                                      context,
-                                      data: BankMaterialData(
-                                        backLabel: l10n.backEvent,
-                                      ),
-                                    )
-                                : null,
-                            onOpenBankItem: (item) => openBankMaterialScreen(
+                            onBankLinkTap: () => openBankMaterialScreen(
                               context,
                               data: BankMaterialData(
                                 backLabel: l10n.backEvent,
-                                headline: item.title,
-                                meta: item.meta.isEmpty
-                                    ? 'Материал банка'
-                                    : item.meta,
-                                fragmentBody: item.body,
                               ),
                             ),
                           ),
+                          SizedBox(height: 12 * s),
+                          const _UserBubble(text: 'Какие контракты под риском?'),
+                          SizedBox(height: 12 * s),
+                          _AspectBubble(
+                            text:
+                                'В первую очередь — контракты с поставкой критичных компонентов в ближайшие 60 дней. Риск выше по договорам без альтернативного поставщика и запаса по срокам.\n\nМогу сравнить три сценария: ждать разъяснений, искать замену или пересогласовать сроки поставки.',
+                            senderLabel: l10n.appName,
+                          ),
+                        ],
                       ],
-                      if (_busy) ...[
-                        SizedBox(height: 12 * s),
-                        _AspectBubble(
-                          text: _thinkingLabel,
-                          senderLabel: l10n.appName,
-                          markdown: false,
-                        ),
-                      ],
-                    ] else ...[
-                      _AspectBubble(
-                        text:
-                            'Я подготовил варианты действий по этой новости. Начнём с влияния на ваши поставки из Китая?',
-                        showBankLink: true,
-                        senderLabel: l10n.appName,
-                        bankLinkLabel: l10n.showBankMaterial,
-                        onBankLinkTap: () => openBankMaterialScreen(
-                          context,
-                          data: BankMaterialData(backLabel: l10n.backEvent),
-                        ),
-                      ),
-                      SizedBox(height: 12 * s),
-                      const _UserBubble(text: 'Какие контракты под риском?'),
-                      SizedBox(height: 12 * s),
-                      _AspectBubble(
-                        text:
-                            'В первую очередь — контракты с поставкой критичных компонентов в ближайшие 60 дней. Риск выше по договорам без альтернативного поставщика и запаса по срокам.\n\nМогу сравнить три сценария: ждать разъяснений, искать замену или пересогласовать сроки поставки.',
-                        senderLabel: l10n.appName,
-                      ),
-                    ],
-                  ],
+                    ),
+                  ),
                 ),
               ),
               Material(

@@ -260,20 +260,27 @@ class BankEvidenceChatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.scale;
+    // В dark textPrimary светлый — нельзя класть на жёсткий светлый фон карточки.
+    final bg = AppColors.isDark
+        ? AppColors.card
+        : const Color(0xFFF7F8FA);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(12 * s),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: bg,
         borderRadius: BorderRadius.circular(12 * s),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'МАТЕРИАЛ БАНКА',
-            style: AppTypography.medium(10 * s, color: AppColors.brandRed),
+            style: AppTypography.medium(
+              10 * s,
+              color: AppColors.brandRedBright,
+            ),
           ),
           SizedBox(height: 6 * s),
           Text(
@@ -312,7 +319,10 @@ class BankEvidenceChatCard extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             child: Text(
               openLabel,
-              style: AppTypography.bold(12 * s, color: AppColors.brandRed),
+              style: AppTypography.bold(
+                12 * s,
+                color: AppColors.brandRedBright,
+              ),
             ),
           ),
         ],

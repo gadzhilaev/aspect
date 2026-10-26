@@ -7,11 +7,13 @@
 
 ## Предпосылки
 
-1. API стенда доступен (обычно `:8020`) — см. [`MOBILE_STAND_CONNECTION.md`](MOBILE_STAND_CONNECTION.md).  
-   Или Docker API — [`../backend/docs/COMPETITION_DOCKER.md`](../backend/docs/COMPETITION_DOCKER.md).
+1. API доступен:
+   - публично: `https://gadzhilaev.ru/aspekt-api` — [`PRODUCTION.md`](PRODUCTION.md);  
+   - локально `:8020` — [`MOBILE_STAND_CONNECTION.md`](MOBILE_STAND_CONNECTION.md);  
+   - Docker — [`../backend/docs/COMPETITION_DOCKER.md`](../backend/docs/COMPETITION_DOCKER.md).
 2. `COMPETITION_MODE=true`, `ASSISTANT_PROVIDER=hackathon`, agent loop on.
-3. Flutter указывает на base URL стенда.
-4. Учётки — `demo_password.local` стенда (не в Git).
+3. Flutter / APK указывает на base URL стенда (release по умолчанию — публичный API).
+4. Учётки — email demo A/B в README; **пароль** только из `demo_password.local` (не в Git).
 
 ## Шаги
 
