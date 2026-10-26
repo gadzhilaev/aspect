@@ -367,13 +367,14 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
                           ),
                         ),
                       ],
-                      if (widget.demoCodeHint != null) ...[
+                      if (widget.demoCodeHint != null &&
+                          widget.demoCodeHint!.isNotEmpty) ...[
                         SizedBox(height: 8 * s),
                         Text(
-                          'Demo-код: ${widget.demoCodeHint}',
+                          'Код подтверждения: ${widget.demoCodeHint}',
                           style: AppTypography.medium(
                             13 * s,
-                            color: AppColors.textMuted,
+                            color: AppColors.brandRed,
                           ),
                         ),
                       ],

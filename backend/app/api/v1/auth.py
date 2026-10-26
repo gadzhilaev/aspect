@@ -103,20 +103,25 @@ def register(body: RegisterIn, db: Session = Depends(get_db)) -> MessageOut:
         db.add(user)
 
     settings = get_settings()
-    code = settings.demo_email_code if settings.app_env != "production" else f"{uuid4().int % 10**6:06d}"
+    # Demo/хакатон: фиксированный код (DEMO_EMAIL_CODE, по умолчанию 123456).
+    # В ответе demo_code отдаём при DEBUG — клиент показывает подсказку.
+    code = settings.demo_email_code
     db.add(
         EmailVerification(
             id=str(uuid4()),
             email=user.email,
             code=code,
             expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-            note="demo_code" if settings.app_env != "production" else None,
+            note="demo_code",
         )
     )
     db.commit()
     return MessageOut(
         message="Аккаунт создан. Подтвердите email кодом.",
-        details={"email": user.email, "demo_code": code if settings.debug else None},
+        details={
+            "email": user.email,
+            "demo_code": code if settings.debug else None,
+        },
     )
 
 
