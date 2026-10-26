@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
+import '../api/api_config.dart';
 import '../api/api_exception.dart';
 import '../api/auth_api.dart';
 import '../l10n/app_localizations.dart';
@@ -113,22 +116,72 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on ApiException catch (e) {
       if (!mounted) return;
+      final display = e.userDisplayMessage;
+      unawaited(_reportLoginFailure(
+        email: email,
+        display: display,
+        exception: e,
+        stack: StackTrace.current,
+        loginUrl: '${ApiConfig.apiV1}/auth/login',
+      ));
       setState(() {
-        _error = e.message;
+        _error = display;
         _fieldsError = true;
         _busy = false;
       });
-    } catch (e) {
+    } catch (e, st) {
       if (!mounted) return;
-      final msg = ApiClient.isNetworkFailure(e)
-          ? ApiClient.networkUnavailable(e).message
-          : context.l10n.loginFailedGeneric;
+      final apiEx = ApiClient.isNetworkFailure(e)
+          ? ApiClient.networkUnavailable(e)
+          : ApiException(
+              statusCode: 0,
+              code: 'LOGIN_FAILED',
+              message: e.toString(),
+              underlyingCause: e.toString(),
+            );
+      final display = apiEx.userDisplayMessage;
+      unawaited(_reportLoginFailure(
+        email: email,
+        display: display,
+        exception: apiEx,
+        stack: st,
+        loginUrl: '${ApiConfig.apiV1}/auth/login',
+      ));
       setState(() {
-        _error = msg;
+        _error = display;
         _fieldsError = true;
         _busy = false;
       });
     }
+  }
+
+  Future<void> _reportLoginFailure({
+    required String email,
+    required String display,
+    required ApiException exception,
+    required StackTrace stack,
+    required String loginUrl,
+  }) {
+    return ApiClient.instance.reportClientError(
+      source: ApiClient.clientSource(),
+      screen: 'login',
+      message: display,
+      exceptionType: exception.runtimeType.toString(),
+      stack: stack.toString(),
+      httpStatus: exception.statusCode == 0 ? null : exception.statusCode,
+      httpCode: exception.code,
+      url: loginUrl,
+      method: 'POST',
+      details: {
+        if (exception.details != null) 'api_details': exception.details,
+        if (exception.underlyingCause != null)
+          'underlying_cause': exception.underlyingCause,
+      },
+      appVersion: ApiConfig.appVersion,
+      platform: ApiClient.clientPlatformLabel(),
+      deviceInfo: ApiClient.clientDeviceInfo(),
+      emailAttempted: email,
+    );
   }
 
   @override

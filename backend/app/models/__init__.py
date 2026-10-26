@@ -1,4 +1,5 @@
 from app.models.assistant import AssistantConversation, AssistantMessage, AssistantToolRun
+from app.models.client_error_report import ClientErrorReport
 from app.models.bank_materials import (
     BankDocument,
     BankDocumentFile,
@@ -85,4 +86,5 @@ __all__ = [
     "BankFragmentRegion",
     "SupportThread",
     "SupportMessage",
+    "ClientErrorReport",
 ]

@@ -68,6 +68,8 @@ class EventsApi {
         'content': content,
         'client_message_id': clientMessageId,
       },
+      // Сервер крутит LLM до ~90 с; обычный HTTP timeout 20 с обрывал ответ.
+      timeout: ApiClient.assistantTimeout,
     );
     return res ?? {};
   }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'dart:async';
+
+import '../../api/api_exception.dart';
 import '../../api/events_api.dart';
 import '../../l10n/app_localizations.dart';
 import '../../navigation/app_page_route.dart';
@@ -68,6 +71,12 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  static const _thinkingPhases = [
+    'Смотрю материалы и контекст компании…',
+    'Сопоставляю событие с профилем…',
+    'Формулирую ответ…',
+  ];
+
   ConfirmPlanData? _savedPlan;
   final _input = TextEditingController();
   final _scroll = ScrollController();
@@ -76,6 +85,9 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _apiMode = false;
   List<_ChatLine> _lines = const [];
   List<String> _chips = const [];
+  String _thinkingLabel = _thinkingPhases.first;
+  Timer? _thinkingTimer;
+  int _thinkingPhase = 0;
 
   @override
   void initState() {
@@ -85,9 +97,49 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _thinkingTimer?.cancel();
     _input.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  void _startThinking() {
+    _thinkingTimer?.cancel();
+    _thinkingPhase = 0;
+    _thinkingLabel = _thinkingPhases.first;
+    _thinkingTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_busy) return;
+      setState(() {
+        _thinkingPhase = (_thinkingPhase + 1) % _thinkingPhases.length;
+        _thinkingLabel = _thinkingPhases[_thinkingPhase];
+      });
+    });
+  }
+
+  void _stopThinking() {
+    _thinkingTimer?.cancel();
+    _thinkingTimer = null;
+  }
+
+  Future<void> _reloadMessages() async {
+    final convId = _conversationId;
+    if (convId == null || convId.isEmpty) return;
+    try {
+      final msgs = await EventsApi.instance.listMessages(convId);
+      final items = (msgs['items'] as List?) ??
+          (msgs['messages'] as List?) ??
+          const [];
+      final lines = <_ChatLine>[];
+      for (final raw in items) {
+        if (raw is! Map) continue;
+        final role = (raw['role'] ?? '').toString();
+        final content = (raw['content'] ?? '').toString();
+        if (content.isEmpty) continue;
+        lines.add(_ChatLine(role: role, text: content));
+      }
+      if (!mounted || lines.isEmpty) return;
+      setState(() => _lines = lines);
+    } catch (_) {}
   }
 
   Future<void> _bootstrap() async {
@@ -148,8 +200,10 @@ class _ChatScreenState extends State<ChatScreen> {
       _lines = [..._lines, _ChatLine(role: 'user', text: trimmed)];
       _busy = true;
     });
+    _startThinking();
     final convId = _conversationId;
     if (!_apiMode || convId == null) {
+      _stopThinking();
       setState(() => _busy = false);
       return;
     }
@@ -172,6 +226,7 @@ class _ChatScreenState extends State<ChatScreen> {
           if (s != null && s.toString().trim().isNotEmpty) s.toString().trim(),
       ];
       if (!mounted) return;
+      _stopThinking();
       setState(() {
         if (reply.isNotEmpty || steps.isNotEmpty) {
           _lines = [
@@ -185,18 +240,63 @@ class _ChatScreenState extends State<ChatScreen> {
         }
         _busy = false;
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients) {
-          _scroll.animateTo(
-            _scroll.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-          );
+      _scrollToEnd();
+    } on ApiException catch (e) {
+      // 504: ответ уже мог сохраниться в истории на сервере.
+      await _reloadMessages();
+      if (!mounted) return;
+      _stopThinking();
+      final alreadyHasReply = _lines.isNotEmpty &&
+          _lines.last.role == 'assistant' &&
+          _lines.last.text.trim().isNotEmpty;
+      setState(() {
+        _busy = false;
+        if (!alreadyHasReply) {
+          _lines = [
+            ..._lines,
+            _ChatLine(
+              role: 'assistant',
+              text: e.message.isNotEmpty
+                  ? e.message
+                  : 'Не удалось завершить разбор. Попробуйте ещё раз.',
+            ),
+          ];
         }
       });
+      _scrollToEnd();
     } catch (_) {
-      if (mounted) setState(() => _busy = false);
+      await _reloadMessages();
+      if (!mounted) return;
+      _stopThinking();
+      final alreadyHasReply = _lines.isNotEmpty &&
+          _lines.last.role == 'assistant' &&
+          _lines.last.text.trim().isNotEmpty;
+      setState(() {
+        _busy = false;
+        if (!alreadyHasReply) {
+          _lines = [
+            ..._lines,
+            const _ChatLine(
+              role: 'assistant',
+              text:
+                  'Сервер ещё обрабатывает ответ или сеть оборвалась. Откройте чат снова или отправьте вопрос ещё раз.',
+            ),
+          ];
+        }
+      });
+      _scrollToEnd();
     }
+  }
+
+  void _scrollToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Future<void> _openScenarios() async {
@@ -343,7 +443,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       if (_busy) ...[
                         SizedBox(height: 12 * s),
                         _AspectBubble(
-                          text: '…',
+                          text: _thinkingLabel,
                           senderLabel: l10n.appName,
                         ),
                       ],

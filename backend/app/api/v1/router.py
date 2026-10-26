@@ -11,6 +11,7 @@ from app.api.v1 import (
     events,
     internal,
     notifications,
+    diagnostics,
     public,
     solutions,
     support,
@@ -19,6 +20,7 @@ from app.api.v1 import (
 
 api_router = APIRouter()
 api_router.include_router(public.router)
+api_router.include_router(diagnostics.router)
 api_router.include_router(auth.router)
 api_router.include_router(auth.users_router)
 api_router.include_router(companies.router)

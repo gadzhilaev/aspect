@@ -15,4 +15,7 @@ abstract final class ApiConfig {
   }
 
   static String get apiV1 => '$baseUrl/api/v1';
+
+  /// Matches pubspec `version` (build suffix omitted).
+  static const String appVersion = '1.0.0';
 }

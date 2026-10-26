@@ -25,6 +25,9 @@ class ApiClient {
 
   static const Duration receiveTimeout = Duration(seconds: 20);
 
+  /// Цикл ассистента на стенде до ~90 с — клиент ждёт дольше обычного HTTP.
+  static const Duration assistantTimeout = Duration(seconds: 120);
+
   static const _networkUnavailableMessage =
       'Сервер недоступен. Проверьте, что API запущен, и попробуйте снова.';
 
@@ -35,11 +38,80 @@ class ApiClient {
       code: 'NETWORK_UNAVAILABLE',
       message: _networkUnavailableMessage,
       details: cause?.toString(),
+      underlyingCause: cause?.toString(),
     );
   }
 
-  static Never _requestTimedOut() {
-    throw TimeoutException('HTTP request timed out', receiveTimeout);
+  /// Fire-and-forget diagnostic report (works without auth).
+  Future<void> reportClientError({
+    required String source,
+    required String screen,
+    required String message,
+    String? exceptionType,
+    String? stack,
+    int? httpStatus,
+    String? httpCode,
+    String? url,
+    String? method,
+    Map<String, dynamic>? details,
+    String? appVersion,
+    String? platform,
+    String? deviceInfo,
+    String? emailAttempted,
+  }) async {
+    final body = <String, dynamic>{
+      'source': source,
+      'screen': screen,
+      'message': message,
+      if (exceptionType != null) 'exception_type': exceptionType,
+      if (stack != null) 'stack': stack,
+      if (httpStatus != null) 'http_status': httpStatus,
+      if (httpCode != null) 'http_code': httpCode,
+      if (url != null) 'url': url,
+      if (method != null) 'method': method,
+      if (details != null && details.isNotEmpty) 'details': details,
+      if (appVersion != null) 'app_version': appVersion,
+      if (platform != null) 'platform': platform,
+      if (deviceInfo != null) 'device_info': deviceInfo,
+      if (emailAttempted != null && emailAttempted.isNotEmpty)
+        'email_attempted': emailAttempted,
+    };
+    try {
+      await postJson(
+        '/diagnostics/client-error',
+        auth: false,
+        body: body,
+        timeout: const Duration(seconds: 8),
+      );
+    } catch (e) {
+      if (logHttp) {
+        _logLine('client-error report failed: $e');
+      }
+    }
+  }
+
+  static String clientSource() {
+    if (kIsWeb) return 'web';
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
+    return 'unknown';
+  }
+
+  static String clientPlatformLabel() {
+    if (kIsWeb) return 'web';
+    return Platform.operatingSystem;
+  }
+
+  static String clientDeviceInfo() {
+    if (kIsWeb) return 'web';
+    return '${Platform.operatingSystem} ${Platform.operatingSystemVersion}';
+  }
+
+  static Never _requestTimedOut([Duration? limit]) {
+    throw TimeoutException(
+      'HTTP request timed out',
+      limit ?? receiveTimeout,
+    );
   }
 
   static bool isNetworkFailure(Object error) {
@@ -64,11 +136,13 @@ class ApiClient {
     String path, {
     Map<String, String>? query,
     bool auth = true,
+    Duration? timeout,
   }) async {
     final res = await _send(
       'GET',
       _uri(path, query),
       auth: auth,
+      timeout: timeout,
     );
     return _decodeMap(res);
   }
@@ -77,12 +151,14 @@ class ApiClient {
     String path, {
     Object? body,
     bool auth = true,
+    Duration? timeout,
   }) async {
     final res = await _send(
       'POST',
       _uri(path),
       auth: auth,
       jsonBody: body,
+      timeout: timeout,
     );
     return _decodeMap(res);
   }
@@ -91,12 +167,14 @@ class ApiClient {
     String path, {
     Object? body,
     bool auth = true,
+    Duration? timeout,
   }) async {
     final res = await _send(
       'PATCH',
       _uri(path),
       auth: auth,
       jsonBody: body,
+      timeout: timeout,
     );
     return _decodeMap(res);
   }
@@ -105,12 +183,14 @@ class ApiClient {
     String path, {
     Object? body,
     bool auth = true,
+    Duration? timeout,
   }) async {
     final res = await _send(
       'DELETE',
       _uri(path),
       auth: auth,
       jsonBody: body,
+      timeout: timeout,
     );
     return _decodeMap(res);
   }
@@ -120,13 +200,26 @@ class ApiClient {
     Uri uri, {
     required bool auth,
     Object? jsonBody,
+    Duration? timeout,
   }) async {
     try {
-      var res = await _once(method, uri, auth: auth, jsonBody: jsonBody);
+      var res = await _once(
+        method,
+        uri,
+        auth: auth,
+        jsonBody: jsonBody,
+        timeout: timeout,
+      );
       if (auth && res.statusCode == 401) {
         final ok = await _tryRefresh();
         if (ok) {
-          res = await _once(method, uri, auth: auth, jsonBody: jsonBody);
+          res = await _once(
+            method,
+            uri,
+            auth: auth,
+            jsonBody: jsonBody,
+            timeout: timeout,
+          );
         }
       }
       if (res.statusCode >= 400) {
@@ -149,29 +242,31 @@ class ApiClient {
     Uri uri, {
     required bool auth,
     Object? jsonBody,
+    Duration? timeout,
   }) async {
     final headers = await _headers(auth: auth, json: jsonBody != null);
     final encoded = jsonBody == null ? null : jsonEncode(jsonBody);
     _logRequest(method, uri, headers, encoded);
+    final limit = timeout ?? receiveTimeout;
 
     late http.Response res;
     switch (method) {
       case 'GET':
         res = await _http
             .get(uri, headers: headers)
-            .timeout(receiveTimeout, onTimeout: _requestTimedOut);
+            .timeout(limit, onTimeout: () => _requestTimedOut(limit));
       case 'POST':
         res = await _http
             .post(uri, headers: headers, body: encoded)
-            .timeout(receiveTimeout, onTimeout: _requestTimedOut);
+            .timeout(limit, onTimeout: () => _requestTimedOut(limit));
       case 'PATCH':
         res = await _http
             .patch(uri, headers: headers, body: encoded)
-            .timeout(receiveTimeout, onTimeout: _requestTimedOut);
+            .timeout(limit, onTimeout: () => _requestTimedOut(limit));
       case 'DELETE':
         res = await _http
             .delete(uri, headers: headers, body: encoded)
-            .timeout(receiveTimeout, onTimeout: _requestTimedOut);
+            .timeout(limit, onTimeout: () => _requestTimedOut(limit));
       default:
         throw StateError('Unsupported HTTP method: $method');
     }
