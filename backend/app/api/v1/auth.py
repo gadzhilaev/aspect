@@ -105,7 +105,7 @@ def register(body: RegisterIn, db: Session = Depends(get_db)) -> MessageOut:
     settings = get_settings()
     # Demo/хакатон: фиксированный код (DEMO_EMAIL_CODE, по умолчанию 123456).
     # В ответе demo_code отдаём при DEBUG — клиент показывает подсказку.
-    code = settings.demo_email_code
+    code = "".join(c for c in (settings.demo_email_code or "") if c.isdigit()) or "123456"
     db.add(
         EmailVerification(
             id=str(uuid4()),
@@ -127,19 +127,39 @@ def register(body: RegisterIn, db: Session = Depends(get_db)) -> MessageOut:
 
 @router.post("/verify-email", response_model=MessageOut)
 def verify_email(body: VerifyEmailIn, db: Session = Depends(get_db)) -> MessageOut:
-    user = db.query(User).filter(User.email == body.email.lower()).first()
+    settings = get_settings()
+    email = body.email.lower().strip()
+    code = "".join(c for c in (body.code or "") if c.isdigit())
+    demo = "".join(c for c in (settings.demo_email_code or "") if c.isdigit()) or "123456"
+
+    user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise AppError("NOT_FOUND", "Пользователь не найден", 404)
+
     row = (
         db.query(EmailVerification)
         .filter(
-            EmailVerification.email == body.email.lower(),
-            EmailVerification.code == body.code,
+            EmailVerification.email == email,
+            EmailVerification.code == code,
             EmailVerification.consumed_at.is_(None),
         )
         .order_by(EmailVerification.created_at.desc())
         .first()
     )
+    # DEBUG / competition: принимаем demo-код даже если в БД ещё старый random OTP.
+    if row is None and code == demo and (settings.debug or settings.competition_mode):
+        row = (
+            db.query(EmailVerification)
+            .filter(
+                EmailVerification.email == email,
+                EmailVerification.consumed_at.is_(None),
+            )
+            .order_by(EmailVerification.created_at.desc())
+            .first()
+        )
+        if row is not None:
+            row.code = demo
+            row.note = "demo_code"
     if row is None:
         raise AppError("INVALID_CODE", "Неверный код подтверждения", 400)
     expires = row.expires_at if row.expires_at.tzinfo else row.expires_at.replace(tzinfo=timezone.utc)

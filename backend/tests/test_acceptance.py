@@ -35,6 +35,45 @@ def test_register_verify_login(client: TestClient):
     assert "access_token" in login.json()
 
 
+def test_register_production_stand_uses_demo_email_code(
+    client: TestClient, db, monkeypatch
+):
+    """Stand APP_ENV=production must still store DEMO_EMAIL_CODE (not random OTP)."""
+    from app.core.config import get_settings
+    from app.models import EmailVerification
+
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("DEMO_EMAIL_CODE", "123456")
+    monkeypatch.setenv("DEBUG", "true")
+    get_settings.cache_clear()
+
+    email = f"prod_stand_{uuid4().hex[:8]}@test.app"
+    r = client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "Password1!", "display_name": "Stand"},
+    )
+    assert r.status_code == 200
+    assert r.json()["details"]["demo_code"] == "123456"
+
+    row = (
+        db.query(EmailVerification)
+        .filter(EmailVerification.email == email)
+        .order_by(EmailVerification.created_at.desc())
+        .first()
+    )
+    assert row is not None
+    assert row.code == "123456"
+    assert row.note == "demo_code"
+    assert (
+        client.post(
+            "/api/v1/auth/verify-email",
+            json={"email": email, "code": "123456"},
+        ).status_code
+        == 200
+    )
+    get_settings.cache_clear()
+
+
 def test_cannot_read_foreign_company(client: TestClient, auth_headers, db):
     other = Company(id="cmp_other", name="Чужая", is_demo=False, profile_status="draft")
     db.add(other)

@@ -213,7 +213,8 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
 
   Future<void> _submitCode() async {
     if (_navigating) return;
-    final code = _values.join();
+    final code = _values.join().replaceAll(RegExp(r'\D'), '');
+    if (code.length != 6) return;
     _navigating = true;
     _keepKeyboard = false;
     FocusManager.instance.primaryFocus?.unfocus();
@@ -224,7 +225,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
 
     try {
       await AuthApi.instance.verifyEmail(
-        email: widget.data.email,
+        email: widget.data.email.trim(),
         code: code,
       );
 
@@ -251,15 +252,20 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      _keepKeyboard = true;
       setState(() {
         _navigating = false;
         _hasError = true;
         _apiError = e.message;
       });
       _clearDigits();
-      _nodes.first.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _nodes.first.requestFocus();
+      });
     } catch (e) {
       if (!mounted) return;
+      _keepKeyboard = true;
       setState(() {
         _navigating = false;
         _hasError = true;
@@ -268,7 +274,10 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
             : e.toString();
       });
       _clearDigits();
-      _nodes.first.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _nodes.first.requestFocus();
+      });
     }
   }
 
@@ -320,7 +329,12 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
     final s = context.scale;
     final canResend = _secondsLeft <= 0;
 
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _keepKeyboard = false;
+      },
+      child: Scaffold(
       backgroundColor: AppColors.surface,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
@@ -331,6 +345,8 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.manual,
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -455,6 +471,7 @@ class _CodeConfirmScreenState extends State<CodeConfirmScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }
