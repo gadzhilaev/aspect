@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../api/auth_api.dart';
 import '../../api/companies_api.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/onboarding_data.dart';
@@ -60,6 +61,22 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
     if (profile.email.trim().isEmpty && authEmail.isNotEmpty) {
       profile.email = authEmail;
     }
+    try {
+      final me = await AuthApi.instance.me();
+      final jobRole = AuthApi.jobRoleFromMe(me);
+      if (jobRole != null) {
+        profile.role = jobRole;
+      } else if (profile.role.trim().isNotEmpty) {
+        // Локальная роль есть, на сервере ещё нет — догоняем.
+        try {
+          await AuthApi.instance.patchPreferences(jobRole: profile.role.trim());
+        } catch (_) {}
+      }
+      final display = me['display_name']?.toString().trim() ?? '';
+      if (display.isNotEmpty && profile.fullName.trim().isEmpty) {
+        profile.fullName = display;
+      }
+    } catch (_) {}
     final companyId = await AuthStore.companyId();
     String? telegram;
     var caseFacts = <String>[];
@@ -74,6 +91,17 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
           if (name.isNotEmpty) profile.companyName = name;
           final industry = company['industry']?.toString().trim() ?? '';
           if (industry.isNotEmpty) profile.companyIndustry = industry;
+          // hq_region с API (DaData / онбординг) → плитка «География»,
+          // если локальные cities/companyCity ещё пустые.
+          final hq = company['hq_region']?.toString().trim() ?? '';
+          if (hq.isNotEmpty &&
+              profile.companyCity.trim().isEmpty &&
+              profile.cities.isEmpty) {
+            profile.companyCity = _shortGeographyLabel(hq);
+            if (profile.cities.isEmpty) {
+              profile.cities = [profile.companyCity];
+            }
+          }
         }
       } catch (_) {}
       try {
@@ -201,6 +229,7 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
     if (nodes is! List) return;
     final products = <String>{...profile.products};
     final markets = <String>{...profile.countries};
+    final cities = <String>{...profile.cities};
     final suppliers = <String>{...profile.counterparties};
     for (final n in nodes) {
       if (n is! Map) continue;
@@ -212,13 +241,33 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
           products.add(name);
         case 'market':
           markets.add(name);
+        case 'facility' || 'region' || 'city':
+          cities.add(name);
         case 'supplier' || 'counterparty':
           suppliers.add(name);
       }
     }
     if (products.isNotEmpty) profile.products = products.toList();
     if (markets.isNotEmpty) profile.countries = markets.toList();
+    if (cities.isNotEmpty) profile.cities = cities.toList();
     if (suppliers.isNotEmpty) profile.counterparties = suppliers.toList();
+  }
+
+  /// Полный юр. адрес DaData → короткая метка для плитки (город).
+  static String _shortGeographyLabel(String raw) {
+    final t = raw.trim();
+    if (t.isEmpty) return t;
+    // «г Махачкала, ул …» / «Махачкала, …»
+    final cityMatch = RegExp(
+      r'(?:г\.?\s*|город\s+)?([А-ЯЁA-Z][а-яёa-z\-]+)',
+      unicode: true,
+    ).firstMatch(t);
+    if (cityMatch != null) {
+      final city = cityMatch.group(1)?.trim() ?? '';
+      if (city.isNotEmpty && city.length < t.length) return city;
+    }
+    if (t.contains(',')) return t.split(',').first.trim();
+    return t;
   }
 
   static String _join(

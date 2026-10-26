@@ -212,6 +212,12 @@ def patch_preferences(
         prefs["theme_mode"] = body.theme_mode
     if body.registration_complete is not None:
         prefs["registration_complete"] = bool(body.registration_complete)
+    if body.job_role is not None:
+        role = body.job_role.strip()
+        if role:
+            prefs["job_role"] = role
+        else:
+            prefs.pop("job_role", None)
     user.preferences_json = prefs
     db.add(user)
     db.commit()

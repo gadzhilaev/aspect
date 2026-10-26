@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 
@@ -12,6 +12,18 @@ from app.services.notifications import sanitize_telegram_error
 
 logger = logging.getLogger(__name__)
 
+BotKind = Literal["news", "support"]
+
+
+def _token_for(kind: BotKind) -> str:
+    settings = get_settings()
+    news = (settings.telegram_bot_token or "").strip()
+    if kind == "news":
+        return news
+    support = (settings.telegram_support_bot_token or "").strip()
+    # Single-bot fallback: support reuses news token when support token unset.
+    return support or news
+
 
 def send_telegram_text(
     chat_id: str | int,
@@ -19,12 +31,12 @@ def send_telegram_text(
     *,
     reply_markup: dict[str, Any] | None = None,
     timeout: float = 12.0,
+    bot: BotKind = "news",
 ) -> bool:
     """POST sendMessage. Returns True on HTTP 2xx. Never logs token/text."""
-    settings = get_settings()
-    token = (settings.telegram_bot_token or "").strip()
+    token = _token_for(bot)
     if not token:
-        logger.info("telegram_send_skipped reason=no_token")
+        logger.info("telegram_send_skipped reason=no_token bot=%s", bot)
         return False
     payload: dict[str, Any] = {
         "chat_id": chat_id,
@@ -40,7 +52,8 @@ def send_telegram_text(
             )
         if resp.status_code >= 400:
             logger.warning(
-                "telegram_send_failed status=%s err=%s",
+                "telegram_send_failed bot=%s status=%s err=%s",
+                bot,
                 resp.status_code,
                 sanitize_telegram_error(resp.text),
             )
@@ -48,7 +61,8 @@ def send_telegram_text(
         return True
     except Exception as exc:  # noqa: BLE001
         logger.warning(
-            "telegram_send_error type=%s err=%s",
+            "telegram_send_error bot=%s type=%s err=%s",
+            bot,
             type(exc).__name__,
             sanitize_telegram_error(str(exc)),
         )

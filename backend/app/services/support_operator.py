@@ -186,7 +186,7 @@ def notify_operators(
         return False
     ok_any = False
     for cid in ids:
-        if send_telegram_text(cid, text):
+        if send_telegram_text(cid, text, bot="support"):
             ok_any = True
     logger.info(
         "support_escalate ticket=%s operators=%s sent=%s",
@@ -219,7 +219,7 @@ def forward_user_to_operators(
     ]
     text = "\n".join(lines)
     for cid in ids:
-        send_telegram_text(cid, text)
+        send_telegram_text(cid, text, bot="support")
 
 
 def format_thread_history(
@@ -303,7 +303,7 @@ def notify_user_operator_reply(
 
     sent = False
     for cid in chat_ids:
-        if send_telegram_text(cid, text):
+        if send_telegram_text(cid, text, bot="support"):
             sent = True
     if not sent:
         logger.info(

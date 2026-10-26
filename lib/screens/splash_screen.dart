@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../api/auth_api.dart';
 import '../app/app_controller.dart';
 import '../l10n/app_localizations.dart';
+import '../models/onboarding_data.dart';
 import '../services/auth_store.dart';
 import '../services/notification_permission.dart';
 import '../services/session_store.dart';
@@ -64,8 +65,16 @@ class _SplashScreenState extends State<SplashScreen> {
     var loggedIn = await SessionStore.isLoggedIn();
     if (await AuthStore.hasSession()) {
       try {
-        await AuthApi.instance.refreshMe();
+        final me = await AuthApi.instance.refreshMe();
         loggedIn = await SessionStore.isLoggedIn();
+        final jobRole = AuthApi.jobRoleFromMe(me);
+        if (jobRole != null) {
+          final data = (await SessionStore.loadProfile()) ?? OnboardingData();
+          if (data.role.trim() != jobRole) {
+            data.role = jobRole;
+            await SessionStore.saveProfile(data);
+          }
+        }
       } catch (_) {
         // Токен протух — остаёмся на логине.
         await AuthStore.clearAll();

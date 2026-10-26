@@ -185,6 +185,20 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             },
           );
         }
+        final citySeeds = <String>{
+          ...widget.data.cities.map((e) => e.trim()).where((e) => e.isNotEmpty),
+          if (widget.data.companyCity.trim().isNotEmpty)
+            widget.data.companyCity.trim(),
+        };
+        for (final city in citySeeds) {
+          await ApiClient.instance.postJson(
+            '/companies/$companyId/nodes',
+            body: {
+              'node_type': 'facility',
+              'name': city,
+            },
+          );
+        }
         try {
           await CompaniesApi.instance.completeProfile(companyId);
           await CompaniesApi.instance.buildDigitalTwin(companyId);
@@ -194,6 +208,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       // Онбординг не блокируем при ошибках графа — данные уже в локальном профиле.
     }
     try {
+      final role = widget.data.role.trim();
+      if (role.isNotEmpty) {
+        await AuthApi.instance.patchPreferences(jobRole: role);
+      }
       await AuthApi.instance.markRegistrationComplete();
     } catch (_) {
       // Локальный вход всё равно; флаг «email занят» догоним при следующем логине.

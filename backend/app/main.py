@@ -53,12 +53,16 @@ def create_app() -> FastAPI:
 
     @application.get("/health", tags=["system"])
     def health() -> dict:
+        news = bool((settings.telegram_bot_token or "").strip())
+        support = bool((settings.telegram_support_bot_token or "").strip()) or news
         return {
             "status": "ok",
             "service": "kontur",
             "version": __version__,
             "env": settings.app_env,
-            "telegram_configured": bool(settings.telegram_bot_token),
+            "telegram_configured": news or support,
+            "telegram_news_configured": news,
+            "telegram_support_configured": support,
         }
 
     @application.get("/", tags=["system"])

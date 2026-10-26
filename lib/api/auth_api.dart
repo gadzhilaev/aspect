@@ -102,6 +102,7 @@ class AuthApi {
     String? language,
     String? themeMode,
     bool? registrationComplete,
+    String? jobRole,
   }) async {
     await _client.patchJson(
       '/users/me/preferences',
@@ -109,8 +110,17 @@ class AuthApi {
         'language': ?language,
         'theme_mode': ?themeMode,
         'registration_complete': ?registrationComplete,
+        'job_role': ?jobRole,
       },
     );
+  }
+
+  /// Должность из preferences → локальный OnboardingData.role.
+  static String? jobRoleFromMe(Map<String, dynamic> me) {
+    final prefs = me['preferences'];
+    if (prefs is! Map) return null;
+    final role = prefs['job_role']?.toString().trim() ?? '';
+    return role.isEmpty ? null : role;
   }
 
   /// Помечает аккаунт завершённым — с этого момента email «занят».

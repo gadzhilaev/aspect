@@ -34,6 +34,8 @@ class UserPreferencesIn(BaseModel):
     theme_mode: str | None = Field(default=None, pattern=r"^(light|dark|system)$")
     # True only after onboarding reaches main — until then email can be re-used.
     registration_complete: bool | None = None
+    # Должность пользователя («Генеральный директор» и т.п.) — не membership.role.
+    job_role: str | None = Field(default=None, max_length=128)
 
 
 class DeleteAccountIn(BaseModel):

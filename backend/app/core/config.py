@@ -37,9 +37,15 @@ class Settings(BaseSettings):
     impact_model_version: str = "impact-v1.1"
     simulator_model_version: str = "sim-v1.0"
 
+    # News / user-link bot (subscriptions, test+news outbox).
     telegram_bot_token: str | None = None
     telegram_bot_username: str = "KonturDemoBot"
     telegram_webhook_secret: str = "kontur-webhook-secret"
+    # Optional separate support bot (escalation + operator replies).
+    # Empty → support uses the news bot token (single-bot mode).
+    telegram_support_bot_token: str | None = None
+    telegram_support_bot_username: str | None = None
+    telegram_support_webhook_secret: str | None = None
     telegram_link_token_ttl_minutes: int = 10
     # Support chat: comma-separated Telegram chat_id of human operators.
     # When AI escalates, a card is sent here; operators reply with /support SUP-… text.

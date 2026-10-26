@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../api/auth_api.dart';
 import '../../api/companies_api.dart';
 import '../../data/cities_catalog.dart';
 import '../../models/onboarding_data.dart';
@@ -306,6 +307,11 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
     await SessionStore.saveProfile(d);
     await _syncGraphNodes();
     await _syncIndustryProfile();
+    if (widget.section == ContextSection.myData && _role.trim().isNotEmpty) {
+      try {
+        await AuthApi.instance.patchPreferences(jobRole: _role.trim());
+      } catch (_) {}
+    }
     if (!mounted) return;
     Navigator.of(context).pop(true);
   }
@@ -375,6 +381,18 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
             await ensure('supplier', c);
           }
         case ContextSection.geography:
+          // Города хранятся локально + первый город → hq_region на сервере
+          // (иначе после переустановки плитка снова «Пока пусто»).
+          if (_items.isNotEmpty) {
+            try {
+              await CompaniesApi.instance.patchCompany(companyId, {
+                'hq_region': _items.first.trim(),
+              });
+            } catch (_) {}
+          }
+          for (final city in _items) {
+            await ensure('facility', city);
+          }
         case ContextSection.finance:
         case ContextSection.myData:
           break;
@@ -773,6 +791,11 @@ class _ContextEditScreenState extends State<ContextEditScreen> {
     d.email = _confirmedEmail;
     await SessionStore.saveProfile(d);
     _dirty = true;
+    try {
+      if (_role.trim().isNotEmpty) {
+        await AuthApi.instance.patchPreferences(jobRole: _role.trim());
+      }
+    } catch (_) {}
   }
 
   Future<void> _editField(ProfileEditField field) async {

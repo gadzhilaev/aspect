@@ -86,6 +86,8 @@ class _LoginScreenState extends State<LoginScreen> {
       data.email = email;
       data.fullName = display;
       data.password = '';
+      final jobRole = AuthApi.jobRoleFromMe(me);
+      if (jobRole != null) data.role = jobRole;
       if (companies.isNotEmpty) {
         final c = Map<String, dynamic>.from(companies.first as Map);
         data.companyName = c['name']?.toString() ?? data.companyName;
