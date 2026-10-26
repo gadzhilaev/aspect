@@ -29,6 +29,7 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
   String? _telegramUsername;
   /// Case CSV facts when linked (okved / group / revenue); market share never invented.
   List<String> _caseFacts = const [];
+  String? _caseStatus;
   /// Ждём возврат из Telegram после открытия deep link.
   bool _awaitingTelegramLink = false;
 
@@ -62,8 +63,9 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
     final companyId = await AuthStore.companyId();
     String? telegram;
     var caseFacts = <String>[];
+    String? caseStatus;
     if (companyId != null && companyId.isNotEmpty) {
-        try {
+      try {
         final apiProfile = await CompaniesApi.instance.getProfile(companyId);
         _mergeNodesIntoProfile(profile, apiProfile);
         final company = apiProfile['company'];
@@ -78,6 +80,7 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
         final ctx = await CompaniesApi.instance.getContext(companyId);
         final caseCtx = ctx['case_context'];
         if (caseCtx is Map) {
+          caseStatus = caseCtx['status']?.toString();
           final facts = <String>[];
           final caseProfile = caseCtx['profile'];
           if (caseProfile is Map) {
@@ -99,9 +102,9 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
               final amount = revenue['amount']?.toString().trim() ?? '';
               final raw = revenue['revenue_raw']?.toString().trim() ?? '';
               if (amount.isNotEmpty) {
-                facts.add('Выручка (case): $amount');
+                facts.add('Выручка (справочник): $amount');
               } else if (raw.isNotEmpty) {
-                facts.add('Выручка (case): $raw');
+                facts.add('Выручка (справочник): $raw');
               }
             }
             final share = caseProfile['market_share'];
@@ -118,14 +121,9 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
                 facts.add(
                   note.isNotEmpty
                       ? note
-                      : 'Доля рынка: не рассчитана (нет в CSV)',
+                      : 'Доля рынка: в справочнике не указана',
                 );
               }
-            }
-          } else {
-            final status = caseCtx['status']?.toString() ?? '';
-            if (status.isNotEmpty && status != 'available') {
-              facts.add('Case-контекст: $status');
             }
           }
           caseFacts = facts;
@@ -172,7 +170,27 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
       _profile = profile;
       _telegramUsername = telegram;
       _caseFacts = caseFacts;
+      _caseStatus = caseStatus;
     });
+  }
+
+  String? _caseStatusCopy(AppLocalizations l10n) {
+    switch (_caseStatus) {
+      case 'profile_available':
+        return l10n.caseSourceLinked;
+      case 'not_linked':
+        return l10n.caseSourceNotLinked;
+      case 'integration_not_configured':
+        return l10n.caseSourceNotConfigured;
+      case 'no_active_snapshot':
+        return l10n.caseSourceNoSnapshot;
+      case 'uid_missing_in_snapshot':
+        return l10n.caseSourceUidMissing;
+      case 'profile_absent':
+        return l10n.caseSourceProfileAbsent;
+      default:
+        return null;
+    }
   }
 
   void _mergeNodesIntoProfile(
@@ -655,19 +673,14 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
           behavior: HitTestBehavior.opaque,
           child: _CompanyCard(profile: _profile),
         ),
-        if (_caseFacts.isNotEmpty) ...[
+        if (_caseStatus != null) ...[
           SizedBox(height: 12 * s),
-          for (final fact in _caseFacts)
-            Padding(
-              padding: EdgeInsets.only(bottom: 4 * s),
-              child: Text(
-                fact,
-                style: AppTypography.regular(
-                  12 * s,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ),
+          _CaseSourceCard(
+            title: l10n.caseSourceTitle,
+            body: _caseStatusCopy(l10n) ?? '',
+            facts: _caseFacts,
+            linked: _caseStatus == 'profile_available',
+          ),
         ],
         SizedBox(height: 15 * s),
         Padding(
@@ -730,6 +743,90 @@ class _CompanyTabState extends State<CompanyTab> with WidgetsBindingObserver {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CaseSourceCard extends StatelessWidget {
+  const _CaseSourceCard({
+    required this.title,
+    required this.body,
+    required this.facts,
+    required this.linked,
+  });
+
+  final String title;
+  final String body;
+  final List<String> facts;
+  final bool linked;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.scale;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(14 * s, 14 * s, 14 * s, 14 * s),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(16 * s),
+        border: Border.all(color: AppColors.border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: AppColors.isDark ? 0.35 : 0.1),
+            offset: Offset(0, 4 * s),
+            blurRadius: 12 * s,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTypography.bold(
+                    15.13 * s,
+                    color: AppColors.textInk,
+                  ),
+                ),
+              ),
+              Container(
+                width: 8 * s,
+                height: 8 * s,
+                decoration: BoxDecoration(
+                  color: linked ? const Color(0xFF2E7D32) : AppColors.textMuted,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+          if (body.isNotEmpty) ...[
+            SizedBox(height: 6 * s),
+            Text(
+              body,
+              style: AppTypography.regular(
+                12 * s,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+          if (facts.isNotEmpty) ...[
+            SizedBox(height: 10 * s),
+            for (var i = 0; i < facts.length; i++) ...[
+              if (i > 0) SizedBox(height: 4 * s),
+              Text(
+                facts[i],
+                style: AppTypography.regular(
+                  12 * s,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
     );
   }
 }
